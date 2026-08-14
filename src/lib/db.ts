@@ -7,7 +7,7 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { auth, db, isPersonalUser } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/hooks";
 import {
   PlaceInputSchema,
@@ -50,9 +50,18 @@ export async function deletePlace(placeId: string): Promise<void> {
 
 export async function addEvent(input: EventInput): Promise<string> {
   const parsed = EventInputSchema.parse(input);
+  const currentUser = auth().currentUser;
+  const personal = isPersonalUser(currentUser);
   const ref = await addDoc(
     collection(db(), `${TRIP_PATH}/events`),
-    compact({ ...parsed, createdAt: Date.now() })
+    compact({
+      ...parsed,
+      createdAt: Date.now(),
+      createdByUid: personal ? currentUser?.uid : undefined,
+      createdByName: personal
+        ? (currentUser?.displayName ?? undefined)
+        : undefined,
+    })
   );
   return ref.id;
 }

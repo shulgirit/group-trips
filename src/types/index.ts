@@ -59,6 +59,8 @@ export interface TripEvent {
   participants: Participants;
   notes?: string;
   createdAt?: number;
+  createdByUid?: string;
+  createdByName?: string;
 }
 
 export interface FamilyMember {
@@ -114,6 +116,47 @@ export interface TripDocument {
   contentType: string;
   size: number;
   createdAt: number;
+}
+
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  photoURL: string;
+  /** Which family member this Google account belongs to */
+  familyId: string | null;
+  memberId: string | null;
+  createdAt: number;
+}
+
+export interface ChatCandidate {
+  name: string;
+  category: string;
+  area?: string;
+  description: string;
+  why: string;
+  address?: string;
+  lat?: number | null;
+  lng?: number | null;
+  priceNotes?: string;
+  website?: string;
+  savedPlaceId?: string;
+  dismissed?: boolean;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  candidates?: ChatCandidate[];
+}
+
+export interface ChatSession {
+  id: string;
+  ownerUid: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface TripSettings {

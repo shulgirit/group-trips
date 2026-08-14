@@ -1,34 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
-import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
-
-interface Candidate {
-  name: string;
-  category: string;
-  area?: string;
-  description: string;
-  why: string;
-  address?: string;
-  lat?: number | null;
-  lng?: number | null;
-  priceNotes?: string;
-  website?: string;
-}
-
-interface CandidateState extends Candidate {
-  key: string;
-  status: "idle" | "saving" | "saved" | "dismissed";
-  savedPlaceId?: string;
-}
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  candidates?: CandidateState[];
-}
+import { db } from "@/lib/firebase/client";
+import { TRIP_PATH } from "@/lib/trip";
+import {
+  PLACE_CATEGORIES,
+  type ChatCandidate,
+  type ChatMessage,
+  type ChatSession,
+  type PlaceCategory,
+} from "@/types";
 
 const SUGGESTED_PROMPTS = [
   "תמליץ לנו על אטרקציה",
@@ -39,24 +33,96 @@ const SUGGESTED_PROMPTS = [
   "מה עוד לא שובץ בלוח?",
 ];
 
-let candidateCounter = 0;
-
 export default function AiPage() {
+  const { ready, user, personal } = useFirebase();
+
+  const [sessions, setSessions] = useState<ChatSession[] | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Private session list (Google users only)
+  useEffect(() => {
+    if (!ready || !user || !personal) {
+      setSessions(null);
+      return;
+    }
+    return onSnapshot(
+      query(
+        collection(db(), `${TRIP_PATH}/chatSessions`),
+        where("ownerUid", "==", user.uid)
+      ),
+      (snap) =>
+        setSessions(
+          snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }) as ChatSession)
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+        ),
+      () => setSessions([])
+    );
+  }, [ready, user, personal]);
+
+  const activeSession = useMemo(
+    () => sessions?.find((s) => s.id === sessionId) ?? null,
+    [sessions, sessionId]
+  );
+
+  function openSession(session: ChatSession) {
+    setSessionId(session.id);
+    setMessages(session.messages);
+    setError("");
+  }
+
+  function newChat() {
+    setSessionId(null);
+    setMessages([]);
+    setError("");
+  }
+
+  async function persist(nextMessages: ChatMessage[]): Promise<void> {
+    if (!personal || !user) return;
+    try {
+      if (sessionId) {
+        await updateDoc(doc(db(), `${TRIP_PATH}/chatSessions/${sessionId}`), {
+          messages: nextMessages,
+          updatedAt: Date.now(),
+        });
+      } else {
+        const firstUser = nextMessages.find((m) => m.role === "user");
+        const ref = await addDoc(collection(db(), `${TRIP_PATH}/chatSessions`), {
+          ownerUid: user.uid,
+          title: (firstUser?.content ?? "שיחה").slice(0, 40),
+          messages: nextMessages,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        setSessionId(ref.id);
+      }
+    } catch {
+      // Persistence is best-effort; the chat keeps working in memory
+    }
+  }
+
+  async function deleteSession(id: string) {
+    await deleteDoc(doc(db(), `${TRIP_PATH}/chatSessions/${id}`)).catch(
+      () => undefined
+    );
+    if (id === sessionId) newChat();
+  }
 
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
-    const nextMessages: ChatMessage[] = [
+    const withUser: ChatMessage[] = [
       ...messages,
       { role: "user", content: trimmed },
     ];
-    setMessages(nextMessages);
+    setMessages(withUser);
     setInput("");
     setLoading(true);
     setError("");
@@ -69,28 +135,23 @@ export default function AiPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: nextMessages.map(({ role, content }) => ({
-            role,
-            content,
-          })),
+          messages: withUser.map(({ role, content }) => ({ role, content })),
         }),
       });
       if (!response.ok) throw new Error("ai_failed");
-      const data: { reply: string; candidates: Candidate[] } =
+      const data: { reply: string; candidates: ChatCandidate[] } =
         await response.json();
 
-      setMessages((current) => [
-        ...current,
+      const withReply: ChatMessage[] = [
+        ...withUser,
         {
           role: "assistant",
           content: data.reply,
-          candidates: data.candidates.map((candidate) => ({
-            ...candidate,
-            key: `cand-${candidateCounter++}`,
-            status: "idle",
-          })),
+          candidates: data.candidates,
         },
-      ]);
+      ];
+      setMessages(withReply);
+      await persist(withReply);
     } catch {
       setError("ה-AI לא ענה הפעם — נסו שוב עוד רגע");
     } finally {
@@ -101,20 +162,37 @@ export default function AiPage() {
     }
   }
 
-  function updateCandidate(key: string, patch: Partial<CandidateState>) {
-    setMessages((current) =>
-      current.map((message) => ({
-        ...message,
-        candidates: message.candidates?.map((candidate) =>
-          candidate.key === key ? { ...candidate, ...patch } : candidate
-        ),
-      }))
-    );
+  function candidateKey(messageIndex: number, candidateIndex: number) {
+    return `${messageIndex}-${candidateIndex}`;
   }
 
-  async function saveCandidate(candidate: CandidateState) {
-    if (candidate.status === "saving" || candidate.status === "saved") return;
-    updateCandidate(candidate.key, { status: "saving" });
+  async function updateCandidate(
+    messageIndex: number,
+    candidateIndex: number,
+    patch: Partial<ChatCandidate>
+  ) {
+    const next = messages.map((message, mi) =>
+      mi === messageIndex && message.candidates
+        ? {
+            ...message,
+            candidates: message.candidates.map((candidate, ci) =>
+              ci === candidateIndex ? { ...candidate, ...patch } : candidate
+            ),
+          }
+        : message
+    );
+    setMessages(next);
+    await persist(next);
+  }
+
+  async function saveCandidate(
+    candidate: ChatCandidate,
+    messageIndex: number,
+    candidateIndex: number
+  ) {
+    const key = candidateKey(messageIndex, candidateIndex);
+    if (savingKeys.has(key) || candidate.savedPlaceId) return;
+    setSavingKeys((current) => new Set(current).add(key));
     try {
       const category = (
         candidate.category in PLACE_CATEGORIES ? candidate.category : "other"
@@ -130,10 +208,17 @@ export default function AiPage() {
         summary: `${candidate.description}\n\n💛 ${candidate.why}`,
         priceNotes: candidate.priceNotes,
       });
-      updateCandidate(candidate.key, { status: "saved", savedPlaceId: placeId });
+      await updateCandidate(messageIndex, candidateIndex, {
+        savedPlaceId: placeId,
+      });
     } catch {
-      updateCandidate(candidate.key, { status: "idle" });
       setError("השמירה נכשלה, נסו שוב");
+    } finally {
+      setSavingKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
     }
   }
 
@@ -142,9 +227,66 @@ export default function AiPage() {
       <h1 className="mb-1 font-display text-2xl font-bold text-ink-900">
         ✨ הקונסיירז׳ של הטיול
       </h1>
-      <p className="mb-4 text-sm text-ink-500">
-        מכיר את המקומות, הלו״ז והמשפחות שלנו — ואפשר לשמור כל המלצה בקליק
+      <p className="mb-3 text-sm text-ink-500">
+        {personal
+          ? "🔒 השיחות שלכם פרטיות — רק מה שתשמרו למקומות או ללוח משותף לקבוצה"
+          : "מכיר את המקומות, הלו״ז והמשפחות שלנו"}
       </p>
+
+      {/* Private session bar */}
+      {personal && (
+        <div className="-mx-4 mb-3 overflow-x-auto px-4">
+          <div className="flex w-max items-center gap-2">
+            <button
+              type="button"
+              onClick={newChat}
+              className={`whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition ${
+                sessionId === null
+                  ? "bg-sea-600 text-cream-50"
+                  : "bg-cream-100 text-ink-700"
+              }`}
+            >
+              + שיחה חדשה
+            </button>
+            {sessions?.map((session) => (
+              <span key={session.id} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => openSession(session)}
+                  className={`max-w-40 truncate whitespace-nowrap rounded-s-full px-3.5 py-2 text-sm transition ${
+                    sessionId === session.id
+                      ? "bg-sea-600 font-medium text-cream-50"
+                      : "bg-cream-100 text-ink-700"
+                  }`}
+                >
+                  {session.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteSession(session.id)}
+                  aria-label={`מחיקת השיחה ${session.title}`}
+                  className={`rounded-e-full py-2 pe-2.5 ps-1 text-xs ${
+                    sessionId === session.id
+                      ? "bg-sea-600 text-sea-200"
+                      : "bg-cream-100 text-ink-300"
+                  }`}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!personal && (
+        <Link
+          href="/settings"
+          className="mb-3 block rounded-2xl bg-lemon-100 px-4 py-2.5 text-sm font-medium text-ink-700"
+        >
+          🔒 רוצים היסטוריית שיחות פרטית? התחברו עם Google בהגדרות ›
+        </Link>
+      )}
 
       <div className="flex-1 space-y-4">
         {messages.length === 0 && (
@@ -162,13 +304,13 @@ export default function AiPage() {
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <div key={index}>
+        {messages.map((message, messageIndex) => (
+          <div key={messageIndex}>
             <div
-              className={`max-w-[85%] rounded-3xl px-4 py-3 leading-relaxed ${
+              className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 leading-relaxed ${
                 message.role === "user"
                   ? "me-auto bg-sea-600 text-cream-50"
-                  : "ms-auto w-fit bg-white text-ink-900 border border-cream-200"
+                  : "ms-auto w-fit border border-cream-200 bg-white text-ink-900"
               }`}
             >
               {message.content}
@@ -176,84 +318,89 @@ export default function AiPage() {
 
             {message.candidates && message.candidates.length > 0 && (
               <ul className="mt-3 space-y-3">
-                {message.candidates
-                  .filter((c) => c.status !== "dismissed")
-                  .map((candidate) => {
-                    const category =
-                      PLACE_CATEGORIES[
-                        candidate.category as PlaceCategory
-                      ] ?? PLACE_CATEGORIES.other;
-                    return (
-                      <li
-                        key={candidate.key}
-                        className="rounded-3xl border border-cream-200 bg-white p-4"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-ink-900">
-                              {category.emoji} {candidate.name}
-                            </p>
-                            <p className="text-sm text-ink-500">
-                              {category.label}
-                              {candidate.area ? ` · ${candidate.area}` : ""}
-                              {candidate.priceNotes
-                                ? ` · ${candidate.priceNotes}`
-                                : ""}
-                            </p>
-                          </div>
+                {message.candidates.map((candidate, candidateIndex) => {
+                  if (candidate.dismissed) return null;
+                  const key = candidateKey(messageIndex, candidateIndex);
+                  const category =
+                    PLACE_CATEGORIES[candidate.category as PlaceCategory] ??
+                    PLACE_CATEGORIES.other;
+                  return (
+                    <li
+                      key={key}
+                      className="rounded-3xl border border-cream-200 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-ink-900">
+                            {category.emoji} {candidate.name}
+                          </p>
+                          <p className="text-sm text-ink-500">
+                            {category.label}
+                            {candidate.area ? ` · ${candidate.area}` : ""}
+                            {candidate.priceNotes
+                              ? ` · ${candidate.priceNotes}`
+                              : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateCandidate(messageIndex, candidateIndex, {
+                              dismissed: true,
+                            })
+                          }
+                          aria-label="הסר מהתוצאות"
+                          className="px-1 text-ink-300"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-ink-700">
+                        {candidate.description}
+                      </p>
+                      <p className="mt-1.5 text-sm text-terra-600">
+                        💛 {candidate.why}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        {candidate.savedPlaceId ? (
+                          <Link
+                            href={`/places/${candidate.savedPlaceId}`}
+                            className="rounded-2xl bg-sea-100 px-4 py-2.5 text-sm font-semibold text-sea-700"
+                          >
+                            ✓ נשמר לקבוצה · לפרטים ולשיבוץ ›
+                          </Link>
+                        ) : (
                           <button
                             type="button"
                             onClick={() =>
-                              updateCandidate(candidate.key, {
-                                status: "dismissed",
-                              })
+                              saveCandidate(
+                                candidate,
+                                messageIndex,
+                                candidateIndex
+                              )
                             }
-                            aria-label="הסר מהתוצאות"
-                            className="px-1 text-ink-300"
+                            disabled={savingKeys.has(key)}
+                            className="rounded-2xl bg-sea-600 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
                           >
-                            ✕
+                            {savingKeys.has(key)
+                              ? "שומר…"
+                              : "❤️ הוסף למקומות של כולם"}
                           </button>
-                        </div>
-                        <p className="mt-2 text-sm leading-relaxed text-ink-700">
-                          {candidate.description}
-                        </p>
-                        <p className="mt-1.5 text-sm text-terra-600">
-                          💛 {candidate.why}
-                        </p>
-                        <div className="mt-3 flex items-center gap-2">
-                          {candidate.status === "saved" ? (
-                            <Link
-                              href={`/places/${candidate.savedPlaceId}`}
-                              className="rounded-2xl bg-sea-100 px-4 py-2.5 text-sm font-semibold text-sea-700"
-                            >
-                              ✓ נשמר · לפרטים ולשיבוץ ›
-                            </Link>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => saveCandidate(candidate)}
-                              disabled={candidate.status === "saving"}
-                              className="rounded-2xl bg-sea-600 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
-                            >
-                              {candidate.status === "saving"
-                                ? "שומר…"
-                                : "❤️ הוסף למקומות"}
-                            </button>
-                          )}
-                          {candidate.website && (
-                            <a
-                              href={candidate.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700"
-                            >
-                              🌐
-                            </a>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
+                        )}
+                        {candidate.website && (
+                          <a
+                            href={candidate.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700"
+                          >
+                            🌐
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -291,7 +438,9 @@ export default function AiPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="שאלו אותי כל דבר על הטיול…"
+          placeholder={
+            activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
+          }
           className="flex-1 rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-ink-900 shadow-sm outline-none placeholder:text-ink-300 focus:border-sea-500"
         />
         <button

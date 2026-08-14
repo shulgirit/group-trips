@@ -176,6 +176,11 @@ export default function CalendarPage() {
                         📝 {event.notes}
                       </p>
                     )}
+                    {event.createdByName && (
+                      <p className="mt-1 text-xs text-ink-300">
+                        נוסף ע״י {event.createdByName}
+                      </p>
+                    )}
                     {flag?.conflict && (
                       <p className="mt-1 text-sm font-medium text-terra-600">
                         ⚠️ התנגשות — אותם משתתפים בשני אירועים

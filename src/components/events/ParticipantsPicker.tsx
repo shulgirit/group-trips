@@ -1,5 +1,6 @@
 "use client";
 
+import { useFirebase } from "@/components/providers/FirebaseProvider";
 import type { Family, Participants } from "@/types";
 
 const MODES = [
@@ -17,11 +18,19 @@ export function ParticipantsPicker({
   onChange: (next: Participants) => void;
   families: Family[];
 }) {
+  const { profile } = useFirebase();
+
   function switchMode(type: Participants["type"]) {
     if (type === value.type) return;
     if (type === "all") onChange({ type: "all" });
     if (type === "families") onChange({ type: "families", familyIds: [] });
-    if (type === "members") onChange({ type: "members", memberIds: [] });
+    if (type === "members") {
+      // Start with yourself when you've linked your family member
+      onChange({
+        type: "members",
+        memberIds: profile?.memberId ? [profile.memberId] : [],
+      });
+    }
   }
 
   function toggleFamily(familyId: string) {

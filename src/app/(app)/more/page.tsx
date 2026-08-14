@@ -43,8 +43,8 @@ const SECTIONS = [
   {
     emoji: "⚙️",
     label: "הגדרות",
-    description: "תאריכים, וילה ותמונות",
-    href: null,
+    description: "החשבון שלי, זהות משפחתית ופרטי הטיול",
+    href: "/settings",
   },
 ] as const;
 

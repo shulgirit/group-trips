@@ -28,12 +28,32 @@ service cloud.firestore {
         && resource.data.ownerUid == request.auth.uid;
     }
 
+    // User profiles: everyone can see who's who, each user writes only
+    // their own (with a personal Google identity).
+    match /trips/{tripId}/users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn()
+        && request.auth.uid == uid
+        && isGoogleUser();
+    }
+
+    // AI chat sessions are always private to their owner.
+    match /trips/{tripId}/chatSessions/{sessionId} {
+      allow read, update, delete: if signedIn()
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && isGoogleUser();
+    }
+
     // All other trip data is shared between everyone on the trip
     match /trips/{tripId}/{coll}/{docId} {
-      allow read, write: if signedIn() && coll != 'documents';
+      allow read, write: if signedIn()
+        && !(coll in ['documents', 'chatSessions', 'users']);
     }
     match /trips/{tripId}/{coll}/{docId}/{sub}/{subId} {
-      allow read, write: if signedIn() && coll != 'documents';
+      allow read, write: if signedIn()
+        && !(coll in ['documents', 'chatSessions', 'users']);
     }
   }
 }

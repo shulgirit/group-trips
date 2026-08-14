@@ -21,6 +21,8 @@ export const TRIP = {
   },
 } as const;
 
+export const TRIP_PATH = `trips/${TRIP.id}`;
+
 /** All trip days as ISO date strings (YYYY-MM-DD), inclusive. */
 export function tripDays(): string[] {
   const days: string[] = [];

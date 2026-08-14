@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { TRIP } from "@/lib/trip";
+import { TRIP_PATH } from "@/lib/trip";
 import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
 
-export const TRIP_PATH = `trips/${TRIP.id}`;
+export { TRIP_PATH };
 
 export function useCollectionData<T extends { id: string }>(path: string) {
   const { ready } = useFirebase();
