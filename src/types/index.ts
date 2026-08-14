@@ -96,12 +96,18 @@ export interface PollOption {
   placeId?: string | null;
 }
 
+export interface PollVote {
+  optionId: string;
+  /** Voter display name, denormalized for the "who voted" view */
+  name: string;
+}
+
 export interface Poll {
   id: string;
   question: string;
   options: PollOption[];
-  /** familyId -> optionId */
-  votes: Record<string, string>;
+  /** voterUid -> vote (legacy entries may be a bare optionId string) */
+  votes: Record<string, string | PollVote>;
   closed: boolean;
   /** The standing group poll, always shown first */
   pinned?: boolean;

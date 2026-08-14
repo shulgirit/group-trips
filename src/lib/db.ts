@@ -139,11 +139,12 @@ export async function removePollOption(
 
 export async function votePoll(
   pollId: string,
-  familyId: string,
-  optionId: string
+  voterUid: string,
+  optionId: string,
+  voterName: string
 ): Promise<void> {
   await updateDoc(doc(db(), `${TRIP_PATH}/polls/${pollId}`), {
-    [`votes.${familyId}`]: optionId,
+    [`votes.${voterUid}`]: { optionId, name: voterName },
   });
 }
 

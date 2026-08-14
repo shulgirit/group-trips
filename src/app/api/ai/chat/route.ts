@@ -248,9 +248,13 @@ async function buildTripContext(): Promise<{ context: string; data: TripData }> 
 
   const polls = pollsSnap.docs.map((d) => {
     const p = d.data();
-    const votes = (p.votes ?? {}) as Record<string, string>;
+    const votes = (p.votes ?? {}) as Record<
+      string,
+      string | { optionId: string }
+    >;
     const counts = new Map<string, number>();
-    for (const optionId of Object.values(votes)) {
+    for (const vote of Object.values(votes)) {
+      const optionId = typeof vote === "string" ? vote : vote.optionId;
       counts.set(optionId, (counts.get(optionId) ?? 0) + 1);
     }
     const options = (p.options ?? [])

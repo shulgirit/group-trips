@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronDown, ChevronUp, Users } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
@@ -15,6 +16,23 @@ import {
 import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type Family, type Place, type Poll } from "@/types";
 
+interface NormalizedVote {
+  voterKey: string;
+  optionId: string;
+  name: string;
+}
+
+/** Handles both new per-person votes and legacy family-keyed strings. */
+function normalizeVotes(poll: Poll, families: Family[]): NormalizedVote[] {
+  return Object.entries(poll.votes ?? {}).map(([voterKey, vote]) => {
+    if (typeof vote === "string") {
+      const family = families.find((f) => f.id === voterKey);
+      return { voterKey, optionId: vote, name: family?.name ?? "מטייל" };
+    }
+    return { voterKey, optionId: vote.optionId, name: vote.name || "מטייל" };
+  });
+}
+
 function PollCard({
   poll,
   families,
@@ -24,24 +42,35 @@ function PollCard({
   families: Family[];
   places: Place[];
 }) {
-  const { profile } = useFirebase();
-  const [votingAs, setVotingAs] = useState<string | null>(null);
+  const { user, personal, profile } = useFirebase();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removingOptionId, setRemovingOptionId] = useState<string | null>(null);
+  const [votersOpen, setVotersOpen] = useState(false);
 
-  // When you've linked yourself in Settings, you vote as your family in one tap
-  const myFamilyId =
-    profile?.familyId && families.some((f) => f.id === profile.familyId)
-      ? profile.familyId
-      : null;
-  const voterFamilyId = myFamilyId ?? votingAs;
-  const myFamily = families.find((f) => f.id === myFamilyId);
-  const myVote = voterFamilyId ? poll.votes?.[voterFamilyId] : undefined;
+  const votes = useMemo(
+    () => normalizeVotes(poll, families),
+    [poll, families]
+  );
 
-  const totalVotes = Object.keys(poll.votes ?? {}).length;
+  const voterUid = personal && user ? user.uid : null;
+  const linkedMemberName = useMemo(() => {
+    if (!profile?.memberId) return null;
+    for (const family of families) {
+      const member = family.members.find((m) => m.id === profile.memberId);
+      if (member) return member.name;
+    }
+    return null;
+  }, [profile, families]);
+  const voterName =
+    linkedMemberName ?? user?.displayName?.split(" ")[0] ?? "מטייל";
+
+  const myVote = voterUid
+    ? votes.find((v) => v.voterKey === voterUid)?.optionId
+    : undefined;
+
   const counts = new Map<string, number>();
-  for (const optionId of Object.values(poll.votes ?? {})) {
-    counts.set(optionId, (counts.get(optionId) ?? 0) + 1);
+  for (const vote of votes) {
+    counts.set(vote.optionId, (counts.get(vote.optionId) ?? 0) + 1);
   }
   const maxCount = Math.max(0, ...counts.values());
   const winners = poll.options.filter(
@@ -49,15 +78,12 @@ function PollCard({
   );
 
   async function handleVote(optionId: string) {
-    if (!voterFamilyId) return;
-    await votePoll(poll.id, voterFamilyId, optionId);
-    setVotingAs(null);
+    if (!voterUid || poll.closed) return;
+    await votePoll(poll.id, voterUid, optionId, voterName);
   }
 
   return (
-    <div
-      className={`card p-4 ${poll.pinned ? "border-lemon-300" : ""}`}
-    >
+    <div className={`card p-4 ${poll.pinned ? "border-lemon-300" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-display text-xl font-bold text-ink-900">
           {poll.question}
@@ -75,58 +101,28 @@ function PollCard({
 
       {/* Voting state */}
       {!poll.closed &&
-        (myFamilyId ? (
+        (voterUid ? (
           <p className="mt-3 rounded-2xl bg-sea-100 px-3.5 py-2 text-sm text-sea-700">
             {myVote
-              ? `✓ הצבעתם בתור ${myFamily?.name} — אפשר לשנות בלחיצה על אפשרות אחרת`
-              : `לחצו על אפשרות כדי להצביע בתור ${myFamily?.name}`}
+              ? `✓ הצבעתם (${voterName}) — לחיצה על אפשרות אחרת משנה את ההצבעה`
+              : `היי ${voterName} — לחצו על אפשרות כדי להצביע`}
           </p>
         ) : (
-          <div className="mt-3 rounded-2xl bg-cream-100 px-3.5 py-2.5">
-            <p className="mb-1.5 text-sm font-medium text-ink-700">
-              {votingAs
-                ? "עכשיו לחצו על האפשרות שבחרתם ⬇️"
-                : "1. בחרו את המשפחה שלכם · 2. לחצו על אפשרות"}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {families.map((family) => {
-                const votedOption = poll.votes?.[family.id];
-                return (
-                  <button
-                    key={family.id}
-                    type="button"
-                    onClick={() =>
-                      setVotingAs(votingAs === family.id ? null : family.id)
-                    }
-                    className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
-                      votingAs === family.id
-                        ? "bg-sea-600 text-cream-50"
-                        : votedOption
-                          ? "bg-sea-100 text-sea-700"
-                          : "bg-white text-ink-700"
-                    }`}
-                  >
-                    {family.name.replace("משפחת ", "")}
-                    {votedOption ? " ✓" : ""}
-                  </button>
-                );
-              })}
-            </div>
-            <Link
-              href="/settings"
-              className="mt-1.5 block text-xs text-sea-600"
-            >
-              💡 קשרו את עצמכם למשפחה בהגדרות — ותצביעו בלחיצה אחת ›
-            </Link>
-          </div>
+          <Link
+            href="/settings"
+            className="mt-3 block rounded-2xl bg-cream-100 px-3.5 py-2 text-sm text-ink-700"
+          >
+            🔐 כדי להצביע, השלימו כניסה עם Google בהגדרות ›
+          </Link>
         ))}
 
-      {/* Options with results */}
+      {/* Options */}
       <ul className="mt-3 space-y-2">
         {poll.options.map((option) => {
           const count = counts.get(option.id) ?? 0;
-          const percent = totalVotes ? (count / totalVotes) * 100 : 0;
-          const isWinner = poll.closed && winners.some((w) => w.id === option.id);
+          const percent = votes.length ? (count / votes.length) * 100 : 0;
+          const isWinner =
+            poll.closed && winners.some((w) => w.id === option.id);
           const place = option.placeId
             ? places.find((p) => p.id === option.placeId)
             : null;
@@ -135,14 +131,14 @@ function PollCard({
             <li key={option.id}>
               <button
                 type="button"
-                disabled={poll.closed || !voterFamilyId}
+                disabled={poll.closed || !voterUid}
                 onClick={() => handleVote(option.id)}
                 className={`relative w-full overflow-hidden rounded-2xl border text-right transition ${
                   isWinner
                     ? "border-lemon-400 bg-lemon-100"
                     : isMyVote
                       ? "border-sea-500 bg-white ring-2 ring-sea-200"
-                      : voterFamilyId
+                      : voterUid && !poll.closed
                         ? "border-sea-200 bg-white active:bg-sea-100"
                         : "border-cream-200 bg-white"
                 } disabled:opacity-100`}
@@ -235,25 +231,65 @@ function PollCard({
         })}
       </ul>
 
-      <div className="mt-3 flex items-center gap-2 text-sm">
-        <span className="text-ink-500">
-          {totalVotes}/{families.length} משפחות הצביעו
-        </span>
+      {/* Who voted drawer */}
+      <button
+        type="button"
+        onClick={() => setVotersOpen(!votersOpen)}
+        className="mt-3 flex w-full items-center gap-1.5 text-sm font-medium text-ink-500"
+      >
+        <Users size={14} />
+        {votes.length ? `${votes.length} הצביעו` : "עוד אין הצבעות"}
         <span className="flex-1" />
+        {votes.length > 0 && (
+          <>
+            מי הצביע למה?
+            {votersOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </>
+        )}
+      </button>
+      {votersOpen && votes.length > 0 && (
+        <div className="mt-2 space-y-2 rounded-2xl bg-cream-100/80 p-3">
+          {poll.options.map((option) => {
+            const voters = votes.filter((v) => v.optionId === option.id);
+            if (!voters.length) return null;
+            return (
+              <div key={option.id}>
+                <p className="text-xs font-semibold text-ink-500">
+                  {option.label}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {voters.map((vote) => (
+                    <span
+                      key={vote.voterKey}
+                      className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink-700"
+                    >
+                      {vote.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer actions */}
+      <div className="mt-3 flex items-center gap-2 border-t border-cream-100 pt-3 text-sm">
         {poll.closed && winners.length === 1 && winners[0] && (
           <Link
             href={`/calendar/new?title=${encodeURIComponent(winners[0].label)}${
               winners[0].placeId ? `&placeId=${winners[0].placeId}` : ""
             }`}
-            className="rounded-xl bg-sea-600 px-3.5 py-2 font-semibold text-cream-50"
+            className="btn-primary px-3.5 py-2 text-sm"
           >
             📅 קבע כפעילות
           </Link>
         )}
+        <span className="flex-1" />
         <button
           type="button"
           onClick={() => setPollClosed(poll.id, !poll.closed)}
-          className="rounded-xl bg-cream-100 px-3.5 py-2 font-medium text-ink-700"
+          className="btn-soft px-3.5 py-2 text-sm"
         >
           {poll.closed ? "פתח מחדש" : "סגור סקר"}
         </button>
@@ -261,7 +297,7 @@ function PollCard({
           <button
             type="button"
             onClick={() => deletePoll(poll.id)}
-            className="rounded-xl bg-terra-600 px-3 py-2 text-xs font-semibold text-cream-50"
+            className="btn bg-terra-600 px-3 py-2 text-xs text-cream-50"
           >
             למחוק
           </button>
@@ -270,7 +306,7 @@ function PollCard({
             type="button"
             onClick={() => setConfirmDelete(true)}
             aria-label="מחיקת סקר"
-            className="text-ink-300"
+            className="px-1 text-ink-300"
           >
             🗑️
           </button>
@@ -305,7 +341,7 @@ export default function PollsPage() {
         <EmptyState
           emoji="🗳️"
           title="עוד אין סקרים"
-          description="מתלבטים בין אטרקציות? פתחו סקר וכל משפחה תצביע"
+          description="מתלבטים בין אטרקציות? פתחו סקר וכולם יצביעו"
           action={
             <Link href="/polls/new" className="btn-primary px-5 py-2.5 text-sm">
               + סקר ראשון
