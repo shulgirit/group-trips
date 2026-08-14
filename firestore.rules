@@ -1,58 +1,67 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only users signed in via our custom-token flow or Google (password
-    // holders / family members). No public sign-in.
     function signedIn() {
       return request.auth != null;
+    }
+    // Legacy shared identity, minted server-side only for trip-password holders
+    function isCustomIdentity() {
+      return request.auth.token.firebase.sign_in_provider == 'custom';
     }
     function isGoogleUser() {
       return request.auth.token.firebase.sign_in_provider == 'google.com';
     }
-
-    match /trips/{tripId} {
-      allow read, write: if signedIn();
+    // A member is either the shared custom identity, or a Google account
+    // that joined the trip (its users/{uid} doc was created by the server
+    // after presenting the join code).
+    function isMember() {
+      return signedIn()
+        && (isCustomIdentity()
+            || exists(/databases/$(database)/documents/trips/sicily-2026/users/$(request.auth.uid)));
     }
 
-    // Documents: shared ones visible to everyone, private ones only to
-    // their owner (private requires a real Google identity — the shared
-    // custom-token identity is not personal).
+    match /trips/{tripId} {
+      allow read, write: if isMember();
+    }
+
+    // Documents: shared ones visible to all members, private ones only to
+    // their owner (private requires a personal Google identity).
     match /trips/{tripId}/documents/{docId} {
-      allow read: if signedIn()
+      allow read: if isMember()
         && (resource.data.visibility == 'shared'
             || resource.data.ownerUid == request.auth.uid);
-      allow create: if signedIn()
+      allow create: if isMember()
         && request.resource.data.ownerUid == request.auth.uid
         && (request.resource.data.visibility == 'shared' || isGoogleUser());
-      allow update, delete: if signedIn()
+      allow update, delete: if isMember()
         && resource.data.ownerUid == request.auth.uid;
     }
 
-    // User profiles: everyone can see who's who, each user writes only
-    // their own (with a personal Google identity).
+    // User profiles: members can see who's who; each user updates only
+    // their own profile. Creation happens server-side at join time.
     match /trips/{tripId}/users/{uid} {
-      allow read: if signedIn();
-      allow write: if signedIn()
+      allow read: if isMember();
+      allow update: if isMember()
         && request.auth.uid == uid
         && isGoogleUser();
     }
 
     // AI chat sessions are always private to their owner.
     match /trips/{tripId}/chatSessions/{sessionId} {
-      allow read, update, delete: if signedIn()
+      allow read, update, delete: if isMember()
         && resource.data.ownerUid == request.auth.uid;
-      allow create: if signedIn()
+      allow create: if isMember()
         && request.resource.data.ownerUid == request.auth.uid
         && isGoogleUser();
     }
 
-    // All other trip data is shared between everyone on the trip
+    // All other trip data is shared between the members
     match /trips/{tripId}/{coll}/{docId} {
-      allow read, write: if signedIn()
+      allow read, write: if isMember()
         && !(coll in ['documents', 'chatSessions', 'users']);
     }
     match /trips/{tripId}/{coll}/{docId}/{sub}/{subId} {
-      allow read, write: if signedIn()
+      allow read, write: if isMember()
         && !(coll in ['documents', 'chatSessions', 'users']);
     }
   }

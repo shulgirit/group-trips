@@ -4,28 +4,34 @@ service firebase.storage {
     function signedIn() {
       return request.auth != null;
     }
+    function isCustomIdentity() {
+      return request.auth.token.firebase.sign_in_provider == 'custom';
+    }
     function isGoogleUser() {
       return request.auth.token.firebase.sign_in_provider == 'google.com';
     }
-
-    // Shared documents: everyone on the trip can read; only the uploader
-    // (path-scoped) can write/delete.
-    match /trips/{tripId}/documents/shared/{uid}/{fileName} {
-      allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid;
+    function isMember() {
+      return signedIn()
+        && (isCustomIdentity()
+            || firestore.exists(/databases/(default)/documents/trips/sicily-2026/users/$(request.auth.uid)));
     }
 
-    // Private documents: owner only, and only with a personal Google
-    // identity (the shared custom-token uid is not private).
+    // Shared documents: any member can read; only the uploader can write.
+    match /trips/{tripId}/documents/shared/{uid}/{fileName} {
+      allow read: if isMember();
+      allow write: if isMember() && request.auth.uid == uid;
+    }
+
+    // Private documents: owner only, personal Google identity required.
     match /trips/{tripId}/documents/private/{uid}/{fileName} {
-      allow read, write: if signedIn()
+      allow read, write: if isMember()
         && request.auth.uid == uid
         && isGoogleUser();
     }
 
     // Trip photos and other shared media
     match /trips/{tripId}/photos/{allPaths=**} {
-      allow read, write: if signedIn();
+      allow read, write: if isMember();
     }
   }
 }

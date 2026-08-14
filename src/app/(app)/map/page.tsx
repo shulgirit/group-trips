@@ -22,6 +22,7 @@ const FILTERS = [
   { id: "attractions", label: "אטרקציות" },
   { id: "food", label: "אוכל" },
   { id: "beach", label: "חופים" },
+  { id: "stay", label: "לינה" },
   { id: "unscheduled", label: "לא שובץ" },
 ] as const;
 
@@ -38,6 +39,8 @@ function categoryMatches(category: PlaceCategory, filter: FilterId): boolean {
       return ["restaurant", "icecream"].includes(category);
     case "beach":
       return category === "beach";
+    case "stay":
+      return category === "accommodation";
   }
 }
 
@@ -70,6 +73,7 @@ export default function MapPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const boundsRef = useRef<any>(null);
 
   const scheduledIds = useMemo(
     () =>
@@ -126,14 +130,28 @@ export default function MapPage() {
     if (!map || !window.google?.maps) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = mappablePlaces.map((place) => {
+      // The villa is home base — it gets a big, distinct terracotta pin
+      const isVilla = place.id === "villa";
       const marker = new window.google.maps.Marker({
         map,
         position: { lat: place.lat, lng: place.lng },
         title: place.name,
+        zIndex: isVilla ? 1000 : undefined,
         label: {
           text: PLACE_CATEGORIES[place.category]?.emoji ?? "📌",
-          fontSize: "16px",
+          fontSize: isVilla ? "22px" : "16px",
         },
+        icon: isVilla
+          ? {
+              path: "M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z",
+              fillColor: "#b05a38",
+              fillOpacity: 1,
+              strokeColor: "#fbf8f1",
+              strokeWeight: 2.5,
+              scale: 1.6,
+              labelOrigin: new window.google.maps.Point(0, -30),
+            }
+          : undefined,
       });
       marker.addListener("click", () => setSelected(place));
       return marker;
@@ -144,6 +162,7 @@ export default function MapPage() {
       mappablePlaces.forEach((p) =>
         bounds.extend({ lat: p.lat!, lng: p.lng! })
       );
+      boundsRef.current = bounds;
       map.fitBounds(bounds, 60);
       if (mappablePlaces.length === 1) map.setZoom(13);
     }
@@ -162,6 +181,17 @@ export default function MapPage() {
       mapRef.current.addListener("click", () => setSelected(null));
     }
     renderMarkers();
+
+    // The container can change size after init (fonts/layout settling,
+    // rotation) — retile and re-fit so markers stay centered.
+    const observer = new ResizeObserver(() => {
+      const map = mapRef.current;
+      if (!map || !window.google?.maps) return;
+      window.google.maps.event.trigger(map, "resize");
+      if (boundsRef.current) map.fitBounds(boundsRef.current, 60);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
   }, [mapReady, renderMarkers]);
 
   const selectedCategory = selected
