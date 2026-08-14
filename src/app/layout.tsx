@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { heebo, frankRuhl } from "@/lib/fonts";
+import { heebo } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,11 +28,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="he"
-      dir="rtl"
-      className={`${heebo.variable} ${frankRuhl.variable}`}
-    >
+    <html lang="he" dir="rtl" className={heebo.variable}>
       <body className="antialiased">{children}</body>
     </html>
   );

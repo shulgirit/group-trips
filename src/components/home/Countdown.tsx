@@ -31,7 +31,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 
   if (timeLeft === "pending") {
     return (
-      <div dir="rtl" className="flex justify-center gap-2.5" aria-hidden>
+      <div dir="ltr" className="flex justify-center gap-2.5" aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
@@ -44,8 +44,9 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 
   if (timeLeft === null) return null;
 
-  // Explicit RTL order: days must be the RIGHTMOST unit.
-  // dir="rtl" on the row + days first in source = days on the right.
+  // Clock-style order (per Omer): days LEFTMOST, like 1:02:15:22.
+  // dir="ltr" on the row + days first in source = days on the left,
+  // regardless of the page's RTL direction.
   const units = [
     { value: timeLeft.days, label: "ימים" },
     { value: timeLeft.hours, label: "שעות" },
@@ -54,7 +55,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
   ];
 
   return (
-    <div dir="rtl" className="flex justify-center gap-2.5">
+    <div dir="ltr" className="flex justify-center gap-2.5">
       {units.map(({ value, label }) => (
         <div
           key={label}

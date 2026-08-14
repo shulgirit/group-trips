@@ -51,7 +51,8 @@
 
 @theme inline {
   --font-sans: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-frank), var(--font-heebo), Georgia, serif;
+  /* One family everywhere — hierarchy comes from weight and size */
+  --font-display: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── base ─────────────────────────────────────────────────── */
