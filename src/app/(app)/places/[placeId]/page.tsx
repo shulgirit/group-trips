@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Map as MapIcon,
   MapPin,
+  Pencil,
   Sparkles,
   Star,
   Ticket,
@@ -25,6 +26,8 @@ import {
 } from "lucide-react";
 import { SchedulePlaceSheet } from "@/components/events/SchedulePlaceSheet";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { isPersonalUser } from "@/lib/firebase/client";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deletePlace, updatePlace } from "@/lib/db";
@@ -40,6 +43,10 @@ export default function PlaceDetailPage({
 }) {
   const { placeId } = use(params);
   const router = useRouter();
+  const { user } = useFirebase();
+  // Deleting places is a parents-only action (Google accounts) —
+  // also enforced server-side in the security rules
+  const canDelete = isPersonalUser(user);
   const { place, loading } = usePlace(placeId);
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -50,6 +57,22 @@ export default function PlaceDetailPage({
   const [enrichMessage, setEnrichMessage] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [enrichUrl, setEnrichUrl] = useState("");
+  const [editing, setEditing] = useState<{
+    field: string;
+    value: string;
+  } | null>(null);
+  const [savingField, setSavingField] = useState(false);
+
+  async function saveField() {
+    if (!editing || savingField) return;
+    setSavingField(true);
+    try {
+      await updatePlace(placeId, { [editing.field]: editing.value.trim() });
+      setEditing(null);
+    } finally {
+      setSavingField(false);
+    }
+  }
 
   async function handleEnrich(url?: string) {
     if (enriching) return;
@@ -107,33 +130,53 @@ export default function PlaceDetailPage({
   const placeEvents = (events ?? []).filter((e) => e.placeId === place.id);
 
   const detailRows = [
-    place.address && { icon: MapPin, label: "כתובת", value: place.address },
+    place.address && {
+      icon: MapPin,
+      label: "כתובת",
+      value: place.address,
+      field: "address",
+    },
     place.openingHours && {
       icon: Clock,
       label: "שעות פתיחה",
       value: place.openingHours,
+      field: "openingHours",
     },
-    place.priceNotes && { icon: Euro, label: "מחיר", value: place.priceNotes },
+    place.priceNotes && {
+      icon: Euro,
+      label: "מחיר",
+      value: place.priceNotes,
+      field: "priceNotes",
+    },
     place.recommendedDurationMin && {
       icon: Hourglass,
       label: "זמן מומלץ",
       value: `כ-${Math.round(place.recommendedDurationMin / 60)} שעות`,
+      field: null,
     },
-    place.tips && { icon: Lightbulb, label: "טיפים", value: place.tips },
+    place.tips && {
+      icon: Lightbulb,
+      label: "טיפים",
+      value: place.tips,
+      field: "tips",
+    },
     place.popularDishes && {
       icon: UtensilsCrossed,
       label: "מנות מומלצות",
       value: place.popularDishes,
+      field: "popularDishes",
     },
     place.reviewsSummary && {
       icon: Star,
       label: "מה אומרים בביקורות",
       value: place.reviewsSummary,
+      field: "reviewsSummary",
     },
   ].filter(Boolean) as {
     icon: typeof MapPin;
     label: string;
     value: string;
+    field: string | null;
   }[];
 
   async function handleDelete() {
@@ -304,29 +347,111 @@ export default function PlaceDetailPage({
 
       {/* ── Editorial summary ── */}
       {place.summary && (
-        <div className="rounded-3xl bg-cream-100/80 px-5 py-4">
-          <p className="whitespace-pre-line border-s-2 border-lemon-400 ps-4 leading-relaxed text-ink-700">
-            {place.summary}
-          </p>
+        <div className="relative rounded-3xl bg-cream-100/80 px-5 py-4">
+          {editing?.field === "summary" ? (
+            <div>
+              <textarea
+                value={editing.value}
+                onChange={(e) => setEditing({ field: "summary", value: e.target.value })}
+                rows={5}
+                autoFocus
+                className="field leading-relaxed"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveField}
+                  disabled={savingField}
+                  className="btn-primary px-4 py-2 text-sm"
+                >
+                  {savingField ? "שומר…" : "שמירה"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  className="btn-soft px-4 py-2 text-sm"
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="whitespace-pre-line border-s-2 border-lemon-400 ps-4 leading-relaxed text-ink-700">
+                {place.summary}
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setEditing({ field: "summary", value: place.summary ?? "" })
+                }
+                aria-label="עריכת התיאור"
+                className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-ink-500"
+              >
+                <Pencil size={14} />
+              </button>
+            </>
+          )}
         </div>
       )}
 
       {/* ── Details ── */}
       {detailRows.length > 0 && (
         <div className="card divide-y divide-cream-100">
-          {detailRows.map(({ icon: Icon, label, value }) => (
+          {detailRows.map(({ icon: Icon, label, value, field }) => (
             <div key={label} className="flex gap-3.5 px-5 py-3.5">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sea-100 text-sea-700">
                 <Icon size={16} />
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-300">
                   {label}
                 </p>
-                <p className="mt-0.5 whitespace-pre-line leading-relaxed text-ink-900">
-                  {value}
-                </p>
+                {editing && field && editing.field === field ? (
+                  <div className="mt-1">
+                    <textarea
+                      value={editing.value}
+                      onChange={(e) =>
+                        setEditing({ field, value: e.target.value })
+                      }
+                      rows={3}
+                      autoFocus
+                      className="field leading-relaxed"
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={saveField}
+                        disabled={savingField}
+                        className="btn-primary px-4 py-1.5 text-sm"
+                      >
+                        {savingField ? "שומר…" : "שמירה"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(null)}
+                        className="btn-soft px-4 py-1.5 text-sm"
+                      >
+                        ביטול
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-0.5 whitespace-pre-line leading-relaxed text-ink-900">
+                    {value}
+                  </p>
+                )}
               </div>
+              {field && editing?.field !== field && (
+                <button
+                  type="button"
+                  onClick={() => setEditing({ field, value })}
+                  aria-label={`עריכת ${label}`}
+                  className="self-start p-1 text-ink-300"
+                >
+                  <Pencil size={14} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -381,7 +506,8 @@ export default function PlaceDetailPage({
         </div>
       )}
 
-      {/* ── Delete ── */}
+      {/* ── Delete (parents only) ── */}
+      {canDelete && (
       <div className="pt-2">
         {confirmDelete ? (
           <div className="card border-terra-400 p-4 text-center">
@@ -416,6 +542,7 @@ export default function PlaceDetailPage({
           </button>
         )}
       </div>
+      )}
 
       <SchedulePlaceSheet
         place={place}
