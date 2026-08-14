@@ -247,11 +247,16 @@ function ExpensesContent() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink-900">הוצאות</h1>
+        <div>
+          <p className="kicker text-terra-500">חשבון משותף</p>
+          <h1 className="font-display text-3xl font-bold text-ink-900">
+            הוצאות
+          </h1>
+        </div>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="rounded-2xl bg-terra-500 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98]"
+          className="btn-accent px-4 py-2.5 text-sm"
         >
           + הוצאה
         </button>
@@ -278,9 +283,16 @@ function ExpensesContent() {
         <>
           {/* Summary */}
           {eurSummary && eurSummary.total > 0 && (
-            <section className="rounded-3xl bg-gradient-to-b from-sea-600 to-sea-700 p-5 text-cream-50">
-              <p className="text-sm text-sea-200">סה״כ הוצאות משותפות</p>
-              <p className="mt-1 text-3xl font-bold">
+            <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sea-700 to-sea-950 p-5 text-cream-50 shadow-[var(--shadow-card)]">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -left-10 -top-14 h-44 w-44 rounded-full bg-lemon-400/15 blur-2xl"
+              />
+              <p className="kicker text-sea-200">סה״כ הוצאות משותפות</p>
+              <p
+                dir="ltr"
+                className="mt-1.5 text-right font-display text-4xl font-bold tabular-nums"
+              >
                 {formatAmount(eurSummary.total, "EUR")}
                 {ilsTotal > 0 && (
                   <span className="ms-2 text-lg font-semibold text-sea-200">
@@ -311,15 +323,22 @@ function ExpensesContent() {
                 ))}
               </div>
               {eurSummary.transfers.length > 0 && (
-                <div className="mt-4 rounded-2xl bg-sea-900/40 p-3">
-                  <p className="mb-2 text-sm font-semibold">
-                    כדי לסגור חשבון:
+                <div className="mt-4 rounded-2xl bg-sea-950/50 p-3.5 backdrop-blur">
+                  <p className="mb-2 text-sm font-semibold text-lemon-300">
+                    ✓ כדי לסגור חשבון
                   </p>
                   {eurSummary.transfers.map((transfer, i) => (
-                    <p key={i} className="text-sm tabular-nums">
-                      {familyName(families, transfer.fromFamilyId)} ←{" "}
-                      {familyName(families, transfer.toFamilyId)}{" "}
-                      <b>{formatAmount(transfer.amount, "EUR")}</b>
+                    <p
+                      key={i}
+                      className="flex items-center justify-between py-0.5 text-sm"
+                    >
+                      <span>
+                        {familyName(families, transfer.fromFamilyId)} ←{" "}
+                        {familyName(families, transfer.toFamilyId)}
+                      </span>
+                      <b dir="ltr" className="tabular-nums">
+                        {formatAmount(transfer.amount, "EUR")}
+                      </b>
                     </p>
                   ))}
                 </div>

@@ -1,41 +1,52 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────
+   Sicily Together — design tokens
+   Modern Sicilian Editorial: limestone, Mediterranean sea,
+   terracotta, lemon, olive. Warm, premium, quiet.
+   ───────────────────────────────────────────────────────────── */
+
 @theme {
-  /* Warm cream neutrals */
-  --color-cream-50: #fbf8f1;
-  --color-cream-100: #f6f0e3;
-  --color-cream-200: #eee4cf;
-  --color-cream-300: #e2d3b4;
+  /* Limestone / warm cream neutrals */
+  --color-cream-50: #faf7f0;
+  --color-cream-100: #f3eee1;
+  --color-cream-200: #e8dfcc;
+  --color-cream-300: #d6c7a8;
 
-  /* Ink (warm dark) */
-  --color-ink-900: #2d251b;
-  --color-ink-700: #4b4033;
-  --color-ink-500: #7a6c5a;
-  --color-ink-300: #b3a68f;
+  /* Warm ink */
+  --color-ink-900: #26221b;
+  --color-ink-700: #453f33;
+  --color-ink-500: #776d5c;
+  --color-ink-300: #b0a48e;
 
-  /* Mediterranean sea */
-  --color-sea-100: #ddeef4;
-  --color-sea-200: #b9dde8;
-  --color-sea-400: #4fa3bf;
-  --color-sea-500: #2380a0;
-  --color-sea-600: #17627e;
-  --color-sea-700: #124e66;
-  --color-sea-900: #0c3345;
+  /* Mediterranean */
+  --color-sea-950: #082433;
+  --color-sea-900: #0b2e40;
+  --color-sea-700: #0f4f6b;
+  --color-sea-600: #14627f;
+  --color-sea-500: #1e81a3;
+  --color-sea-400: #47a5c4;
+  --color-sea-200: #bfe0ea;
+  --color-sea-100: #e4f1f5;
 
   /* Terracotta */
-  --color-terra-100: #f7e4da;
-  --color-terra-400: #d98a68;
-  --color-terra-500: #c96f4a;
-  --color-terra-600: #b05a38;
+  --color-terra-600: #a5502d;
+  --color-terra-500: #bf653c;
+  --color-terra-400: #d68356;
+  --color-terra-100: #f6e6da;
 
-  /* Lemon */
-  --color-lemon-100: #fbf0d0;
-  --color-lemon-300: #f5da85;
-  --color-lemon-400: #f0c95e;
-  --color-lemon-500: #e5b63e;
+  /* Sicilian lemon */
+  --color-lemon-500: #dfae38;
+  --color-lemon-400: #edc65c;
+  --color-lemon-300: #f4d888;
+  --color-lemon-100: #faf1d8;
 
-  /* Olive accent */
-  --color-olive-500: #7d8552;
+  /* Olive */
+  --color-olive-500: #757d4d;
+  --color-olive-100: #edefe2;
+
+  --shadow-card: 0 1px 2px rgb(38 34 27 / 0.05), 0 10px 30px -12px rgb(38 34 27 / 0.14);
+  --shadow-float: 0 4px 12px rgb(38 34 27 / 0.10), 0 18px 44px -14px rgb(38 34 27 / 0.24);
 }
 
 @theme inline {
@@ -43,25 +54,117 @@
   --font-display: var(--font-frank), var(--font-heebo), Georgia, serif;
 }
 
+/* ── base ─────────────────────────────────────────────────── */
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-cream-50);
   color: var(--color-ink-900);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  background-color: var(--color-cream-50);
+  background-image:
+    radial-gradient(1100px 480px at 88% -6%, rgb(237 198 92 / 0.08), transparent 62%),
+    radial-gradient(950px 560px at -12% 18%, rgb(30 129 163 / 0.05), transparent 58%);
+  background-repeat: no-repeat;
 }
 
-/* iOS standalone: respect safe areas */
+::selection {
+  background-color: var(--color-lemon-300);
+  color: var(--color-ink-900);
+}
+
 @supports (padding: env(safe-area-inset-bottom)) {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-::selection {
-  background-color: var(--color-lemon-300);
-  color: var(--color-ink-900);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── component language ───────────────────────────────────── */
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply rounded-3xl border border-cream-200/80 bg-white;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Buttons */
+  .btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-soft,
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply bg-sea-700 text-cream-50;
+  }
+  .btn-accent {
+    @apply bg-terra-500 text-cream-50;
+  }
+  .btn-soft {
+    @apply bg-cream-100 font-medium text-ink-700;
+  }
+  .btn-outline {
+    @apply border border-sea-200 bg-white font-medium text-sea-700;
+  }
+
+  /* Chips */
+  .chip {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-cream-100 px-4 py-2 text-sm font-medium text-ink-500 transition;
+  }
+  .chip.chip-active {
+    @apply bg-sea-700 text-cream-50;
+  }
+
+  /* Form fields */
+  .field {
+    @apply w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-sea-500 focus:ring-2 focus:ring-sea-200/60;
+  }
+
+  /* Editorial section title with a small Sicilian rule */
+  .section-title {
+    @apply font-display text-xl font-bold text-ink-900;
+  }
+
+  /* Text over photography */
+  .hero-overlay {
+    background: linear-gradient(
+      to top,
+      rgb(8 36 51 / 0.86) 0%,
+      rgb(8 36 51 / 0.45) 45%,
+      rgb(8 36 51 / 0.12) 75%,
+      rgb(8 36 51 / 0.28) 100%
+    );
+  }
+}
+
+/* Small caps label used for editorial kickers */
+.kicker {
+  font-size: 0.6875rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Hide scrollbars on horizontal chip rows (still scrollable) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

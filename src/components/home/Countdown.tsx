@@ -29,18 +29,14 @@ export function Countdown({ targetIso }: { targetIso: string }) {
     return () => clearInterval(interval);
   }, [targetIso]);
 
-  // Avoid hydration mismatch: render a stable skeleton until mounted
   if (timeLeft === "pending") {
     return (
-      <div className="flex justify-center gap-3" aria-hidden>
-        {["ימים", "שעות", "דקות", "שניות"].map((label) => (
+      <div dir="rtl" className="flex justify-center gap-2.5" aria-hidden>
+        {[0, 1, 2, 3].map((i) => (
           <div
-            key={label}
-            className="w-[72px] animate-pulse rounded-2xl bg-cream-50/15 py-3"
-          >
-            <div className="mx-auto h-8 w-10 rounded bg-cream-50/20" />
-            <div className="mx-auto mt-1.5 h-3 w-8 rounded bg-cream-50/20" />
-          </div>
+            key={i}
+            className="h-[68px] w-[66px] animate-pulse rounded-2xl bg-white/10"
+          />
         ))}
       </div>
     );
@@ -48,6 +44,8 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 
   if (timeLeft === null) return null;
 
+  // Explicit RTL order: days must be the RIGHTMOST unit.
+  // dir="rtl" on the row + days first in source = days on the right.
   const units = [
     { value: timeLeft.days, label: "ימים" },
     { value: timeLeft.hours, label: "שעות" },
@@ -56,16 +54,21 @@ export function Countdown({ targetIso }: { targetIso: string }) {
   ];
 
   return (
-    <div className="flex justify-center gap-3">
+    <div dir="rtl" className="flex justify-center gap-2.5">
       {units.map(({ value, label }) => (
         <div
           key={label}
-          className="w-[72px] rounded-2xl bg-cream-50/15 py-3 text-center backdrop-blur-sm"
+          className="w-[66px] rounded-2xl border border-white/15 bg-white/10 py-2.5 text-center backdrop-blur-md"
         >
-          <div className="text-3xl font-bold tabular-nums text-cream-50">
+          <div
+            dir="ltr"
+            className="font-display text-[1.75rem] font-bold leading-8 tabular-nums text-cream-50"
+          >
             {value}
           </div>
-          <div className="mt-0.5 text-xs text-sea-200">{label}</div>
+          <div className="mt-0.5 text-[11px] font-medium text-cream-50/75">
+            {label}
+          </div>
         </div>
       ))}
     </div>

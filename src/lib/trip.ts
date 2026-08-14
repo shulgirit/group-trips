@@ -6,6 +6,8 @@ export const TRIP = {
   id: "sicily-2026",
   name: "סיציליה 2026",
   heroTitle: "סיציליה מחכה לנו 🇮🇹",
+  /** Home hero artwork — replace with a real trip photo anytime */
+  heroImage: "/images/hero.jpg",
   /** Departure flight from TLV, Israel time */
   countdownTarget: "2026-08-15T21:35:00+03:00",
   /** Trip calendar days (local dates) */

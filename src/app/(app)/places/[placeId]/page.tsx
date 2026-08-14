@@ -4,6 +4,23 @@ import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  CalendarPlus,
+  ChevronRight,
+  Clock,
+  Compass,
+  Euro,
+  Globe,
+  Heart,
+  Hourglass,
+  Lightbulb,
+  Map as MapIcon,
+  MapPin,
+  Star,
+  Ticket,
+  UtensilsCrossed,
+  Vote,
+} from "lucide-react";
 import { SchedulePlaceSheet } from "@/components/events/SchedulePlaceSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,7 +48,7 @@ export default function PlaceDetailPage({
   if (loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-52 w-full rounded-3xl" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-24 w-full rounded-3xl" />
       </div>
@@ -45,10 +62,7 @@ export default function PlaceDetailPage({
         title="המקום לא נמצא"
         description="אולי הוא נמחק"
         action={
-          <Link
-            href="/places"
-            className="inline-block rounded-2xl bg-sea-600 px-5 py-2.5 text-sm font-semibold text-cream-50"
-          >
+          <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
             לכל המקומות
           </Link>
         }
@@ -60,23 +74,34 @@ export default function PlaceDetailPage({
   const placeEvents = (events ?? []).filter((e) => e.placeId === place.id);
 
   const detailRows = [
-    place.address && { label: "📍 כתובת", value: place.address },
-    place.openingHours && { label: "🕒 שעות פתיחה", value: place.openingHours },
-    place.priceNotes && { label: "💶 מחיר", value: place.priceNotes },
+    place.address && { icon: MapPin, label: "כתובת", value: place.address },
+    place.openingHours && {
+      icon: Clock,
+      label: "שעות פתיחה",
+      value: place.openingHours,
+    },
+    place.priceNotes && { icon: Euro, label: "מחיר", value: place.priceNotes },
     place.recommendedDurationMin && {
-      label: "⏱️ זמן מומלץ",
+      icon: Hourglass,
+      label: "זמן מומלץ",
       value: `כ-${Math.round(place.recommendedDurationMin / 60)} שעות`,
     },
-    place.tips && { label: "💡 טיפים", value: place.tips },
+    place.tips && { icon: Lightbulb, label: "טיפים", value: place.tips },
     place.popularDishes && {
-      label: "🍽️ מנות מומלצות",
+      icon: UtensilsCrossed,
+      label: "מנות מומלצות",
       value: place.popularDishes,
     },
     place.reviewsSummary && {
-      label: "⭐ מה אומרים בביקורות",
+      icon: Star,
+      label: "מה אומרים בביקורות",
       value: place.reviewsSummary,
     },
-  ].filter(Boolean) as { label: string; value: string }[];
+  ].filter(Boolean) as {
+    icon: typeof MapPin;
+    label: string;
+    value: string;
+  }[];
 
   async function handleDelete() {
     await deletePlace(placeId);
@@ -85,60 +110,91 @@ export default function PlaceDetailPage({
 
   return (
     <div className="space-y-5">
-      {/* Hero */}
-      <div className="relative -mx-4 -mt-4 h-56 overflow-hidden bg-gradient-to-br from-sea-500 to-sea-800">
+      {/* ── Immersive hero ── */}
+      <div className="relative -mx-4 -mt-4 h-72 overflow-hidden md:mx-0 md:mt-0 md:rounded-[2rem]">
         {place.imageUrl ? (
           <Image
             src={place.imageUrl}
             alt={place.name}
             fill
-            sizes="(max-width: 512px) 100vw, 512px"
+            sizes="(max-width: 768px) 100vw, 576px"
             className="object-cover"
             priority
           />
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-7xl opacity-80">
-            {category.emoji}
-          </span>
+          <div className="absolute inset-0 bg-gradient-to-br from-sea-500 to-sea-900">
+            <span className="absolute inset-0 flex items-center justify-center text-8xl opacity-70">
+              {category.emoji}
+            </span>
+          </div>
         )}
+        <div className="hero-overlay absolute inset-0" />
+
+        {/* Floating navigation */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="חזרה"
+          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 text-ink-700 shadow-sm backdrop-blur"
+        >
+          <ChevronRight size={22} />
+        </button>
         <button
           type="button"
           onClick={() => updatePlace(placeId, { favorite: !place.favorite })}
           aria-label={place.favorite ? "הסר ממועדפים" : "הוסף למועדפים"}
-          className="absolute left-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 text-xl backdrop-blur"
+          className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 shadow-sm backdrop-blur"
         >
-          {place.favorite ? "❤️" : "🤍"}
+          <Heart
+            size={19}
+            className={
+              place.favorite ? "fill-terra-500 text-terra-500" : "text-ink-500"
+            }
+          />
         </button>
+
+        {/* Title over image */}
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-5">
+          <p className="kicker text-lemon-300">
+            {category.label}
+            {place.area ? ` · ${place.area}` : ""}
+          </p>
+          <h1 className="mt-1 font-display text-3xl font-bold leading-tight text-cream-50">
+            {place.name}
+          </h1>
+        </div>
       </div>
 
-      <div>
-        <h1 className="font-display text-3xl font-bold text-ink-900">
-          {place.name}
-        </h1>
-        <p className="mt-1 text-ink-500">
-          {category.emoji} {category.label}
-          {place.area ? ` · ${place.area}` : ""}
-        </p>
-      </div>
-
-      {/* Primary actions */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* ── Primary actions ── */}
+      <div className="flex gap-2">
         <a
           href={wazeUrl(place)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-sea-600 py-3.5 font-semibold text-cream-50 transition active:scale-[0.98]"
+          className="btn-primary flex-1 py-3.5"
         >
-          🧭 נווט ב-Waze
+          <Compass size={19} />
+          נווט
         </a>
         <button
           type="button"
           onClick={() => setScheduleOpen(true)}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-terra-500 py-3.5 font-semibold text-cream-50 transition active:scale-[0.98]"
+          className="btn-accent flex-1 py-3.5"
         >
-          📅 הוסף ללוח
+          <CalendarPlus size={19} />
+          הוסף ללוח
         </button>
+        <a
+          href={googleMapsUrl(place)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Google Maps"
+          className="btn-soft px-4 py-3.5"
+        >
+          <MapIcon size={19} />
+        </a>
       </div>
+
       <button
         type="button"
         onClick={async () => {
@@ -152,39 +208,45 @@ export default function PlaceDetailPage({
           }
         }}
         disabled={pollState !== "idle"}
-        className={`w-full rounded-2xl border py-3 font-medium transition ${
+        className={`w-full py-3 ${
           pollState === "added"
-            ? "border-lemon-300 bg-lemon-100 text-ink-700"
-            : "border-sea-200 text-sea-700 active:scale-[0.99]"
+            ? "btn border border-lemon-300 bg-lemon-100 font-medium text-ink-700"
+            : "btn-outline"
         }`}
       >
+        <Vote size={18} />
         {pollState === "added"
-          ? "🗳️ בסקר הקבוצתי ✓"
+          ? "בסקר הקבוצתי ✓"
           : pollState === "adding"
             ? "מוסיף…"
-            : "🗳️ הוסף לסקר הקבוצתי"}
+            : "הוסף לסקר הקבוצתי"}
       </button>
-      <a
-        href={googleMapsUrl(place)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block text-center text-sm font-medium text-sea-600"
-      >
-        או פתחו ב-Google Maps ›
-      </a>
 
+      {/* ── Editorial summary ── */}
       {place.summary && (
-        <p className="rounded-3xl bg-cream-100 px-4 py-4 leading-relaxed text-ink-700">
-          {place.summary}
-        </p>
+        <div className="rounded-3xl bg-cream-100/80 px-5 py-4">
+          <p className="whitespace-pre-line border-s-2 border-lemon-400 ps-4 leading-relaxed text-ink-700">
+            {place.summary}
+          </p>
+        </div>
       )}
 
+      {/* ── Details ── */}
       {detailRows.length > 0 && (
-        <div className="divide-y divide-cream-200 rounded-3xl border border-cream-200 bg-white">
-          {detailRows.map(({ label, value }) => (
-            <div key={label} className="px-4 py-3">
-              <p className="text-sm font-medium text-ink-500">{label}</p>
-              <p className="mt-0.5 text-ink-900">{value}</p>
+        <div className="card divide-y divide-cream-100">
+          {detailRows.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex gap-3.5 px-5 py-3.5">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sea-100 text-sea-700">
+                <Icon size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-300">
+                  {label}
+                </p>
+                <p className="mt-0.5 whitespace-pre-line leading-relaxed text-ink-900">
+                  {value}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -197,9 +259,10 @@ export default function PlaceDetailPage({
               href={place.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-2xl border border-sea-200 py-3 text-center font-medium text-sea-700"
+              className="btn-outline flex-1 py-3"
             >
-              🌐 אתר רשמי
+              <Globe size={17} />
+              אתר רשמי
             </a>
           )}
           {place.bookingUrl && (
@@ -207,20 +270,19 @@ export default function PlaceDetailPage({
               href={place.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-2xl border border-sea-200 py-3 text-center font-medium text-sea-700"
+              className="btn-outline flex-1 py-3"
             >
-              🎟️ הזמנת כרטיסים
+              <Ticket size={17} />
+              הזמנת כרטיסים
             </a>
           )}
         </div>
       )}
 
-      {/* Scheduled events */}
+      {/* ── Scheduled ── */}
       {placeEvents.length > 0 && (
         <div>
-          <h2 className="mb-2 font-display text-lg font-bold text-ink-900">
-            בלוח שלנו
-          </h2>
+          <h2 className="section-title mb-2 text-lg">בלוח שלנו</h2>
           <ul className="space-y-2">
             {placeEvents.map((event) => (
               <li
@@ -230,7 +292,7 @@ export default function PlaceDetailPage({
                 <span className="font-medium text-sea-700">
                   {formatDayLabel(event.day)}
                 </span>
-                <span className="font-semibold tabular-nums text-sea-700">
+                <span dir="ltr" className="font-semibold tabular-nums text-sea-700">
                   {event.startTime}
                 </span>
               </li>
@@ -239,21 +301,21 @@ export default function PlaceDetailPage({
         </div>
       )}
 
-      {/* Delete */}
+      {/* ── Delete ── */}
       <div className="pt-2 text-center">
         {confirmDelete ? (
           <div className="flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={handleDelete}
-              className="rounded-2xl bg-terra-600 px-5 py-2.5 text-sm font-semibold text-cream-50"
+              className="btn bg-terra-600 px-5 py-2.5 text-sm text-cream-50"
             >
               כן, למחוק
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="rounded-2xl bg-cream-100 px-5 py-2.5 text-sm font-medium text-ink-700"
+              className="btn-soft px-5 py-2.5 text-sm"
             >
               ביטול
             </button>

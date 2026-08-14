@@ -10,17 +10,22 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-3xl border border-dashed border-cream-300 bg-cream-100/60 px-6 py-10 text-center">
-      <span className="text-4xl" aria-hidden>
+    <div className="card flex flex-col items-center px-6 py-10 text-center">
+      <span
+        className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-lemon-100 to-sea-100 text-3xl"
+        aria-hidden
+      >
         {emoji}
       </span>
-      <h3 className="mt-3 text-lg font-semibold text-ink-900">{title}</h3>
+      <h3 className="mt-4 font-display text-xl font-bold text-ink-900">
+        {title}
+      </h3>
       {description && (
-        <p className="mt-1 max-w-xs text-sm leading-relaxed text-ink-500">
+        <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-500">
           {description}
         </p>
       )}
-      {action && <div className="mt-4">{action}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

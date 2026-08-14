@@ -1,14 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deletePoll, setPollClosed, votePoll } from "@/lib/db";
-import { useFamilies, usePolls } from "@/lib/hooks";
-import type { Family, Poll } from "@/types";
+import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
+import { PLACE_CATEGORIES, type Family, type Place, type Poll } from "@/types";
 
-function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
+function PollCard({
+  poll,
+  families,
+  places,
+}: {
+  poll: Poll;
+  families: Family[];
+  places: Place[];
+}) {
   const [votingAs, setVotingAs] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -29,9 +38,13 @@ function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
   }
 
   return (
-    <div className="rounded-3xl border border-cream-200 bg-white p-4">
+    <div
+      className={`card p-4 ${poll.pinned ? "border-lemon-300" : ""}`}
+    >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-lg font-bold text-ink-900">{poll.question}</h3>
+        <h3 className="font-display text-xl font-bold text-ink-900">
+          {poll.question}
+        </h3>
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
             poll.closed
@@ -84,13 +97,16 @@ function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
           const count = counts.get(option.id) ?? 0;
           const percent = totalVotes ? (count / totalVotes) * 100 : 0;
           const isWinner = poll.closed && winners.some((w) => w.id === option.id);
+          const place = option.placeId
+            ? places.find((p) => p.id === option.placeId)
+            : null;
           return (
             <li key={option.id}>
               <button
                 type="button"
                 disabled={poll.closed || !votingAs}
                 onClick={() => handleVote(option.id)}
-                className={`relative w-full overflow-hidden rounded-2xl border px-4 py-3 text-right transition ${
+                className={`relative w-full overflow-hidden rounded-2xl border text-right transition ${
                   isWinner
                     ? "border-lemon-400 bg-lemon-100"
                     : votingAs
@@ -103,12 +119,29 @@ function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
                   className="absolute inset-y-0 right-0 bg-sea-100/70"
                   style={{ width: `${percent}%` }}
                 />
-                <span className="relative flex items-center justify-between">
-                  <span className="font-medium text-ink-900">
+                <span className="relative flex items-center gap-3">
+                  <span className="relative h-14 w-16 shrink-0 overflow-hidden">
+                    {place?.imageUrl ? (
+                      <Image
+                        src={place.imageUrl}
+                        alt=""
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-xl">
+                        {place
+                          ? (PLACE_CATEGORIES[place.category]?.emoji ?? "📌")
+                          : "💡"}
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate py-3 font-medium text-ink-900">
                     {isWinner ? "🏆 " : ""}
                     {option.label}
                   </span>
-                  <span className="text-sm tabular-nums text-ink-500">
+                  <span className="px-4 font-display text-lg font-bold tabular-nums text-sea-700">
                     {count}
                   </span>
                 </span>
@@ -184,15 +217,18 @@ function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
 export default function PollsPage() {
   const { polls, loading } = usePolls();
   const { families } = useFamilies();
+  const { places } = usePlaces();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink-900">סקרים</h1>
-        <Link
-          href="/polls/new"
-          className="rounded-2xl bg-terra-500 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98]"
-        >
+        <div>
+          <p className="kicker text-terra-500">מחליטים ביחד</p>
+          <h1 className="font-display text-3xl font-bold text-ink-900">
+            סקרים
+          </h1>
+        </div>
+        <Link href="/polls/new" className="btn-accent px-4 py-2.5 text-sm">
           + סקר
         </Link>
       </div>
@@ -205,10 +241,7 @@ export default function PollsPage() {
           title="עוד אין סקרים"
           description="מתלבטים בין אטרקציות? פתחו סקר וכל משפחה תצביע"
           action={
-            <Link
-              href="/polls/new"
-              className="inline-block rounded-2xl bg-sea-600 px-5 py-2.5 text-sm font-semibold text-cream-50"
-            >
+            <Link href="/polls/new" className="btn-primary px-5 py-2.5 text-sm">
               + סקר ראשון
             </Link>
           }
@@ -219,7 +252,12 @@ export default function PollsPage() {
             .slice()
             .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
             .map((poll) => (
-              <PollCard key={poll.id} poll={poll} families={families} />
+              <PollCard
+                key={poll.id}
+                poll={poll}
+                families={families}
+                places={places ?? []}
+              />
             ))}
         </div>
       )}

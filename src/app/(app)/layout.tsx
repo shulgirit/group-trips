@@ -7,8 +7,8 @@ export default function AppLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <FirebaseProvider>
-      <div className="min-h-dvh bg-cream-50">
-        <main className="mx-auto w-full max-w-lg px-4 pb-32 pt-4">
+      <div className="min-h-dvh">
+        <main className="mx-auto w-full max-w-lg px-4 pb-36 pt-4 md:max-w-xl">
           {children}
         </main>
         <QuickAdd />

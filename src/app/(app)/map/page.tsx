@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
@@ -200,20 +201,19 @@ export default function MapPage() {
 
   return (
     <div className="space-y-3">
-      <h1 className="font-display text-2xl font-bold text-ink-900">מפה</h1>
+      <div>
+        <p className="kicker text-terra-500">האי שלנו</p>
+        <h1 className="font-display text-3xl font-bold text-ink-900">מפה</h1>
+      </div>
 
-      <div className="-mx-4 overflow-x-auto px-4">
+      <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
           {FILTERS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               onClick={() => setFilter(id)}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
-                filter === id
-                  ? "bg-sea-600 text-cream-50"
-                  : "bg-cream-100 text-ink-500"
-              }`}
+              className={`chip ${filter === id ? "chip-active" : ""}`}
             >
               {label}
             </button>
@@ -227,16 +227,13 @@ export default function MapPage() {
           title="המפה לא נטענה"
           description="עדיין אפשר לנווט לכל מקום מתוך דף המקום עצמו"
           action={
-            <Link
-              href="/places"
-              className="inline-block rounded-2xl bg-sea-600 px-5 py-2.5 text-sm font-semibold text-cream-50"
-            >
+            <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
               לרשימת המקומות
             </Link>
           }
         />
       ) : (
-        <div className="relative -mx-4 h-[60dvh] overflow-hidden bg-sea-100">
+        <div className="relative -mx-4 h-[64dvh] overflow-hidden bg-sea-100 md:mx-0 md:rounded-[2rem] md:border md:border-cream-200">
           <div ref={containerRef} className="h-full w-full" />
           {!mapReady && (
             <div className="absolute inset-0 flex items-center justify-center text-ink-500">
@@ -244,53 +241,70 @@ export default function MapPage() {
             </div>
           )}
 
-          {/* Marker bottom card */}
+          {/* Marker bottom sheet */}
           {selected && (
-            <div className="absolute inset-x-3 bottom-3 rounded-3xl bg-white p-4 shadow-xl">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-ink-900">
-                    {selectedCategory?.emoji} {selected.name}
-                  </p>
+            <div className="card absolute inset-x-3 bottom-3 overflow-hidden shadow-[var(--shadow-float)]">
+              <div className="flex items-stretch">
+                <div className="relative w-24 shrink-0">
+                  {selected.imageUrl ? (
+                    <Image
+                      src={selected.imageUrl}
+                      alt=""
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-3xl">
+                      {selectedCategory?.emoji}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate font-display text-lg font-bold text-ink-900">
+                      {selected.name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(null)}
+                      aria-label="סגירה"
+                      className="px-1 text-ink-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
                   <p className="text-sm text-ink-500">
                     {selectedCategory?.label}
                     {selected.area ? ` · ${selected.area}` : ""}
                     {scheduledIds.has(selected.id) ? " · 📅 בלוח" : ""}
                   </p>
+                  <div className="mt-2 flex gap-2">
+                    <a
+                      href={wazeUrl(selected)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary flex-1 py-2 text-sm"
+                    >
+                      נווט
+                    </a>
+                    <a
+                      href={googleMapsUrl(selected)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Google Maps"
+                      className="btn-soft px-3 py-2 text-sm"
+                    >
+                      🗺️
+                    </a>
+                    <Link
+                      href={`/places/${selected.id}`}
+                      className="btn-soft flex-1 py-2 text-sm"
+                    >
+                      פרטים
+                    </Link>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelected(null)}
-                  aria-label="סגירה"
-                  className="px-1 text-ink-300"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <a
-                  href={wazeUrl(selected)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 rounded-2xl bg-sea-600 py-2.5 text-center text-sm font-semibold text-cream-50"
-                >
-                  🧭 נווט
-                </a>
-                <a
-                  href={googleMapsUrl(selected)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Google Maps"
-                  className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700"
-                >
-                  🗺️
-                </a>
-                <Link
-                  href={`/places/${selected.id}`}
-                  className="flex-1 rounded-2xl bg-cream-100 py-2.5 text-center text-sm font-semibold text-ink-700"
-                >
-                  פרטים
-                </Link>
               </div>
             </div>
           )}

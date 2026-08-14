@@ -258,8 +258,9 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <h1 className="mb-1 font-display text-2xl font-bold text-ink-900">
-        ✨ הקונסיירז׳ של הטיול
+      <p className="kicker text-terra-500">Travel Concierge</p>
+      <h1 className="mb-1 font-display text-3xl font-bold text-ink-900">
+        ✨ הקונסיירז׳ שלנו
       </h1>
       <p className="mb-3 text-sm text-ink-500">
         {personal
@@ -324,18 +325,29 @@ export default function AiPage() {
 
       <div className="flex-1 space-y-4">
         {messages.length === 0 && (
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTED_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => send(prompt)}
-                className="rounded-2xl border border-sea-200 bg-white px-4 py-2.5 text-sm text-sea-700 transition active:scale-[0.98]"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="card relative overflow-hidden px-5 py-6 text-center">
+              <span aria-hidden className="text-4xl">
+                ✨
+              </span>
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
+                בקשו המלצות, שאלו על הלו״ז, או בקשו ממני לשבץ פעילות — אני
+                מחובר לכל נתוני הטיול
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTED_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => send(prompt)}
+                  className="rounded-2xl border border-sea-200 bg-white px-4 py-2.5 text-sm text-sea-700 transition active:scale-[0.98]"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {messages.map((message, messageIndex) => (
@@ -343,8 +355,8 @@ export default function AiPage() {
             <div
               className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 leading-relaxed ${
                 message.role === "user"
-                  ? "me-auto bg-sea-600 text-cream-50"
-                  : "ms-auto w-fit border border-cream-200 bg-white text-ink-900"
+                  ? "me-auto rounded-bl-lg bg-sea-700 text-cream-50"
+                  : "card ms-auto w-fit rounded-br-lg text-ink-900"
               }`}
             >
               {message.content}
@@ -359,22 +371,24 @@ export default function AiPage() {
                     PLACE_CATEGORIES[candidate.category as PlaceCategory] ??
                     PLACE_CATEGORIES.other;
                   return (
-                    <li
-                      key={key}
-                      className="rounded-3xl border border-cream-200 bg-white p-4"
-                    >
+                    <li key={key} className="card overflow-hidden p-4">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-ink-900">
-                            {category.emoji} {candidate.name}
-                          </p>
-                          <p className="text-sm text-ink-500">
-                            {category.label}
-                            {candidate.area ? ` · ${candidate.area}` : ""}
-                            {candidate.priceNotes
-                              ? ` · ${candidate.priceNotes}`
-                              : ""}
-                          </p>
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sea-100 to-lemon-100 text-xl">
+                            {category.emoji}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-display text-lg font-bold text-ink-900">
+                              {candidate.name}
+                            </p>
+                            <p className="text-sm text-ink-500">
+                              {category.label}
+                              {candidate.area ? ` · ${candidate.area}` : ""}
+                              {candidate.priceNotes
+                                ? ` · ${candidate.priceNotes}`
+                                : ""}
+                            </p>
+                          </div>
                         </div>
                         <button
                           type="button"
@@ -399,9 +413,9 @@ export default function AiPage() {
                         {candidate.savedPlaceId ? (
                           <Link
                             href={`/places/${candidate.savedPlaceId}`}
-                            className="rounded-2xl bg-sea-100 px-4 py-2.5 text-sm font-semibold text-sea-700"
+                            className="btn rounded-2xl bg-sea-100 px-4 py-2.5 text-sm text-sea-700"
                           >
-                            ✓ נשמר לקבוצה · לפרטים ולשיבוץ ›
+                            ✓ נשמר · לפרטים ולשיבוץ ›
                           </Link>
                         ) : (
                           <button
@@ -414,11 +428,9 @@ export default function AiPage() {
                               )
                             }
                             disabled={savingKeys.has(key)}
-                            className="rounded-2xl bg-sea-600 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+                            className="btn-primary px-4 py-2.5 text-sm"
                           >
-                            {savingKeys.has(key)
-                              ? "שומר…"
-                              : "❤️ הוסף למקומות של כולם"}
+                            {savingKeys.has(key) ? "שומר…" : "❤️ הוסף למקומות"}
                           </button>
                         )}
                         <button
@@ -489,13 +501,13 @@ export default function AiPage() {
           placeholder={
             activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
           }
-          className="flex-1 rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-ink-900 shadow-sm outline-none placeholder:text-ink-300 focus:border-sea-500"
+          className="field flex-1 py-3.5 shadow-[var(--shadow-card)]"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
           aria-label="שליחה"
-          className="rounded-2xl bg-sea-600 px-5 font-semibold text-cream-50 disabled:opacity-50"
+          className="btn-primary px-5"
         >
           ↑
         </button>

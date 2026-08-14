@@ -1,18 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import {
+  Compass,
+  Map as MapIcon,
+  Split,
+  Trash2,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deleteEvent } from "@/lib/db";
 import { useEvents, useFamilies, usePlaces } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import {
-  participantsIntersect,
-  participantsLabel,
-} from "@/lib/participants";
+import { participantsIntersect, participantsLabel } from "@/lib/participants";
 import { formatDayLabel, todayIso, tripDayNumber, tripDays } from "@/lib/trip";
-import type { Family, TripEvent } from "@/types";
+import { PLACE_CATEGORIES, type Family, type TripEvent } from "@/types";
 
 const DEFAULT_DURATION_MIN = 90;
 
@@ -29,10 +35,10 @@ function eventsOverlap(a: TripEvent, b: TripEvent): boolean {
   return startA < endB && startB < endA;
 }
 
-/** For each event: is it part of a group split / a real person conflict? */
 function analyzeDay(dayEvents: TripEvent[], families: Family[]) {
   const flags = new Map<string, { split: boolean; conflict: boolean }>();
-  for (const event of dayEvents) flags.set(event.id, { split: false, conflict: false });
+  for (const event of dayEvents)
+    flags.set(event.id, { split: false, conflict: false });
   for (let i = 0; i < dayEvents.length; i++) {
     for (let j = i + 1; j < dayEvents.length; j++) {
       const a = dayEvents[i];
@@ -78,35 +84,38 @@ export default function CalendarPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-ink-900">
-          לוח הטיול
-        </h1>
+        <div>
+          <p className="kicker text-terra-500">המסע שלנו</p>
+          <h1 className="font-display text-3xl font-bold text-ink-900">
+            לוח הטיול
+          </h1>
+        </div>
         <Link
           href={`/calendar/new?day=${selectedDay}`}
-          className="rounded-2xl bg-terra-500 px-4 py-2.5 text-sm font-semibold text-cream-50 transition active:scale-[0.98]"
+          className="btn-accent px-4 py-2.5 text-sm"
         >
           + אירוע
         </Link>
       </div>
 
       {/* Day selector */}
-      <div className="-mx-4 overflow-x-auto px-4">
+      <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
           {days.map((day, index) => (
             <button
               key={day}
               type="button"
               onClick={() => setSelectedDay(day)}
-              className={`flex flex-col items-center whitespace-nowrap rounded-2xl px-3.5 py-2 transition ${
+              className={`flex min-w-[62px] flex-col items-center whitespace-nowrap rounded-2xl px-3 py-2 transition ${
                 selectedDay === day
-                  ? "bg-sea-600 text-cream-50"
+                  ? "bg-sea-700 text-cream-50 shadow-sm"
                   : day === today
                     ? "bg-lemon-100 text-ink-900"
-                    : "bg-cream-100 text-ink-500"
+                    : "bg-white text-ink-500 border border-cream-200"
               }`}
             >
-              <span className="text-xs opacity-80">יום {index + 1}</span>
-              <span className="text-sm font-semibold">
+              <span className="text-[11px] opacity-75">יום {index + 1}</span>
+              <span dir="ltr" className="text-sm font-bold tabular-nums">
                 {formatDayLabel(day).split("· ")[1]}
               </span>
             </button>
@@ -114,17 +123,19 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <p className="text-sm text-ink-500">
-        {formatDayLabel(selectedDay)}
-        {dayNumber ? ` · יום ${dayNumber} מתוך ${days.length}` : ""}
-        {selectedDay === today ? " · היום 🌞" : ""}
-      </p>
-
-      {hasSplit && (
-        <p className="rounded-2xl bg-lemon-100 px-4 py-2.5 text-sm font-medium text-ink-700">
-          🔀 הקבוצה מתפצלת ביום הזה
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-ink-500">
+          {formatDayLabel(selectedDay)}
+          {dayNumber ? ` · יום ${dayNumber} מתוך ${days.length}` : ""}
+          {selectedDay === today ? " · היום 🌞" : ""}
         </p>
-      )}
+        {hasSplit && (
+          <span className="flex items-center gap-1 rounded-full bg-lemon-100 px-2.5 py-1 text-xs font-semibold text-ink-700">
+            <Split size={12} />
+            הקבוצה מתפצלת
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <ListSkeleton rows={3} />
@@ -134,128 +145,168 @@ export default function CalendarPage() {
           title="יום פנוי לגמרי"
           description="אפשר לשבץ מקום מתוך ׳מקומות׳ או להוסיף אירוע חופשי"
           action={
-            <Link
-              href="/places"
-              className="inline-block rounded-2xl bg-sea-600 px-5 py-2.5 text-sm font-semibold text-cream-50"
-            >
+            <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
               לבחור מקום
             </Link>
           }
         />
       ) : (
-        <ol className="space-y-3">
+        <ol className="relative space-y-3 border-e-2 border-cream-200 pe-5">
           {dayEvents.map((event) => {
             const place = event.placeId
               ? places?.find((p) => p.id === event.placeId)
               : null;
             const flag = flags.get(event.id);
+            const categoryEmoji = place
+              ? (PLACE_CATEGORIES[place.category]?.emoji ?? "📌")
+              : (event.emoji ?? "•");
             return (
-              <li
-                key={event.id}
-                className={`rounded-3xl border bg-white p-4 ${
-                  flag?.conflict
-                    ? "border-terra-400"
-                    : flag?.split
-                      ? "border-lemon-400"
-                      : "border-cream-200"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-lg font-semibold text-ink-900">
-                      {event.emoji ? `${event.emoji} ` : ""}
-                      {event.title}
-                    </p>
-                    <p className="mt-0.5 text-sm text-ink-500">
-                      {families
-                        ? `👥 ${participantsLabel(event.participants, families)}`
-                        : ""}
-                    </p>
-                    {event.notes && (
-                      <p className="mt-1 text-sm text-ink-500">
-                        📝 {event.notes}
-                      </p>
+              <li key={event.id} className="relative">
+                {/* Timeline dot */}
+                <span
+                  aria-hidden
+                  className={`absolute -end-[27px] top-6 flex h-4 w-4 items-center justify-center rounded-full border-2 border-cream-50 ${
+                    flag?.conflict
+                      ? "bg-terra-500"
+                      : flag?.split
+                        ? "bg-lemon-400"
+                        : "bg-sea-500"
+                  }`}
+                />
+                <div
+                  className={`card overflow-hidden ${
+                    flag?.conflict
+                      ? "border-terra-400"
+                      : flag?.split
+                        ? "border-lemon-300"
+                        : ""
+                  }`}
+                >
+                  <div className="flex items-stretch">
+                    {/* Visual side */}
+                    <div className="relative w-20 shrink-0">
+                      {place?.imageUrl ? (
+                        <Image
+                          src={place.imageUrl}
+                          alt=""
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-2xl">
+                          {categoryEmoji}
+                        </div>
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className="min-w-0 flex-1 px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 truncate text-lg font-semibold text-ink-900">
+                          {event.title}
+                        </p>
+                        <div className="text-left">
+                          <p
+                            dir="ltr"
+                            className="font-display text-xl font-bold tabular-nums text-sea-700"
+                          >
+                            {event.startTime}
+                          </p>
+                          {event.durationMin && (
+                            <p className="text-[11px] text-ink-300">
+                              {event.durationMin >= 60
+                                ? `${+(event.durationMin / 60).toFixed(1)} ש׳`
+                                : `${event.durationMin} דק׳`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {families && (
+                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500">
+                          <Users size={13} />
+                          <span className="truncate">
+                            {participantsLabel(event.participants, families)}
+                          </span>
+                        </p>
+                      )}
+                      {event.notes && (
+                        <p className="mt-1 truncate text-sm text-ink-500">
+                          {event.notes}
+                        </p>
+                      )}
+                      {flag?.conflict && (
+                        <p className="mt-1 flex items-center gap-1 text-sm font-medium text-terra-600">
+                          <TriangleAlert size={13} />
+                          התנגשות — אותם משתתפים בשני אירועים
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 border-t border-cream-100 px-3 py-2">
+                    {place && (
+                      <>
+                        <a
+                          href={wazeUrl(place)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-soft gap-1.5 px-3 py-1.5 text-sm text-sea-700"
+                        >
+                          <Compass size={14} />
+                          נווט
+                        </a>
+                        <a
+                          href={googleMapsUrl(place)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Google Maps"
+                          className="btn-soft px-2.5 py-1.5"
+                        >
+                          <MapIcon size={14} />
+                        </a>
+                        <Link
+                          href={`/places/${place.id}`}
+                          className="btn-soft px-3 py-1.5 text-sm"
+                        >
+                          פרטים
+                        </Link>
+                      </>
                     )}
                     {event.createdByName && (
-                      <p className="mt-1 text-xs text-ink-300">
-                        נוסף ע״י {event.createdByName}
-                      </p>
+                      <span className="ms-1 truncate text-[11px] text-ink-300">
+                        {event.createdByName}
+                      </span>
                     )}
-                    {flag?.conflict && (
-                      <p className="mt-1 text-sm font-medium text-terra-600">
-                        ⚠️ התנגשות — אותם משתתפים בשני אירועים
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xl font-bold tabular-nums text-sea-700">
-                      {event.startTime}
-                    </p>
-                    {event.durationMin && (
-                      <p className="text-xs text-ink-500">
-                        {event.durationMin >= 60
-                          ? `${+(event.durationMin / 60).toFixed(1)} ש׳`
-                          : `${event.durationMin} דק׳`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  {place && (
-                    <>
-                      <a
-                        href={wazeUrl(place)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-xl bg-sea-100 px-3.5 py-2 text-sm font-medium text-sea-700"
-                      >
-                        🧭 נווט
-                      </a>
-                      <a
-                        href={googleMapsUrl(place)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-xl bg-cream-100 px-3.5 py-2 text-sm font-medium text-ink-700"
-                      >
-                        🗺️
-                      </a>
-                      <Link
-                        href={`/places/${place.id}`}
-                        className="rounded-xl bg-cream-100 px-3.5 py-2 text-sm font-medium text-ink-700"
-                      >
-                        פרטים
-                      </Link>
-                    </>
-                  )}
-                  <span className="flex-1" />
-                  {deletingId === event.id ? (
-                    <>
+                    <span className="flex-1" />
+                    {deletingId === event.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => deleteEvent(event.id)}
+                          className="btn bg-terra-600 px-3 py-1.5 text-sm text-cream-50"
+                        >
+                          למחוק
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingId(null)}
+                          className="btn-soft px-3 py-1.5 text-sm"
+                        >
+                          ביטול
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => deleteEvent(event.id)}
-                        className="rounded-xl bg-terra-600 px-3 py-2 text-sm font-semibold text-cream-50"
+                        onClick={() => setDeletingId(event.id)}
+                        aria-label="מחיקת אירוע"
+                        className="px-2 text-ink-300"
                       >
-                        למחוק
+                        <Trash2 size={16} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingId(null)}
-                        className="rounded-xl bg-cream-100 px-3 py-2 text-sm text-ink-700"
-                      >
-                        ביטול
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeletingId(event.id)}
-                      aria-label="מחיקת אירוע"
-                      className="px-2 text-ink-300"
-                    >
-                      🗑️
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </li>
             );
