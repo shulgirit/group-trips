@@ -127,6 +127,8 @@ export async function geocodePlace(query: string): Promise<{
   address?: string;
   /** A real Google Maps photo of the place, when available */
   photoUrl?: string;
+  rating?: number;
+  ratingCount?: number;
 } | null> {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key || !query.trim()) return null;
@@ -139,7 +141,7 @@ export async function geocodePlace(query: string): Promise<{
           "Content-Type": "application/json",
           "X-Goog-Api-Key": key,
           "X-Goog-FieldMask":
-            "places.formattedAddress,places.location,places.photos",
+            "places.formattedAddress,places.location,places.photos,places.rating,places.userRatingCount",
         },
         body: JSON.stringify({ textQuery: `${query} Sicily` }),
       }
@@ -172,6 +174,11 @@ export async function geocodePlace(query: string): Promise<{
       lng: place.location.longitude,
       address: place.formattedAddress,
       photoUrl,
+      rating: typeof place.rating === "number" ? place.rating : undefined,
+      ratingCount:
+        typeof place.userRatingCount === "number"
+          ? place.userRatingCount
+          : undefined,
     };
   } catch {
     return null;

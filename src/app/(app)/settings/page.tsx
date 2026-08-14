@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { AboutUsSection } from "@/components/settings/AboutUsSection";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { db, signInWithGoogle } from "@/lib/firebase/client";
@@ -201,6 +202,8 @@ export default function SettingsPage() {
       </section>
 
       <NotificationsSection />
+
+      <AboutUsSection />
 
       {/* Trip info */}
       <section>

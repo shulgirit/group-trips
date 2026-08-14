@@ -149,6 +149,8 @@ export interface ChatCandidate {
   priceNotes?: string;
   website?: string;
   imageUrl?: string;
+  rating?: number;
+  ratingCount?: number;
   savedPlaceId?: string;
   dismissed?: boolean;
   polled?: boolean;

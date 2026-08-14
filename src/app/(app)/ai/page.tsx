@@ -15,6 +15,7 @@ import {
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
+import { useFamilies } from "@/lib/hooks";
 import { db } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/trip";
 import {
@@ -35,7 +36,20 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export default function AiPage() {
-  const { ready, user, personal } = useFirebase();
+  const { ready, user, personal, profile } = useFirebase();
+  const { families } = useFamilies();
+
+  // "מיקה ממשפחת טל" — so the servant knows who it's talking to
+  const speaker = useMemo(() => {
+    if (!personal) return undefined;
+    const family = families?.find((f) => f.id === profile?.familyId);
+    const memberName = family?.members.find(
+      (m) => m.id === profile?.memberId
+    )?.name;
+    const name = memberName ?? user?.displayName;
+    if (!name) return undefined;
+    return family ? `${name} מ${family.name}` : name;
+  }, [personal, families, profile, user]);
 
   const [sessions, setSessions] = useState<ChatSession[] | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -168,6 +182,7 @@ export default function AiPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: withUser.map(({ role, content }) => ({ role, content })),
+          speaker,
         }),
       });
       if (!response.ok) throw new Error("ai_failed");
@@ -443,6 +458,14 @@ export default function AiPage() {
                                 ? ` · ${candidate.priceNotes}`
                                 : ""}
                             </p>
+                            {candidate.rating && (
+                              <p className="mt-0.5 text-sm font-medium text-ink-700">
+                                ⭐ {candidate.rating}
+                                {candidate.ratingCount
+                                  ? ` · ${candidate.ratingCount.toLocaleString("he-IL")} ביקורות בגוגל`
+                                  : ""}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <button
@@ -501,6 +524,14 @@ export default function AiPage() {
                           } disabled:opacity-70`}
                         >
                           {candidate.polled ? "🗳️ בסקר ✓" : "🗳️ לסקר…"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => send(`ספר לי עוד על ${candidate.name}`)}
+                          disabled={loading}
+                          className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700 transition active:scale-[0.98] disabled:opacity-60"
+                        >
+                          ➕ ספרו לי עוד
                         </button>
                         {candidate.website && (
                           <a

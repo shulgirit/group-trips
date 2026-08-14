@@ -46,6 +46,8 @@ const RequestSchema = z.object({
     )
     .min(1)
     .max(30),
+  /** Who is talking, e.g. "מיקה ממשפחת טל" */
+  speaker: z.string().max(80).optional(),
 });
 
 const JSON_SCHEMA = {
@@ -246,12 +248,15 @@ interface TripData {
 
 async function buildTripContext(): Promise<{ context: string; data: TripData }> {
   const tripRef = adminDb().collection("trips").doc(TRIP.id);
-  const [placesSnap, eventsSnap, familiesSnap, pollsSnap] = await Promise.all([
-    tripRef.collection("places").get(),
-    tripRef.collection("events").get(),
-    tripRef.collection("families").get(),
-    tripRef.collection("polls").get(),
-  ]);
+  const [tripSnap, placesSnap, eventsSnap, familiesSnap, pollsSnap] =
+    await Promise.all([
+      tripRef.get(),
+      tripRef.collection("places").get(),
+      tripRef.collection("events").get(),
+      tripRef.collection("families").get(),
+      tripRef.collection("polls").get(),
+    ]);
+  const aboutUs = String(tripSnap.data()?.aboutUs ?? "").trim();
 
   const places = placesSnap.docs.map((d) => {
     const p = d.data();
@@ -303,6 +308,7 @@ async function buildTripContext(): Promise<{ context: string; data: TripData }> 
     `עכשיו בסיציליה: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
     `תאריכי הטיול: ${TRIP.startDate} עד ${TRIP.endDate}. הוילה: ${TRIP.villa.name}, ${TRIP.villa.address}.`,
     ``,
+    ...(aboutUs ? [`על החבורה (נכתב על ידי המשפחות):`, aboutUs, ``] : []),
     `המשפחות:`,
     ...families.map(
       (f) => `- ${f.name}: ${f.members.map((m) => m.name).join(", ")}`
@@ -562,6 +568,14 @@ export async function POST(request: Request) {
     const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
+      ...(body.speaker
+        ? [
+            {
+              role: "system" as const,
+              content: `מי שמדבר/ת איתך בשיחה הזו: ${body.speaker}. פנה אליו/ה בשמו/ה בטבעיות.`,
+            },
+          ]
+        : []),
       ...body.messages,
     ];
     const pending: PendingNotifications = { pollOptionLabels: [] };
@@ -637,6 +651,8 @@ export async function POST(request: Request) {
                 ? c.website
                 : undefined,
             imageUrl: geo?.photoUrl,
+            rating: geo?.rating,
+            ratingCount: geo?.ratingCount,
           };
         })
       );
