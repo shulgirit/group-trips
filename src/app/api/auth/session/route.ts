@@ -7,6 +7,7 @@ import {
   constantTimeEquals,
   createSessionToken,
   getTripPassword,
+  verifySessionToken,
 } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { TRIP_PATH } from "@/lib/trip";
@@ -41,13 +42,21 @@ export async function POST(request: Request) {
   const snapshot = await userRef.get();
 
   if (!snapshot.exists) {
-    const joinCode = body.joinCode?.trim();
-    if (!joinCode) {
-      return NextResponse.json({ error: "join_required" }, { status: 403 });
-    }
-    const tripPassword = getTripPassword();
-    if (!tripPassword || !constantTimeEquals(joinCode, tripPassword)) {
-      return NextResponse.json({ error: "wrong_code" }, { status: 401 });
+    // An already-valid session cookie proves membership — legacy sessions
+    // upgrade to a Google identity without re-entering the join code.
+    const cookieStore = await cookies();
+    const alreadyMember = verifySessionToken(
+      cookieStore.get(SESSION_COOKIE)?.value
+    );
+    if (!alreadyMember) {
+      const joinCode = body.joinCode?.trim();
+      if (!joinCode) {
+        return NextResponse.json({ error: "join_required" }, { status: 403 });
+      }
+      const tripPassword = getTripPassword();
+      if (!tripPassword || !constantTimeEquals(joinCode, tripPassword)) {
+        return NextResponse.json({ error: "wrong_code" }, { status: 401 });
+      }
     }
     await userRef.set(
       {

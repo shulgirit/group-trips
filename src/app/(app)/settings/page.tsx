@@ -28,7 +28,14 @@ export default function SettingsPage() {
     setMessage("");
     setBusy(true);
     try {
-      await signInWithGoogle();
+      const googleUser = await signInWithGoogle();
+      // Legacy sessions upgrade silently — the valid cookie skips the join code
+      const idToken = await googleUser.getIdToken();
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
     } catch {
       setMessage("ההתחברות לא הושלמה — ודאו שחלונות קופצים מותרים ונסו שוב");
     } finally {
@@ -80,21 +87,20 @@ export default function SettingsPage() {
           החשבון שלי
         </h2>
         {!personal ? (
-          <div className="rounded-3xl border border-sea-200 bg-sea-100/50 p-5 text-center">
-            <p className="text-lg font-semibold text-ink-900">
-              אתם מחוברים עם סיסמת הטיול המשותפת
-            </p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-ink-500">
-              התחברות עם Google פותחת: שיחות AI פרטיות עם היסטוריה, אזור
-              מסמכים אישי, ושם אמיתי על אירועים שאתם יוצרים
+          <div className="card flex items-center gap-3 px-4 py-3.5">
+            <span className="text-xl" aria-hidden>
+              👤
+            </span>
+            <p className="min-w-0 flex-1 text-sm leading-snug text-ink-500">
+              המכשיר הזה מחובר בכניסה הישנה — השלימו פעם אחת עם Google
             </p>
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={busy}
-              className="mt-4 rounded-2xl bg-sea-600 px-5 py-3 font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+              className="btn-primary shrink-0 px-4 py-2.5 text-sm"
             >
-              התחברות עם Google
+              {busy ? "רגע…" : "השלמה"}
             </button>
           </div>
         ) : (
