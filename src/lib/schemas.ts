@@ -62,3 +62,29 @@ export const EventInputSchema = z.object({
 });
 
 export type EventInput = z.infer<typeof EventInputSchema>;
+
+export const ExpenseInputSchema = z.object({
+  payerFamilyId: z.string().min(1),
+  description: z.string().trim().min(1, "חסר תיאור"),
+  amount: z.number().positive("סכום לא תקין"),
+  currency: z.enum(["EUR", "ILS"]),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  participantFamilyIds: z.array(z.string()).min(1).nullable(),
+});
+
+export type ExpenseInput = z.infer<typeof ExpenseInputSchema>;
+
+export const PollInputSchema = z.object({
+  question: z.string().trim().min(1, "חסרה שאלה"),
+  options: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().trim().min(1),
+        placeId: z.string().nullable().optional(),
+      })
+    )
+    .min(2, "צריך לפחות שתי אפשרויות"),
+});
+
+export type PollInput = z.infer<typeof PollInputSchema>;

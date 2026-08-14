@@ -5,7 +5,7 @@ import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { TRIP } from "@/lib/trip";
-import type { Family, Place, TripEvent } from "@/types";
+import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
 
 export const TRIP_PATH = `trips/${TRIP.id}`;
 
@@ -85,6 +85,33 @@ export function useEvents() {
     [data]
   );
   return { events: sorted ?? null, ...rest };
+}
+
+export function useExpenses() {
+  const { data, ...rest } = useCollectionData<Expense>(
+    `${TRIP_PATH}/expenses`
+  );
+  const sorted = useMemo(
+    () =>
+      data
+        ?.slice()
+        .sort(
+          (a, b) =>
+            b.date.localeCompare(a.date) ||
+            (b.createdAt ?? 0) - (a.createdAt ?? 0)
+        ),
+    [data]
+  );
+  return { expenses: sorted ?? null, ...rest };
+}
+
+export function usePolls() {
+  const { data, ...rest } = useCollectionData<Poll>(`${TRIP_PATH}/polls`);
+  const sorted = useMemo(
+    () => data?.slice().sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    [data]
+  );
+  return { polls: sorted ?? null, ...rest };
 }
 
 export function useFamilies() {

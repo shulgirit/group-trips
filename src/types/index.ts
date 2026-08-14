@@ -71,6 +71,35 @@ export interface Family {
   order: number;
 }
 
+export interface Expense {
+  id: string;
+  payerFamilyId: string;
+  description: string;
+  amount: number;
+  currency: "EUR" | "ILS";
+  /** ISO date YYYY-MM-DD */
+  date: string;
+  /** null = all families participate */
+  participantFamilyIds: string[] | null;
+  createdAt?: number;
+}
+
+export interface PollOption {
+  id: string;
+  label: string;
+  placeId?: string | null;
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  /** familyId -> optionId */
+  votes: Record<string, string>;
+  closed: boolean;
+  createdAt?: number;
+}
+
 export interface TripSettings {
   name: string;
   startDate: string;

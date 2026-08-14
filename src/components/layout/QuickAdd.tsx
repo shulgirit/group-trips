@@ -6,9 +6,9 @@ import Link from "next/link";
 const QUICK_ACTIONS = [
   { emoji: "📍", label: "הוסף מקום", href: "/places/new" },
   { emoji: "📅", label: "הוסף אירוע", href: "/calendar/new" },
-  { emoji: "💶", label: "הוסף הוצאה", href: null },
-  { emoji: "🗳️", label: "צור סקר", href: null },
-  { emoji: "📸", label: "העלה תמונה", href: null },
+  { emoji: "💶", label: "הוסף הוצאה", href: "/expenses?add=1" },
+  { emoji: "🗳️", label: "צור סקר", href: "/polls/new" },
+  { emoji: "✨", label: "שאל את ה-AI", href: "/ai" },
 ] as const;
 
 export function QuickAdd() {

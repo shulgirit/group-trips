@@ -20,9 +20,9 @@ function NewEventForm() {
   const { families } = useFamilies();
   const { places } = usePlaces();
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(searchParams.get("title") ?? "");
   const [emoji, setEmoji] = useState("");
-  const [placeId, setPlaceId] = useState("");
+  const [placeId, setPlaceId] = useState(searchParams.get("placeId") ?? "");
   const [day, setDay] = useState(
     requestedDay && days.includes(requestedDay)
       ? requestedDay
