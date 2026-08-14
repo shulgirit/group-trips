@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  /* Warm cream neutrals */
+  --color-cream-50: #fbf8f1;
+  --color-cream-100: #f6f0e3;
+  --color-cream-200: #eee4cf;
+  --color-cream-300: #e2d3b4;
+
+  /* Ink (warm dark) */
+  --color-ink-900: #2d251b;
+  --color-ink-700: #4b4033;
+  --color-ink-500: #7a6c5a;
+  --color-ink-300: #b3a68f;
+
+  /* Mediterranean sea */
+  --color-sea-100: #ddeef4;
+  --color-sea-200: #b9dde8;
+  --color-sea-400: #4fa3bf;
+  --color-sea-500: #2380a0;
+  --color-sea-600: #17627e;
+  --color-sea-700: #124e66;
+  --color-sea-900: #0c3345;
+
+  /* Terracotta */
+  --color-terra-100: #f7e4da;
+  --color-terra-400: #d98a68;
+  --color-terra-500: #c96f4a;
+  --color-terra-600: #b05a38;
+
+  /* Lemon */
+  --color-lemon-100: #fbf0d0;
+  --color-lemon-300: #f5da85;
+  --color-lemon-400: #f0c95e;
+  --color-lemon-500: #e5b63e;
+
+  /* Olive accent */
+  --color-olive-500: #7d8552;
+}
+
+@theme inline {
+  --font-sans: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-frank), var(--font-heebo), Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-cream-50);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS standalone: respect safe areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+::selection {
+  background-color: var(--color-lemon-300);
+  color: var(--color-ink-900);
+}
