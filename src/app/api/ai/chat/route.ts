@@ -5,7 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
-import { importPlaceFromUrl } from "@/lib/server/import-place";
+import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
 
@@ -558,14 +558,28 @@ export async function POST(request: Request) {
       const raw = message.content;
       if (!raw) throw new Error("empty_completion");
       const parsed = AiResponseSchema.parse(JSON.parse(raw));
-      const candidates = parsed.candidates.map((c) => ({
-        ...c,
-        area: c.area || undefined,
-        address: c.address || undefined,
-        priceNotes: c.priceNotes || undefined,
-        website:
-          c.website && /^https?:\/\//.test(c.website) ? c.website : undefined,
-      }));
+
+      // Attach a real Google Maps photo + coordinates to every candidate
+      const candidates = await Promise.all(
+        parsed.candidates.map(async (c) => {
+          const geo = await geocodePlace(
+            `${c.name} ${c.area ?? ""}`.trim()
+          ).catch(() => null);
+          return {
+            ...c,
+            area: c.area || undefined,
+            address: c.address || geo?.address || undefined,
+            lat: c.lat ?? geo?.lat ?? null,
+            lng: c.lng ?? geo?.lng ?? null,
+            priceNotes: c.priceNotes || undefined,
+            website:
+              c.website && /^https?:\/\//.test(c.website)
+                ? c.website
+                : undefined,
+            imageUrl: geo?.photoUrl,
+          };
+        })
+      );
       return NextResponse.json({ reply: parsed.reply, candidates });
     }
 

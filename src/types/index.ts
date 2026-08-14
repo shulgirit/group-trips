@@ -142,6 +142,7 @@ export interface ChatCandidate {
   lng?: number | null;
   priceNotes?: string;
   website?: string;
+  imageUrl?: string;
   savedPlaceId?: string;
   dismissed?: boolean;
   polled?: boolean;

@@ -200,6 +200,7 @@ export default function AiPage() {
       lat: candidate.lat ?? null,
       lng: candidate.lng ?? null,
       website: candidate.website,
+      imageUrl: candidate.imageUrl,
       summary: `${candidate.description}\n\n💛 ${candidate.why}`,
       priceNotes: candidate.priceNotes,
     });
@@ -371,12 +372,30 @@ export default function AiPage() {
                     PLACE_CATEGORIES[candidate.category as PlaceCategory] ??
                     PLACE_CATEGORIES.other;
                   return (
-                    <li key={key} className="card overflow-hidden p-4">
+                    <li key={key} className="card overflow-hidden">
+                      {candidate.imageUrl && (
+                        <div className="relative aspect-[16/8]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={candidate.imageUrl}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                          <div
+                            aria-hidden
+                            className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-sea-950/50 to-transparent"
+                          />
+                        </div>
+                      )}
+                      <div className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sea-100 to-lemon-100 text-xl">
-                            {category.emoji}
-                          </span>
+                          {!candidate.imageUrl && (
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sea-100 to-lemon-100 text-xl">
+                              {category.emoji}
+                            </span>
+                          )}
                           <div className="min-w-0">
                             <p className="truncate font-display text-lg font-bold text-ink-900">
                               {candidate.name}
@@ -457,6 +476,7 @@ export default function AiPage() {
                             🌐
                           </a>
                         )}
+                      </div>
                       </div>
                     </li>
                   );

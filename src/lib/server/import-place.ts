@@ -125,6 +125,8 @@ export async function geocodePlace(query: string): Promise<{
   lat: number;
   lng: number;
   address?: string;
+  /** A real Google Maps photo of the place, when available */
+  photoUrl?: string;
 } | null> {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key || !query.trim()) return null;
@@ -136,7 +138,8 @@ export async function geocodePlace(query: string): Promise<{
         headers: {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": key,
-          "X-Goog-FieldMask": "places.formattedAddress,places.location",
+          "X-Goog-FieldMask":
+            "places.formattedAddress,places.location,places.photos",
         },
         body: JSON.stringify({ textQuery: `${query} Sicily` }),
       }
@@ -145,10 +148,30 @@ export async function geocodePlace(query: string): Promise<{
     const data = await response.json();
     const place = data.places?.[0];
     if (!place) return null;
+
+    let photoUrl: string | undefined;
+    const photoName = place.photos?.[0]?.name;
+    if (photoName) {
+      try {
+        const media = await fetch(
+          `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true&key=${key}`
+        );
+        if (media.ok) {
+          const { photoUri } = await media.json();
+          if (typeof photoUri === "string" && photoUri.startsWith("https://")) {
+            photoUrl = photoUri;
+          }
+        }
+      } catch {
+        // photo is a bonus — never fail the lookup over it
+      }
+    }
+
     return {
       lat: place.location.latitude,
       lng: place.location.longitude,
       address: place.formattedAddress,
+      photoUrl,
     };
   } catch {
     return null;
@@ -223,7 +246,9 @@ export async function importPlaceFromUrl(url: string): Promise<PlaceDraft> {
         draft.website && /^https?:\/\//.test(draft.website) ? draft.website : url,
       bookingUrl: /^https?:\/\//.test(draft.bookingUrl) ? draft.bookingUrl : "",
       imageUrl:
-        typeof ogImage === "string" && /^https:\/\//.test(ogImage) ? ogImage : "",
+        typeof ogImage === "string" && /^https:\/\//.test(ogImage)
+          ? ogImage
+          : (geo?.photoUrl ?? ""),
       address: draft.address || geo?.address || "",
       lat: geo?.lat ?? null,
       lng: geo?.lng ?? null,
