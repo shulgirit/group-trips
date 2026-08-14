@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Users } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
@@ -186,22 +186,23 @@ function PollCard({
                   </span>
                 </span>
               </button>
-              <span className="mt-0.5 flex items-center gap-3 ps-1 text-xs">
-                {option.placeId && (
+              <span className="mt-1.5 flex items-center gap-2 ps-1 text-xs">
+                {place && (
                   <Link
-                    href={`/places/${option.placeId}`}
-                    className="text-sea-600"
+                    href={`/places/${place.id}`}
+                    className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-sea-700"
                   >
-                    לפרטי המקום ›
+                    <BookOpen size={13} />
+                    קראו על המקום
                   </Link>
                 )}
                 <Link
                   href={`/calendar/new?title=${encodeURIComponent(option.label)}${
-                    option.placeId ? `&placeId=${option.placeId}` : ""
+                    place ? `&placeId=${place.id}` : ""
                   }`}
-                  className="text-terra-500"
+                  className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-terra-600"
                 >
-                  📅 שבץ בלוח ›
+                  📅 שבץ בלוח
                 </Link>
                 <span className="flex-1" />
                 {!poll.closed &&

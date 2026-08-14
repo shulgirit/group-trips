@@ -156,9 +156,39 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "create_poll",
+      description:
+        "יצירת סקר חדש ונפרד עם שאלה משלו ואפשרויות. השתמש כשמבקשים סקר על שאלה ספציפית (״תעשה סקר מה עושים מחר״, ״תשלח סקר לכולם על...״). אל תשתמש ב-add_poll_option במקרה כזה.",
+      parameters: {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "שאלת הסקר בעברית" },
+          options: {
+            type: "array",
+            description: "2-6 אפשרויות",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string" },
+                placeName: {
+                  type: "string",
+                  description: "שם מקום שמור לקישור (אם קיים ברשימה)",
+                },
+              },
+              required: ["label"],
+            },
+          },
+        },
+        required: ["question", "options"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "add_poll_option",
       description:
-        "הוספת אפשרות לסקר הקבוצתי הגלובלי שבו כולם מצביעים על רעיונות. השתמש כשהמשתמש מבקש להוסיף משהו לסקר/להצבעה.",
+        "הוספת רעיון בודד לסקר הרעיונות הפתוח הקבוע של הקבוצה. רק כשמבקשים במפורש להוסיף לסקר הרעיונות — לשאלה חדשה עם אפשרויות השתמש ב-create_poll.",
       parameters: {
         type: "object",
         properties: {
@@ -347,10 +377,24 @@ const AddPollOptionArgs = z.object({
   placeName: z.string().optional(),
 });
 
+const CreatePollArgs = z.object({
+  question: z.string().min(1),
+  options: z
+    .array(z.object({ label: z.string().min(1), placeName: z.string().optional() }))
+    .min(2)
+    .max(6),
+});
+
+/** Poll-option additions are collected and pushed as ONE notification. */
+interface PendingNotifications {
+  pollOptionLabels: string[];
+}
+
 async function executeTool(
   name: string,
   rawArgs: unknown,
-  data: TripData
+  data: TripData,
+  pending: PendingNotifications
 ): Promise<Record<string, unknown>> {
   const tripRef = adminDb().collection("trips").doc(TRIP.id);
 
@@ -449,6 +493,37 @@ async function executeTool(
     };
   }
 
+  if (name === "create_poll") {
+    const args = CreatePollArgs.parse(rawArgs);
+    const options = args.options.map((option) => {
+      const place = resolvePlace(option.placeName ?? option.label, data);
+      return {
+        id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        label: option.label,
+        placeId: place?.id ?? null,
+      };
+    });
+    const pollRef = await tripRef.collection("polls").add({
+      question: args.question,
+      options,
+      votes: {},
+      closed: false,
+      createdAt: Date.now(),
+    });
+    // Exactly one notification, led by the question
+    sendPushToAll({
+      title: "🗳️ סקר חדש בקבוצה",
+      body: args.question,
+      url: "/polls",
+      tag: "poll",
+    }).catch(() => undefined);
+    return {
+      ok: true,
+      pollId: pollRef.id,
+      summary: `נוצר סקר "${args.question}" עם ${options.length} אפשרויות וכולם קיבלו התראה`,
+    };
+  }
+
   if (name === "add_poll_option") {
     const args = AddPollOptionArgs.parse(rawArgs);
     const place = resolvePlace(args.placeName ?? args.label, data);
@@ -483,13 +558,8 @@ async function executeTool(
         createdAt: Date.now(),
       });
     }
-    sendPushToAll({
-      title: "🗳️ אפשרות חדשה בסקר הקבוצתי",
-      body: `${args.label} — בואו להצביע`,
-      url: "/polls",
-      tag: "poll",
-    }).catch(() => undefined);
-    return { ok: true, summary: `"${args.label}" נוסף לסקר הקבוצתי` };
+    pending.pollOptionLabels.push(args.label);
+    return { ok: true, summary: `"${args.label}" נוסף לסקר הרעיונות` };
   }
 
   return { ok: false, error: "unknown_tool" };
@@ -508,7 +578,7 @@ const SYSTEM_PROMPT = `אתה ״המשרת של חבורת מיחא״ 🦻✨ �
 - ענה תמיד בעברית, בטון חם וקצר.
 - כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
 - כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
-- כשמבקשים להוסיף לסקר — השתמש בכלי add_poll_option.
+- כשמבקשים סקר חדש עם שאלה ("תעשה סקר מה עושים מחר", "תשלח סקר לכולם") — השתמש ב-create_poll ליצירת סקר נפרד. add_poll_option מיועד רק להוספת רעיון בודד לסקר הרעיונות הקבוע.
 - כשמבקשים לעדכן/להעשיר מקום מהאתר שלו — השתמש בכלי enrich_place, ואז סכם ב-reply מה התעדכן.
 - אל תבצע פעולות כתיבה בלי בקשה מפורשת של המשתמש.
 - קח בחשבון את הלו״ז הקיים (התנגשויות, מרחקים) והרכב הקבוצה.
@@ -541,6 +611,20 @@ export async function POST(request: Request) {
       { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
       ...body.messages,
     ];
+    const pending: PendingNotifications = { pollOptionLabels: [] };
+
+    const flushPendingNotifications = () => {
+      const labels = pending.pollOptionLabels;
+      if (!labels.length) return;
+      sendPushToAll({
+        title: "🗳️ סקר הרעיונות של הקבוצה התעדכן",
+        body:
+          labels.slice(0, 3).join(" · ") +
+          (labels.length > 3 ? ` ועוד ${labels.length - 3}` : ""),
+        url: "/polls",
+        tag: "poll",
+      }).catch(() => undefined);
+    };
 
     for (let round = 0; round < 4; round++) {
       const completion = await openai.chat.completions.create({
@@ -562,7 +646,8 @@ export async function POST(request: Request) {
             result = await executeTool(
               toolCall.function.name,
               JSON.parse(toolCall.function.arguments || "{}"),
-              data
+              data,
+              pending
             );
           } catch (error) {
             console.error("[ai/chat] tool failed", error);
@@ -602,6 +687,7 @@ export async function POST(request: Request) {
           };
         })
       );
+      flushPendingNotifications();
       return NextResponse.json({ reply: parsed.reply, candidates });
     }
 
