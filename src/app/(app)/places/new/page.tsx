@@ -25,6 +25,18 @@ interface ImportedDraft {
   sourceUrl: string;
 }
 
+interface SearchResult {
+  name: string;
+  address: string;
+  area: string;
+  lat: number | null;
+  lng: number | null;
+  category: string;
+  website: string;
+  rating: number | null;
+  imageUrl: string;
+}
+
 export default function NewPlacePage() {
   const router = useRouter();
 
@@ -33,6 +45,15 @@ export default function NewPlacePage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [imported, setImported] = useState(false);
+
+  // Free-text search flow
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(
+    null
+  );
+  const [searchError, setSearchError] = useState("");
+  const [found, setFound] = useState(false);
 
   // Draft fields
   const [name, setName] = useState("");
@@ -101,6 +122,49 @@ export default function NewPlacePage() {
     } finally {
       setImporting(false);
     }
+  }
+
+  async function handleSearch() {
+    const query = searchQuery.trim();
+    if (!query || searching) return;
+    setSearching(true);
+    setSearchError("");
+    setSearchResults(null);
+    try {
+      const response = await fetch("/api/import/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      if (!response.ok) throw new Error("search_failed");
+      const { results }: { results: SearchResult[] } = await response.json();
+      if (!results.length) {
+        setSearchError("לא נמצא — נסו ניסוח אחר, או מלאו ידנית למטה");
+      } else {
+        setSearchResults(results);
+      }
+    } catch {
+      setSearchError("החיפוש נכשל, נסו שוב");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function applyResult(result: SearchResult) {
+    setName(result.name);
+    setCategory(
+      (result.category in PLACE_CATEGORIES
+        ? result.category
+        : "attraction") as PlaceCategory
+    );
+    setArea(result.area);
+    setAddress(result.address);
+    setCoords({ lat: result.lat, lng: result.lng });
+    setWebsite(result.website);
+    setImageUrl(result.imageUrl);
+    if (result.website) setImportUrl(result.website);
+    setSearchResults(null);
+    setFound(true);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -209,6 +273,86 @@ export default function NewPlacePage() {
         )}
       </div>
 
+      {/* Free-text search */}
+      <div className="card p-4">
+        <p className="mb-2 text-sm font-medium text-ink-700">
+          🔍 אין קישור? כתבו את שם המקום בחופשיות — ונמצא אותו
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSearch();
+              }
+            }}
+            placeholder="למשל: אצטדיון ברברה פלרמו"
+            className="field min-w-0 flex-1"
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            disabled={searching || !searchQuery.trim()}
+            className="btn-primary whitespace-nowrap px-4 text-sm"
+          >
+            {searching ? "מחפש…" : "חפש"}
+          </button>
+        </div>
+        {searchError && (
+          <p role="alert" className="mt-2 text-sm font-medium text-terra-600">
+            {searchError}
+          </p>
+        )}
+        {searchResults && (
+          <ul className="mt-3 space-y-2">
+            {searchResults.map((result, index) => (
+              <li key={index}>
+                <button
+                  type="button"
+                  onClick={() => applyResult(result)}
+                  className="flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-sea-200 bg-white text-right transition active:bg-sea-100"
+                >
+                  <span className="relative h-14 w-16 shrink-0 overflow-hidden bg-cream-100">
+                    {result.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={result.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-xl">
+                        {PLACE_CATEGORIES[
+                          result.category as PlaceCategory
+                        ]?.emoji ?? "📌"}
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 py-2">
+                    <span className="block truncate font-semibold text-ink-900">
+                      {result.name}
+                      {result.rating ? ` · ${result.rating}★` : ""}
+                    </span>
+                    <span className="block truncate text-xs text-ink-500">
+                      {result.address}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {found && (
+          <p className="mt-2 text-sm font-medium text-sea-700">
+            ✓ נמצא! הפרטים מולאו כולל תמונה ומיקום — בדקו ושמרו
+            {importUrl ? "; רוצים עוד פרטים? לחצו ✨ ייבא עם AI למעלה" : ""}
+          </p>
+        )}
+      </div>
+
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
           איך קוראים למקום? *
@@ -265,7 +409,7 @@ export default function NewPlacePage() {
       )}
 
       <details
-        open={imported}
+        open={imported || found}
         className="rounded-2xl border border-cream-200 bg-white px-4 py-3"
       >
         <summary className="cursor-pointer text-sm font-medium text-ink-700">
