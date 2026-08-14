@@ -1,10 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only users signed in via our custom-token flow (password holders).
-    // No public sign-in providers are enabled.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Only users signed in via our custom-token flow or Google (password
+    // holders / family members). No public sign-in.
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isGoogleUser() {
+      return request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /trips/{tripId} {
+      allow read, write: if signedIn();
+    }
+
+    // Documents: shared ones visible to everyone, private ones only to
+    // their owner (private requires a real Google identity — the shared
+    // custom-token identity is not personal).
+    match /trips/{tripId}/documents/{docId} {
+      allow read: if signedIn()
+        && (resource.data.visibility == 'shared'
+            || resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && (request.resource.data.visibility == 'shared' || isGoogleUser());
+      allow update, delete: if signedIn()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // All other trip data is shared between everyone on the trip
+    match /trips/{tripId}/{coll}/{docId} {
+      allow read, write: if signedIn() && coll != 'documents';
+    }
+    match /trips/{tripId}/{coll}/{docId}/{sub}/{subId} {
+      allow read, write: if signedIn() && coll != 'documents';
     }
   }
 }

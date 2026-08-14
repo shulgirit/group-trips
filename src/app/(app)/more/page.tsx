@@ -31,8 +31,8 @@ const SECTIONS = [
   {
     emoji: "🎟️",
     label: "הזמנות ומסמכים",
-    description: "כרטיסים ואישורים",
-    href: null,
+    description: "כרטיסים, אישורים ואזור אישי",
+    href: "/documents",
   },
   {
     emoji: "📸",

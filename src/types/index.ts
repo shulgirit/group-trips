@@ -31,6 +31,10 @@ export interface Place {
   priceNotes?: string;
   recommendedDurationMin?: number | null;
   tips?: string;
+  /** What reviewers say (AI-summarized from the web) */
+  reviewsSummary?: string;
+  /** For restaurants: dishes people recommend */
+  popularDishes?: string;
   favorite?: boolean;
   sourceUrl?: string;
   createdAt?: number;
@@ -98,6 +102,18 @@ export interface Poll {
   votes: Record<string, string>;
   closed: boolean;
   createdAt?: number;
+}
+
+export interface TripDocument {
+  id: string;
+  name: string;
+  ownerUid: string;
+  ownerName: string;
+  visibility: "shared" | "private";
+  storagePath: string;
+  contentType: string;
+  size: number;
+  createdAt: number;
 }
 
 export interface TripSettings {

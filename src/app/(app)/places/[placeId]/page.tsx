@@ -65,6 +65,14 @@ export default function PlaceDetailPage({
       value: `כ-${Math.round(place.recommendedDurationMin / 60)} שעות`,
     },
     place.tips && { label: "💡 טיפים", value: place.tips },
+    place.popularDishes && {
+      label: "🍽️ מנות מומלצות",
+      value: place.popularDishes,
+    },
+    place.reviewsSummary && {
+      label: "⭐ מה אומרים בביקורות",
+      value: place.reviewsSummary,
+    },
   ].filter(Boolean) as { label: string; value: string }[];
 
   async function handleDelete() {

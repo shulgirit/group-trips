@@ -2,6 +2,14 @@
   "name": "group-trips",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "overrides": {
+    "firebase-admin": {
+      "jwks-rsa": "3.2.0"
+    }
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -33,6 +33,8 @@ export const PlaceInputSchema = z.object({
   priceNotes: optionalTrimmed,
   recommendedDurationMin: z.number().int().positive().nullable().optional(),
   tips: optionalTrimmed,
+  reviewsSummary: optionalTrimmed,
+  popularDishes: optionalTrimmed,
   sourceUrl: optionalUrl,
 });
 

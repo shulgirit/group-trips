@@ -4,6 +4,8 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
   signInWithCustomToken,
+  signInWithPopup,
+  GoogleAuthProvider,
   onAuthStateChanged,
   type User,
 } from "firebase/auth";
@@ -53,6 +55,19 @@ export function auth() {
 
 export function storage() {
   return getStorage(app());
+}
+
+/** True when the user has a real personal identity (Google), not the shared trip identity. */
+export function isPersonalUser(user: User | null): boolean {
+  return Boolean(
+    user?.providerData.some((p) => p.providerId === "google.com")
+  );
+}
+
+export async function signInWithGoogle(): Promise<User> {
+  const provider = new GoogleAuthProvider();
+  const credential = await signInWithPopup(auth(), provider);
+  return credential.user;
 }
 
 /**

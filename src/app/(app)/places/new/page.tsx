@@ -5,16 +5,103 @@ import { useRouter } from "next/navigation";
 import { addPlace } from "@/lib/db";
 import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
 
+interface ImportedDraft {
+  name: string;
+  category: string;
+  area: string;
+  address: string;
+  summary: string;
+  openingHours: string;
+  priceNotes: string;
+  recommendedDurationMin: number | null;
+  tips: string;
+  popularDishes: string;
+  reviewsSummary: string;
+  website: string;
+  bookingUrl: string;
+  imageUrl: string;
+  lat: number | null;
+  lng: number | null;
+  sourceUrl: string;
+}
+
 export default function NewPlacePage() {
   const router = useRouter();
+
+  // Import flow
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [imported, setImported] = useState(false);
+
+  // Draft fields
   const [name, setName] = useState("");
   const [category, setCategory] = useState<PlaceCategory>("attraction");
   const [area, setArea] = useState("");
   const [address, setAddress] = useState("");
   const [website, setWebsite] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [summary, setSummary] = useState("");
+  const [openingHours, setOpeningHours] = useState("");
+  const [priceNotes, setPriceNotes] = useState("");
+  const [tips, setTips] = useState("");
+  const [popularDishes, setPopularDishes] = useState("");
+  const [reviewsSummary, setReviewsSummary] = useState("");
+  const [bookingUrl, setBookingUrl] = useState("");
+  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>(
+    { lat: null, lng: null }
+  );
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [durationMin, setDurationMin] = useState<number | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  async function handleImport() {
+    const url = importUrl.trim();
+    if (!url || importing) return;
+    setImporting(true);
+    setImportError("");
+    try {
+      const response = await fetch("/api/import/place", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: /^https?:\/\//.test(url) ? url : `https://${url}`,
+        }),
+      });
+      if (!response.ok) throw new Error("import_failed");
+      const { draft }: { draft: ImportedDraft } = await response.json();
+
+      setName(draft.name);
+      setCategory(
+        (draft.category in PLACE_CATEGORIES
+          ? draft.category
+          : "other") as PlaceCategory
+      );
+      setArea(draft.area);
+      setAddress(draft.address);
+      setWebsite(draft.website);
+      setImageUrl(draft.imageUrl);
+      setSummary(draft.summary);
+      setOpeningHours(draft.openingHours);
+      setPriceNotes(draft.priceNotes);
+      setTips(draft.tips);
+      setPopularDishes(draft.popularDishes);
+      setReviewsSummary(draft.reviewsSummary);
+      setBookingUrl(draft.bookingUrl);
+      setCoords({ lat: draft.lat, lng: draft.lng });
+      setSourceUrl(draft.sourceUrl);
+      setDurationMin(draft.recommendedDurationMin);
+      setImported(true);
+    } catch {
+      setImportError(
+        "הייבוא נכשל — אפשר לנסות שוב, או פשוט למלא ידנית למטה"
+      );
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -29,6 +116,17 @@ export default function NewPlacePage() {
         address,
         website,
         imageUrl,
+        summary,
+        openingHours,
+        priceNotes,
+        tips,
+        popularDishes,
+        reviewsSummary,
+        bookingUrl,
+        lat: coords.lat,
+        lng: coords.lng,
+        sourceUrl,
+        recommendedDurationMin: durationMin,
       });
       router.replace(`/places/${placeId}`);
     } catch {
@@ -37,11 +135,79 @@ export default function NewPlacePage() {
     }
   }
 
+  const textField = (
+    label: string,
+    value: string,
+    setter: (v: string) => void,
+    options?: { ltr?: boolean; placeholder?: string; multiline?: boolean }
+  ) => (
+    <label key={label} className="block">
+      <span className="mb-1.5 block text-sm text-ink-500">{label}</span>
+      {options?.multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => setter(e.target.value)}
+          rows={3}
+          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+        />
+      ) : (
+        <input
+          type="text"
+          dir={options?.ltr ? "ltr" : "rtl"}
+          value={value}
+          onChange={(e) => setter(e.target.value)}
+          placeholder={options?.placeholder}
+          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+        />
+      )}
+    </label>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <h1 className="font-display text-2xl font-bold text-ink-900">
         מקום חדש
       </h1>
+
+      {/* URL import */}
+      <div className="rounded-3xl border border-sea-200 bg-sea-100/50 p-4">
+        <p className="mb-2 text-sm font-medium text-ink-700">
+          ✨ יש קישור? הדביקו אותו וה-AI ימלא הכל — כולל ביקורות מהרשת
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            dir="ltr"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            placeholder="https://…"
+            className="min-w-0 flex-1 rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+          />
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={importing || !importUrl.trim()}
+            className="whitespace-nowrap rounded-2xl bg-sea-600 px-4 py-3 text-sm font-semibold text-cream-50 disabled:opacity-50"
+          >
+            {importing ? "קורא את הדף…" : "✨ ייבא עם AI"}
+          </button>
+        </div>
+        {importing && (
+          <p className="mt-2 text-sm text-ink-500">
+            זה לוקח עד דקה — קוראים את האתר, מחפשים ביקורות ומתרגמים לעברית ☕
+          </p>
+        )}
+        {importError && (
+          <p role="alert" className="mt-2 text-sm font-medium text-terra-600">
+            {importError}
+          </p>
+        )}
+        {imported && (
+          <p className="mt-2 text-sm font-medium text-sea-700">
+            ✓ יובא! בדקו את הפרטים למטה, ערכו אם צריך — ואז שמרו
+          </p>
+        )}
+      </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
@@ -85,37 +251,39 @@ export default function NewPlacePage() {
         </div>
       </div>
 
-      <details className="rounded-2xl border border-cream-200 bg-white px-4 py-3">
+      {imported && summary && (
+        <div className="space-y-3">
+          {textField("תיאור", summary, setSummary, { multiline: true })}
+          {reviewsSummary &&
+            textField("מה אומרים בביקורות", reviewsSummary, setReviewsSummary, {
+              multiline: true,
+            })}
+          {popularDishes &&
+            textField("מנות מומלצות", popularDishes, setPopularDishes)}
+          {tips && textField("טיפים", tips, setTips, { multiline: true })}
+        </div>
+      )}
+
+      <details
+        open={imported}
+        className="rounded-2xl border border-cream-200 bg-white px-4 py-3"
+      >
         <summary className="cursor-pointer text-sm font-medium text-ink-700">
-          פרטים נוספים (לא חובה)
+          פרטים נוספים {imported ? "" : "(לא חובה)"}
         </summary>
         <div className="mt-3 space-y-3">
-          {(
-            [
-              [area, setArea, "אזור", "למשל: טאורמינה"],
-              [address, setAddress, "כתובת", ""],
-              [website, setWebsite, "אתר", "https://…"],
-              [imageUrl, setImageUrl, "קישור לתמונה", "https://…"],
-            ] as const
-          ).map(([value, setter, label, placeholder]) => (
-            <label key={label} className="block">
-              <span className="mb-1.5 block text-sm text-ink-500">{label}</span>
-              <input
-                type="text"
-                dir={label === "אתר" || label === "קישור לתמונה" ? "ltr" : "rtl"}
-                value={value}
-                onChange={(e) => setter(e.target.value)}
-                placeholder={placeholder}
-                className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
-              />
-            </label>
-          ))}
+          {textField("אזור", area, setArea, { placeholder: "למשל: טאורמינה" })}
+          {textField("כתובת", address, setAddress)}
+          {textField("שעות פתיחה", openingHours, setOpeningHours)}
+          {textField("מחירים", priceNotes, setPriceNotes)}
+          {textField("אתר", website, setWebsite, {
+            ltr: true,
+            placeholder: "https://…",
+          })}
+          {textField("קישור הזמנה", bookingUrl, setBookingUrl, { ltr: true })}
+          {textField("קישור לתמונה", imageUrl, setImageUrl, { ltr: true })}
         </div>
       </details>
-
-      <p className="text-sm text-ink-500">
-        ✨ בקרוב: הדבקת קישור וייבוא אוטומטי עם AI
-      </p>
 
       {error && (
         <p role="alert" className="text-sm font-medium text-terra-600">
