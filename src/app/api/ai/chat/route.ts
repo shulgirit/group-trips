@@ -159,6 +159,29 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "search_google_places",
+      description:
+        "חיפוש חי בגוגל מפות: מקומות אמיתיים עם דירוג, מספר ביקורות, כתובת ואתר. השתמש כשמבקשים 'הכי טובים', לפי ציון, או כשאתה רוצה לוודא דירוגים עדכניים לפני המלצה.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "שאילתת חיפוש כולל אזור, למשל: 'fine dining restaurants Castellammare del Golfo'",
+          },
+          minRating: {
+            type: "number",
+            description: "סינון לדירוג מינימלי, למשל 4.5",
+          },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_poll",
       description:
         "יצירת סקר חדש ונפרד עם שאלה משלו ואפשרויות. השתמש כשמבקשים סקר על שאלה ספציפית (״תעשה סקר מה עושים מחר״, ״תשלח סקר לכולם על...״). אל תשתמש ב-add_poll_option במקרה כזה.",
@@ -405,6 +428,55 @@ async function executeTool(
 ): Promise<Record<string, unknown>> {
   const tripRef = adminDb().collection("trips").doc(TRIP.id);
 
+  if (name === "search_google_places") {
+    const args = z
+      .object({ query: z.string().min(2), minRating: z.number().optional() })
+      .parse(rawArgs);
+    const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
+    if (!key) return { ok: false, error: "search unavailable" };
+    const response = await fetch(
+      "https://places.googleapis.com/v1/places:searchText",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": key,
+          "X-Goog-FieldMask":
+            "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.websiteUri,places.priceLevel",
+        },
+        body: JSON.stringify({
+          textQuery: `${args.query} Sicily`,
+          pageSize: 10,
+        }),
+      }
+    );
+    if (!response.ok) return { ok: false, error: "search failed" };
+    const payload = await response.json();
+    const results = ((payload.places ?? []) as {
+      displayName?: { text?: string };
+      formattedAddress?: string;
+      rating?: number;
+      userRatingCount?: number;
+      types?: string[];
+      primaryType?: string;
+      websiteUri?: string;
+      priceLevel?: string;
+    }[])
+      .map((p) => ({
+        name: p.displayName?.text ?? "",
+        address: p.formattedAddress ?? "",
+        rating: p.rating ?? null,
+        ratingCount: p.userRatingCount ?? null,
+        type: p.primaryType ?? p.types?.[0] ?? "",
+        website: p.websiteUri ?? "",
+        priceLevel: p.priceLevel ?? "",
+      }))
+      .filter((p) => p.name && (!args.minRating || (p.rating ?? 0) >= args.minRating))
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+      .slice(0, 8);
+    return { ok: true, results };
+  }
+
   if (name === "create_event") {
     const args = CreateEventArgs.parse(rawArgs);
     if (args.day < TRIP.startDate || args.day > TRIP.endDate) {
@@ -535,6 +607,8 @@ const SYSTEM_PROMPT = `אתה ״המשרת של חבורת מיחא״ 🦻✨ �
 
 כללים:
 - ענה תמיד בעברית, בטון חם וקצר.
+- יש לך גישה חיה לגוגל מפות דרך הכלי search_google_places (דירוגים, ביקורות, כתובות). כשמבקשים "הכי טובים" או לפי ציון — חפש בו ואז החזר candidates. לעולם אל תגיד שאין לך גישה לגוגל מפות או לאינטרנט.
+- לכל candidate שאתה מחזיר, המערכת מצרפת אוטומטית תמונה אמיתית, דירוג גוגל ומיקום למפה — אתה רק צריך לבחור נכון.
 - כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
 - כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
 - כשמבקשים סקר חדש עם שאלה ("תעשה סקר מה עושים מחר", "תשלח סקר לכולם") — השתמש ב-create_poll ליצירת סקר נפרד. add_poll_option מיועד רק להוספת רעיון בודד לסקר הרעיונות הקבוע.
@@ -596,6 +670,8 @@ export async function POST(request: Request) {
     for (let round = 0; round < 4; round++) {
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL ?? "gpt-5.1",
+        // Deep-reasoning mode for smarter planning and recommendations
+        reasoning_effort: "medium",
         messages: conversation,
         tools: TOOLS,
         response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
