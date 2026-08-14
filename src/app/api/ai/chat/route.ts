@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
+import { importPlaceFromUrl } from "@/lib/server/import-place";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
 
@@ -125,6 +126,29 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
           notes: { type: "string" },
         },
         required: ["title", "day", "startTime"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "enrich_place",
+      description:
+        "עדכון/העשרה של מקום שמור מתוך אתר אינטרנט: קורא את הדף (Firecrawl) ומעדכן תיאור, שעות פתיחה, מחירים, טיפים, ביקורות ותמונה. לוקח עד דקה. השתמש כשמבקשים לעדכן/להעשיר מקום מהאתר שלו.",
+      parameters: {
+        type: "object",
+        properties: {
+          placeName: {
+            type: "string",
+            description: "שם המקום השמור לעדכון (מהרשימה בהקשר)",
+          },
+          url: {
+            type: "string",
+            description:
+              "כתובת האתר לקריאה. אופציונלי — אם לא סופק, נשתמש באתר השמור של המקום",
+          },
+        },
+        required: ["placeName"],
       },
     },
   },
@@ -354,6 +378,66 @@ async function executeTool(
     };
   }
 
+  if (name === "enrich_place") {
+    const args = z
+      .object({ placeName: z.string().min(1), url: z.string().optional() })
+      .parse(rawArgs);
+    const place = resolvePlace(args.placeName, data);
+    if (!place) {
+      return { ok: false, error: `לא נמצא מקום שמור בשם "${args.placeName}"` };
+    }
+    const placeRef = tripRef.collection("places").doc(place.id);
+    const existing = (await placeRef.get()).data() ?? {};
+    const url =
+      (args.url && /^https?:\/\//.test(args.url) ? args.url : null) ??
+      existing.website ??
+      existing.sourceUrl;
+    if (!url) {
+      return {
+        ok: false,
+        error: `למקום "${place.name}" אין אתר שמור — בקש מהמשתמש קישור`,
+      };
+    }
+    const draft = await importPlaceFromUrl(url);
+    const updates: Record<string, unknown> = {};
+    // Fresh content overwrites; identity/coords are only filled when missing
+    for (const field of [
+      "summary",
+      "openingHours",
+      "priceNotes",
+      "tips",
+      "popularDishes",
+      "reviewsSummary",
+    ] as const) {
+      if (draft[field]) updates[field] = draft[field];
+    }
+    if (draft.recommendedDurationMin) {
+      updates.recommendedDurationMin = draft.recommendedDurationMin;
+    }
+    if (draft.imageUrl && !existing.imageUrl) updates.imageUrl = draft.imageUrl;
+    if (draft.bookingUrl && !existing.bookingUrl) {
+      updates.bookingUrl = draft.bookingUrl;
+    }
+    if (!existing.website) updates.website = draft.website;
+    if (!existing.address && draft.address) updates.address = draft.address;
+    if (existing.lat == null && draft.lat != null) {
+      updates.lat = draft.lat;
+      updates.lng = draft.lng;
+    }
+    updates.sourceUrl = url;
+    await placeRef.update(updates);
+    return {
+      ok: true,
+      summary: `"${place.name}" עודכן מהאתר. שדות שעודכנו: ${Object.keys(updates).join(", ")}`,
+      extracted: {
+        summary: draft.summary,
+        openingHours: draft.openingHours,
+        priceNotes: draft.priceNotes,
+        reviewsSummary: draft.reviewsSummary,
+      },
+    };
+  }
+
   if (name === "add_poll_option") {
     const args = AddPollOptionArgs.parse(rawArgs);
     const place = resolvePlace(args.placeName ?? args.label, data);
@@ -403,6 +487,7 @@ const SYSTEM_PROMPT = `אתה הקונסיירז׳ הפרטי של טיול מש
 - כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
 - כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
 - כשמבקשים להוסיף לסקר — השתמש בכלי add_poll_option.
+- כשמבקשים לעדכן/להעשיר מקום מהאתר שלו — השתמש בכלי enrich_place, ואז סכם ב-reply מה התעדכן.
 - אל תבצע פעולות כתיבה בלי בקשה מפורשת של המשתמש.
 - קח בחשבון את הלו״ז הקיים (התנגשויות, מרחקים) והרכב הקבוצה.
 - שדות טקסט שאין לך מידע עבורם — מחרוזת ריקה.`;
