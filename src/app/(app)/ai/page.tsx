@@ -78,6 +78,21 @@ export default function AiPage() {
     [sessions, sessionId]
   );
 
+  // Coming back to the concierge resumes the latest conversation instead
+  // of a blank screen (a fresh chat is always one tap away).
+  const autoResumed = useRef(false);
+  useEffect(() => {
+    if (autoResumed.current || !sessions?.length) return;
+    if (sessionId !== null || messages.length > 0) {
+      autoResumed.current = true;
+      return;
+    }
+    autoResumed.current = true;
+    setSessionId(sessions[0].id);
+    setMessages(sessions[0].messages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions]);
+
   function openSession(session: ChatSession) {
     setSessionId(session.id);
     setMessages(session.messages);
@@ -90,27 +105,35 @@ export default function AiPage() {
     setError("");
   }
 
-  async function persist(nextMessages: ChatMessage[]): Promise<void> {
-    if (!personal || !user) return;
+  async function persist(
+    nextMessages: ChatMessage[],
+    knownSessionId: string | null = sessionId
+  ): Promise<string | null> {
+    if (!personal || !user) return null;
     try {
-      if (sessionId) {
-        await updateDoc(doc(db(), `${TRIP_PATH}/chatSessions/${sessionId}`), {
-          messages: nextMessages,
-          updatedAt: Date.now(),
-        });
-      } else {
-        const firstUser = nextMessages.find((m) => m.role === "user");
-        const ref = await addDoc(collection(db(), `${TRIP_PATH}/chatSessions`), {
-          ownerUid: user.uid,
-          title: (firstUser?.content ?? "שיחה").slice(0, 40),
-          messages: nextMessages,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-        setSessionId(ref.id);
+      if (knownSessionId) {
+        await updateDoc(
+          doc(db(), `${TRIP_PATH}/chatSessions/${knownSessionId}`),
+          {
+            messages: nextMessages,
+            updatedAt: Date.now(),
+          }
+        );
+        return knownSessionId;
       }
+      const firstUser = nextMessages.find((m) => m.role === "user");
+      const ref = await addDoc(collection(db(), `${TRIP_PATH}/chatSessions`), {
+        ownerUid: user.uid,
+        title: (firstUser?.content ?? "שיחה").slice(0, 40),
+        messages: nextMessages,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      setSessionId(ref.id);
+      return ref.id;
     } catch {
       // Persistence is best-effort; the chat keeps working in memory
+      return knownSessionId;
     }
   }
 
@@ -136,6 +159,8 @@ export default function AiPage() {
     queueMicrotask(() =>
       bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     );
+    // Save the question right away, so leaving mid-answer loses nothing
+    const activeSessionId = await persist(withUser);
 
     try {
       const response = await fetch("/api/ai/chat", {
@@ -158,7 +183,7 @@ export default function AiPage() {
         },
       ];
       setMessages(withReply);
-      await persist(withReply);
+      await persist(withReply, activeSessionId);
     } catch {
       setError("ה-AI לא ענה הפעם — נסו שוב עוד רגע");
     } finally {
