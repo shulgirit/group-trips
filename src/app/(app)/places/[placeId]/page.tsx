@@ -48,8 +48,10 @@ export default function PlaceDetailPage({
   const [pollAdded, setPollAdded] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichMessage, setEnrichMessage] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [enrichUrl, setEnrichUrl] = useState("");
 
-  async function handleEnrich() {
+  async function handleEnrich(url?: string) {
     if (enriching) return;
     setEnriching(true);
     setEnrichMessage("");
@@ -57,14 +59,18 @@ export default function PlaceDetailPage({
       const response = await fetch("/api/import/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ placeId }),
+        body: JSON.stringify(url ? { placeId, url } : { placeId }),
       });
       const result = await response.json();
-      setEnrichMessage(
-        result.ok
-          ? "✓ המקום הועשר — התוכן החדש כבר מופיע כאן"
-          : (result.message ?? "לא נמצא מידע נוסף")
-      );
+      if (result.ok) {
+        setEnrichMessage("✓ המקום הועשר — התוכן החדש כבר מופיע כאן");
+        setShowUrlInput(false);
+        setEnrichUrl("");
+      } else {
+        setEnrichMessage(result.message ?? "לא נמצא מידע נוסף");
+        // Nothing found automatically — offer the manual link right here
+        setShowUrlInput(true);
+      }
     } catch {
       setEnrichMessage("ההעשרה נכשלה, נסו שוב");
     } finally {
@@ -239,7 +245,7 @@ export default function PlaceDetailPage({
       <div>
         <button
           type="button"
-          onClick={handleEnrich}
+          onClick={() => handleEnrich()}
           disabled={enriching}
           className={`w-full ${
             !place.summary && detailRows.length < 2
@@ -258,6 +264,41 @@ export default function PlaceDetailPage({
           <p className="mt-2 rounded-2xl bg-cream-100 px-4 py-2.5 text-sm font-medium text-ink-700">
             {enrichMessage}
           </p>
+        )}
+        {!showUrlInput ? (
+          <button
+            type="button"
+            onClick={() => setShowUrlInput(true)}
+            className="mt-2 block w-full text-center text-sm text-sea-600"
+          >
+            🔗 יש לכם קישור לאתר של המקום? הדביקו אותו כאן ›
+          </button>
+        ) : (
+          <div className="mt-2 flex gap-2">
+            <input
+              type="url"
+              dir="ltr"
+              value={enrichUrl}
+              onChange={(event) => setEnrichUrl(event.target.value)}
+              placeholder="https://…"
+              className="field min-w-0 flex-1 py-2.5"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const url = enrichUrl.trim();
+                if (!/^https?:\/\//.test(url)) {
+                  setEnrichMessage("הדביקו קישור מלא שמתחיל ב-https://");
+                  return;
+                }
+                handleEnrich(url);
+              }}
+              disabled={enriching || !enrichUrl.trim()}
+              className="btn-primary whitespace-nowrap px-4 py-2.5 text-sm"
+            >
+              {enriching ? "קורא…" : "קרא מהקישור"}
+            </button>
+          </div>
         )}
       </div>
 

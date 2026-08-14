@@ -8,6 +8,11 @@ export const maxDuration = 120;
 
 const RequestSchema = z.object({
   placeId: z.string().min(1),
+  url: z
+    .string()
+    .trim()
+    .regex(/^https?:\/\//)
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -17,14 +22,15 @@ export async function POST(request: Request) {
   }
 
   let placeId: string;
+  let url: string | undefined;
   try {
-    ({ placeId } = RequestSchema.parse(await request.json()));
+    ({ placeId, url } = RequestSchema.parse(await request.json()));
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
   try {
-    const result = await enrichSavedPlace(placeId);
+    const result = await enrichSavedPlace(placeId, url);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[import/enrich]", error);

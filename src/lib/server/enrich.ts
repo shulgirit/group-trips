@@ -187,6 +187,11 @@ export async function enrichSavedPlace(
     } catch (error) {
       if (!(error instanceof ImportError)) throw error;
     }
+    // A hand-pasted link is authoritative — keep it on the place
+    if (explicitUrl && /^https?:\/\//.test(explicitUrl)) {
+      updates.website = explicitUrl;
+      updates.sourceUrl = explicitUrl;
+    }
   }
 
   // 2) Model knowledge fallback when the web gave us nothing
@@ -223,7 +228,7 @@ export async function enrichSavedPlace(
   if (!updatedFields.length) {
     return {
       ok: false,
-      message: `לא הצלחתי למצוא מידע נוסף על ״${name}״ — לא באתר ולא במקורות אחרים. אפשר להדביק קישור ידנית בעריכת המקום`,
+      message: `לא הצלחתי למצוא מידע נוסף על ״${name}״ — לא באתר ולא במקורות אחרים. הדביקו קישור לאתר בשדה שנפתח כאן למטה ואקרא ממנו`,
     };
   }
 
