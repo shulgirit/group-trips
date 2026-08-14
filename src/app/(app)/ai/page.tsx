@@ -259,14 +259,14 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <p className="kicker text-terra-500">Travel Concierge</p>
+      <p className="kicker text-terra-500">חבורת מיחא</p>
       <h1 className="mb-1 font-display text-3xl font-bold text-ink-900">
-        ✨ הקונסיירז׳ שלנו
+        🦻✨ המשרת של חבורת מיחא
       </h1>
       <p className="mb-3 text-sm text-ink-500">
         {personal
           ? "🔒 השיחות שלכם פרטיות — רק מה שתשמרו למקומות או ללוח משותף לקבוצה"
-          : "מכיר את המקומות, הלו״ז והמשפחות שלנו"}
+          : "מכיר את המקומות, הלו״ז ואת כל החבורה"}
       </p>
 
       {/* Private session bar */}
@@ -329,11 +329,11 @@ export default function AiPage() {
           <>
             <div className="card relative overflow-hidden px-5 py-6 text-center">
               <span aria-hidden className="text-4xl">
-                ✨
+                🦻✨
               </span>
               <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-                בקשו המלצות, שאלו על הלו״ז, או בקשו ממני לשבץ פעילות — אני
-                מחובר לכל נתוני הטיול
+                המשרת של החבורה לשירותכם — המלצות, שיבוצים בלוח, סקרים
+                ועדכון מקומות. מחובר לכל נתוני הטיול
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -18,7 +18,7 @@ const QUICK_ACTIONS = [
   { icon: CalendarPlus, label: "הוסף אירוע", href: "/calendar/new" },
   { icon: Wallet, label: "הוסף הוצאה", href: "/expenses?add=1" },
   { icon: Vote, label: "צור סקר", href: "/polls/new" },
-  { icon: Sparkles, label: "שאל את הקונסיירז׳", href: "/ai" },
+  { icon: Sparkles, label: "שאל את המשרת של החבורה", href: "/ai" },
 ] as const;
 
 export function QuickAdd() {

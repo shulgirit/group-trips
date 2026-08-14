@@ -40,7 +40,7 @@ export default async function GatePage() {
         <GateForm />
 
         <p className="mt-8 text-sm text-cream-50/70">
-          ארבע משפחות · עשרה ימים · ים תיכון
+          חבורת מיחא 🦻 · ארבע משפחות · ים תיכון
         </p>
       </div>
     </main>

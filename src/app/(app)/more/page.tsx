@@ -5,9 +5,9 @@ export const metadata: Metadata = { title: "עוד" };
 
 const SECTIONS = [
   {
-    emoji: "✨",
-    label: "AI",
-    description: "הקונסיירז׳ הפרטי של הטיול",
+    emoji: "🦻",
+    label: "המשרת של חבורת מיחא",
+    description: "ה-AI הפרטי שלנו — מכיר את כל הטיול",
     href: "/ai",
   },
   {
