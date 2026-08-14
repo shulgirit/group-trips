@@ -48,6 +48,7 @@ function timeUntilLabel(target: Date, now: Date): string | null {
   const minutes = diffMin % 60;
   if (hours < 6)
     return `יוצאים בעוד ${hours} שע׳${minutes ? ` ו-${minutes} דק׳` : ""}`;
+  if (hours < 24) return `בעוד ${hours} שעות`;
   return null;
 }
 
