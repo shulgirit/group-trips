@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const QUICK_ACTIONS = [
-  { emoji: "📍", label: "הוסף מקום" },
-  { emoji: "📅", label: "הוסף אירוע" },
-  { emoji: "💶", label: "הוסף הוצאה" },
-  { emoji: "🗳️", label: "צור סקר" },
-  { emoji: "📸", label: "העלה תמונה" },
+  { emoji: "📍", label: "הוסף מקום", href: "/places/new" },
+  { emoji: "📅", label: "הוסף אירוע", href: "/calendar/new" },
+  { emoji: "💶", label: "הוסף הוצאה", href: null },
+  { emoji: "🗳️", label: "צור סקר", href: null },
+  { emoji: "📸", label: "העלה תמונה", href: null },
 ] as const;
 
 export function QuickAdd() {
@@ -61,28 +62,39 @@ export function QuickAdd() {
             <h2 className="mb-3 text-lg font-semibold text-ink-900">
               מה מוסיפים?
             </h2>
-            <ul className="mb-4 space-y-1">
-              {QUICK_ACTIONS.map(({ emoji, label }) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    disabled
-                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-right text-lg text-ink-700 opacity-60"
-                  >
-                    <span className="text-2xl" aria-hidden>
-                      {emoji}
-                    </span>
-                    <span className="flex-1">{label}</span>
-                    <span className="rounded-full bg-lemon-100 px-2.5 py-0.5 text-xs font-medium text-ink-700">
-                      בשלב הבא
-                    </span>
-                  </button>
-                </li>
-              ))}
+            <ul className="mb-2 space-y-1 pb-4">
+              {QUICK_ACTIONS.map(({ emoji, label, href }) =>
+                href ? (
+                  <li key={label}>
+                    <Link
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-right text-lg text-ink-900 transition active:bg-cream-100"
+                    >
+                      <span className="text-2xl" aria-hidden>
+                        {emoji}
+                      </span>
+                      <span className="flex-1">{label}</span>
+                      <span aria-hidden className="text-ink-300">
+                        ‹
+                      </span>
+                    </Link>
+                  </li>
+                ) : (
+                  <li key={label}>
+                    <div className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-right text-lg text-ink-700 opacity-60">
+                      <span className="text-2xl" aria-hidden>
+                        {emoji}
+                      </span>
+                      <span className="flex-1">{label}</span>
+                      <span className="rounded-full bg-lemon-100 px-2.5 py-0.5 text-xs font-medium text-ink-700">
+                        בשלב הבא
+                      </span>
+                    </div>
+                  </li>
+                )
+              )}
             </ul>
-            <p className="pb-2 text-center text-sm text-ink-500">
-              הפעולות ייפתחו ברגע שנחבר את Firebase 🔌
-            </p>
           </div>
         </div>
       )}

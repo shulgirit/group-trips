@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only users signed in via our custom-token flow (password holders).
+    // No public sign-in providers are enabled.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
