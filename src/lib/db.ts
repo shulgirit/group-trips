@@ -161,6 +161,52 @@ export async function deletePoll(pollId: string): Promise<void> {
 
 export const GLOBAL_POLL_ID = "global";
 
+function newPollOption(label: string, placeId?: string | null): PollOption {
+  return {
+    id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    label,
+    placeId: placeId ?? null,
+  };
+}
+
+/** Adds an option to any existing poll (dedupes within that poll). */
+export async function addOptionToPoll(
+  pollId: string,
+  label: string,
+  placeId?: string | null
+): Promise<"added" | "exists"> {
+  const ref = doc(db(), `${TRIP_PATH}/polls/${pollId}`);
+  const snapshot = await getDoc(ref);
+  const options = (snapshot.data()?.options ?? []) as PollOption[];
+  if (
+    options.some(
+      (option) =>
+        option.label === label || (placeId && option.placeId === placeId)
+    )
+  ) {
+    return "exists";
+  }
+  await updateDoc(ref, { options: arrayUnion(newPollOption(label, placeId)) });
+  return "added";
+}
+
+/** Creates a brand-new poll seeded with one option; notifies the group once. */
+export async function createPollWithOption(
+  question: string,
+  label: string,
+  placeId?: string | null
+): Promise<string> {
+  const ref = await addDoc(collection(db(), `${TRIP_PATH}/polls`), {
+    question: question.trim(),
+    options: [newPollOption(label, placeId)],
+    votes: {},
+    closed: false,
+    createdAt: Date.now(),
+  });
+  notifyGroup("poll", question.trim(), undefined, auth().currentUser?.uid);
+  return ref.id;
+}
+
 /**
  * Adds an option to the always-open group poll (creates the poll on first
  * use). Returns "exists" when the same place/label is already an option.

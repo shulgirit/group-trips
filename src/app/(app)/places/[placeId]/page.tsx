@@ -24,9 +24,10 @@ import {
   Vote,
 } from "lucide-react";
 import { SchedulePlaceSheet } from "@/components/events/SchedulePlaceSheet";
+import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { addOptionToGlobalPoll, deletePlace, updatePlace } from "@/lib/db";
+import { deletePlace, updatePlace } from "@/lib/db";
 import { useEvents, usePlace } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { formatDayLabel } from "@/lib/trip";
@@ -43,9 +44,8 @@ export default function PlaceDetailPage({
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [pollState, setPollState] = useState<"idle" | "adding" | "added">(
-    "idle"
-  );
+  const [pollSheetOpen, setPollSheetOpen] = useState(false);
+  const [pollAdded, setPollAdded] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichMessage, setEnrichMessage] = useState("");
 
@@ -224,29 +224,15 @@ export default function PlaceDetailPage({
 
       <button
         type="button"
-        onClick={async () => {
-          if (pollState !== "idle") return;
-          setPollState("adding");
-          try {
-            await addOptionToGlobalPoll(place.name, place.id);
-            setPollState("added");
-          } catch {
-            setPollState("idle");
-          }
-        }}
-        disabled={pollState !== "idle"}
+        onClick={() => setPollSheetOpen(true)}
         className={`w-full py-3 ${
-          pollState === "added"
+          pollAdded
             ? "btn border border-lemon-300 bg-lemon-100 font-medium text-ink-700"
             : "btn-outline"
         }`}
       >
         <Vote size={18} />
-        {pollState === "added"
-          ? "בסקר הקבוצתי ✓"
-          : pollState === "adding"
-            ? "מוסיף…"
-            : "הוסף לסקר הקבוצתי"}
+        {pollAdded ? "נוסף לסקר ✓ · להוסיף לעוד סקר?" : "הוסף לסקר…"}
       </button>
 
       {/* ── AI enrichment ── */}
@@ -394,6 +380,13 @@ export default function PlaceDetailPage({
         place={place}
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
+      />
+      <AddToPollSheet
+        open={pollSheetOpen}
+        onClose={() => setPollSheetOpen(false)}
+        label={place.name}
+        placeId={place.id}
+        onAdded={() => setPollAdded(true)}
       />
     </div>
   );

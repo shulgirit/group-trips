@@ -12,8 +12,9 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { addOptionToGlobalPoll, addPlace } from "@/lib/db";
+import { addPlace } from "@/lib/db";
 import { db } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/trip";
 import {
@@ -43,6 +44,12 @@ export default function AiPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
+  const [pollTarget, setPollTarget] = useState<{
+    label: string;
+    placeId: string;
+    messageIndex: number;
+    candidateIndex: number;
+  } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Private session list (Google users only)
@@ -230,21 +237,25 @@ export default function AiPage() {
     }
   }
 
-  /** Saves the place (if needed) and adds it to the group poll — one tap. */
+  /** Saves the place (if needed), then opens the poll chooser sheet. */
   async function pollCandidate(
     candidate: ChatCandidate,
     messageIndex: number,
     candidateIndex: number
   ) {
     const key = candidateKey(messageIndex, candidateIndex);
-    if (savingKeys.has(key) || candidate.polled) return;
+    if (savingKeys.has(key)) return;
     setSavingKeys((current) => new Set(current).add(key));
     try {
       const placeId = await persistCandidatePlace(candidate);
-      await addOptionToGlobalPoll(candidate.name, placeId);
       await updateCandidate(messageIndex, candidateIndex, {
         savedPlaceId: placeId,
-        polled: true,
+      });
+      setPollTarget({
+        label: candidate.name,
+        placeId,
+        messageIndex,
+        candidateIndex,
       });
     } catch {
       setError("ההוספה לסקר נכשלה, נסו שוב");
@@ -457,14 +468,14 @@ export default function AiPage() {
                           onClick={() =>
                             pollCandidate(candidate, messageIndex, candidateIndex)
                           }
-                          disabled={savingKeys.has(key) || candidate.polled}
-                          className={`rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
+                          disabled={savingKeys.has(key)}
+                          className={`rounded-2xl px-3.5 py-2.5 text-sm font-medium transition active:scale-[0.98] ${
                             candidate.polled
                               ? "bg-lemon-100 text-ink-700"
-                              : "bg-cream-100 text-ink-700 active:scale-[0.98]"
+                              : "bg-cream-100 text-ink-700"
                           } disabled:opacity-70`}
                         >
-                          {candidate.polled ? "🗳️ בסקר ✓" : "🗳️ לסקר"}
+                          {candidate.polled ? "🗳️ בסקר ✓" : "🗳️ לסקר…"}
                         </button>
                         {candidate.website && (
                           <a
@@ -532,6 +543,22 @@ export default function AiPage() {
           ↑
         </button>
       </form>
+
+      {pollTarget && (
+        <AddToPollSheet
+          open
+          onClose={() => setPollTarget(null)}
+          label={pollTarget.label}
+          placeId={pollTarget.placeId}
+          onAdded={() =>
+            updateCandidate(
+              pollTarget.messageIndex,
+              pollTarget.candidateIndex,
+              { polled: true }
+            )
+          }
+        />
+      )}
     </div>
   );
 }
