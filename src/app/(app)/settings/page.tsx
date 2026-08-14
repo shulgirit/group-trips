@@ -5,6 +5,7 @@ import Image from "next/image";
 import { signOut } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { auth, db, signInWithGoogle } from "@/lib/firebase/client";
 import { useFamilies } from "@/lib/hooks";
@@ -197,6 +198,8 @@ export default function SettingsPage() {
           </p>
         )}
       </section>
+
+      <NotificationsSection />
 
       {/* Trip info */}
       <section>

@@ -55,14 +55,15 @@ service cloud.firestore {
         && isGoogleUser();
     }
 
-    // All other trip data is shared between the members
+    // All other trip data is shared between the members.
+    // pushSubscriptions is server-managed only (Admin SDK).
     match /trips/{tripId}/{coll}/{docId} {
       allow read, write: if isMember()
-        && !(coll in ['documents', 'chatSessions', 'users']);
+        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions']);
     }
     match /trips/{tripId}/{coll}/{docId}/{sub}/{subId} {
       allow read, write: if isMember()
-        && !(coll in ['documents', 'chatSessions', 'users']);
+        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions']);
     }
   }
 }

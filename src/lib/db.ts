@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import type { PollOption } from "@/types";
 import { auth, db, isPersonalUser } from "@/lib/firebase/client";
+import { notifyGroup } from "@/lib/push-client";
+import { formatDayLabel } from "@/lib/trip";
 import { TRIP_PATH } from "@/lib/hooks";
 import {
   PlaceInputSchema,
@@ -67,6 +69,12 @@ export async function addEvent(input: EventInput): Promise<string> {
         : undefined,
     })
   );
+  notifyGroup(
+    "event",
+    parsed.title,
+    `${formatDayLabel(parsed.day)} · ${parsed.startTime}`,
+    currentUser?.uid
+  );
   return ref.id;
 }
 
@@ -93,6 +101,7 @@ export async function addPoll(input: PollInput): Promise<string> {
     collection(db(), `${TRIP_PATH}/polls`),
     compact({ ...parsed, votes: {}, closed: false, createdAt: Date.now() })
   );
+  notifyGroup("poll", parsed.question, undefined, auth().currentUser?.uid);
   return ref.id;
 }
 
@@ -155,5 +164,6 @@ export async function addOptionToGlobalPoll(
       createdAt: Date.now(),
     });
   }
+  notifyGroup("poll_option", label, undefined, auth().currentUser?.uid);
   return "added";
 }

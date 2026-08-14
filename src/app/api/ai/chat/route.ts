@@ -6,6 +6,7 @@ import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
+import { sendPushToAll } from "@/lib/server/push";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
 
@@ -369,6 +370,12 @@ async function executeTool(
       createdAt: Date.now(),
       createdByName: "✨ הקונסיירז׳",
     });
+    sendPushToAll({
+      title: "📅 הקונסיירז׳ הוסיף ללוח",
+      body: `${args.title} · ${args.day.slice(8, 10)}.${args.day.slice(5, 7)} · ${startTime}`,
+      url: "/calendar",
+      tag: "event",
+    }).catch(() => undefined);
     return {
       ok: true,
       eventId: eventRef.id,
@@ -472,6 +479,12 @@ async function executeTool(
         createdAt: Date.now(),
       });
     }
+    sendPushToAll({
+      title: "🗳️ אפשרות חדשה בסקר הקבוצתי",
+      body: `${args.label} — בואו להצביע`,
+      url: "/polls",
+      tag: "poll",
+    }).catch(() => undefined);
     return { ok: true, summary: `"${args.label}" נוסף לסקר הקבוצתי` };
   }
 
