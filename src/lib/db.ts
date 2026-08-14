@@ -5,6 +5,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   setDoc,
@@ -78,6 +79,25 @@ export async function addEvent(input: EventInput): Promise<string> {
   return ref.id;
 }
 
+export async function updateEvent(
+  eventId: string,
+  input: EventInput
+): Promise<void> {
+  const parsed = EventInputSchema.parse(input);
+  await updateDoc(doc(db(), `${TRIP_PATH}/events/${eventId}`), {
+    title: parsed.title,
+    emoji: parsed.emoji ?? null,
+    placeId: parsed.placeId ?? null,
+    day: parsed.day,
+    startTime: parsed.startTime,
+    durationMin: parsed.durationMin ?? null,
+    participants: parsed.participants,
+    notes: parsed.notes ?? "",
+    // Time may have moved — let the reminder fire again for the new slot
+    reminderSentAt: deleteField(),
+  });
+}
+
 export async function deleteEvent(eventId: string): Promise<void> {
   await deleteDoc(doc(db(), `${TRIP_PATH}/events/${eventId}`));
 }
@@ -103,6 +123,18 @@ export async function addPoll(input: PollInput): Promise<string> {
   );
   notifyGroup("poll", parsed.question, undefined, auth().currentUser?.uid);
   return ref.id;
+}
+
+export async function removePollOption(
+  pollId: string,
+  optionId: string
+): Promise<void> {
+  const ref = doc(db(), `${TRIP_PATH}/polls/${pollId}`);
+  const snapshot = await getDoc(ref);
+  const options = (snapshot.data()?.options ?? []) as PollOption[];
+  await updateDoc(ref, {
+    options: options.filter((option) => option.id !== optionId),
+  });
 }
 
 export async function votePoll(

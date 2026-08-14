@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Compass,
   Map as MapIcon,
+  Pencil,
   Split,
   Trash2,
   TriangleAlert,
@@ -182,7 +183,10 @@ export default function CalendarPage() {
                         : ""
                   }`}
                 >
-                  <div className="flex items-stretch">
+                  <Link
+                    href={`/calendar/${event.id}`}
+                    className="flex items-stretch transition active:bg-cream-100/60"
+                  >
                     {/* Visual side */}
                     <div className="relative w-20 shrink-0">
                       {place?.imageUrl ? (
@@ -240,8 +244,12 @@ export default function CalendarPage() {
                           התנגשות — אותם משתתפים בשני אירועים
                         </p>
                       )}
+                      <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-300">
+                        <Pencil size={10} />
+                        לחצו לעריכה
+                      </p>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 border-t border-cream-100 px-3 py-2">

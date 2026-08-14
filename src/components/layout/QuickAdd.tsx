@@ -47,7 +47,7 @@ export function QuickAdd() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="הוספה מהירה"
-        className="fixed bottom-24 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-terra-400 to-terra-600 text-cream-50 shadow-[var(--shadow-float)] transition active:scale-95"
+        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-terra-400 to-terra-600 text-cream-50 shadow-[var(--shadow-float)] transition active:scale-95"
       >
         <Plus size={26} strokeWidth={2.4} />
       </button>

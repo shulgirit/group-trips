@@ -3,9 +3,15 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { deletePoll, setPollClosed, votePoll } from "@/lib/db";
+import {
+  deletePoll,
+  removePollOption,
+  setPollClosed,
+  votePoll,
+} from "@/lib/db";
 import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type Family, type Place, type Poll } from "@/types";
 
@@ -18,8 +24,19 @@ function PollCard({
   families: Family[];
   places: Place[];
 }) {
+  const { profile } = useFirebase();
   const [votingAs, setVotingAs] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [removingOptionId, setRemovingOptionId] = useState<string | null>(null);
+
+  // When you've linked yourself in Settings, you vote as your family in one tap
+  const myFamilyId =
+    profile?.familyId && families.some((f) => f.id === profile.familyId)
+      ? profile.familyId
+      : null;
+  const voterFamilyId = myFamilyId ?? votingAs;
+  const myFamily = families.find((f) => f.id === myFamilyId);
+  const myVote = voterFamilyId ? poll.votes?.[voterFamilyId] : undefined;
 
   const totalVotes = Object.keys(poll.votes ?? {}).length;
   const counts = new Map<string, number>();
@@ -32,8 +49,8 @@ function PollCard({
   );
 
   async function handleVote(optionId: string) {
-    if (!votingAs) return;
-    await votePoll(poll.id, votingAs, optionId);
+    if (!voterFamilyId) return;
+    await votePoll(poll.id, voterFamilyId, optionId);
     setVotingAs(null);
   }
 
@@ -56,40 +73,53 @@ function PollCard({
         </span>
       </div>
 
-      {/* Voting identity picker */}
-      {!poll.closed && (
-        <div className="mt-3">
-          <p className="mb-1.5 text-sm text-ink-500">
-            {votingAs
-              ? "עכשיו בחרו אפשרות ⬇️"
-              : "בשם איזו משפחה מצביעים?"}
+      {/* Voting state */}
+      {!poll.closed &&
+        (myFamilyId ? (
+          <p className="mt-3 rounded-2xl bg-sea-100 px-3.5 py-2 text-sm text-sea-700">
+            {myVote
+              ? `✓ הצבעתם בתור ${myFamily?.name} — אפשר לשנות בלחיצה על אפשרות אחרת`
+              : `לחצו על אפשרות כדי להצביע בתור ${myFamily?.name}`}
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {families.map((family) => {
-              const votedOption = poll.votes?.[family.id];
-              return (
-                <button
-                  key={family.id}
-                  type="button"
-                  onClick={() =>
-                    setVotingAs(votingAs === family.id ? null : family.id)
-                  }
-                  className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
-                    votingAs === family.id
-                      ? "bg-sea-600 text-cream-50"
-                      : votedOption
-                        ? "bg-sea-100 text-sea-700"
-                        : "bg-cream-100 text-ink-700"
-                  }`}
-                >
-                  {family.name.replace("משפחת ", "")}
-                  {votedOption ? " ✓" : ""}
-                </button>
-              );
-            })}
+        ) : (
+          <div className="mt-3 rounded-2xl bg-cream-100 px-3.5 py-2.5">
+            <p className="mb-1.5 text-sm font-medium text-ink-700">
+              {votingAs
+                ? "עכשיו לחצו על האפשרות שבחרתם ⬇️"
+                : "1. בחרו את המשפחה שלכם · 2. לחצו על אפשרות"}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {families.map((family) => {
+                const votedOption = poll.votes?.[family.id];
+                return (
+                  <button
+                    key={family.id}
+                    type="button"
+                    onClick={() =>
+                      setVotingAs(votingAs === family.id ? null : family.id)
+                    }
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                      votingAs === family.id
+                        ? "bg-sea-600 text-cream-50"
+                        : votedOption
+                          ? "bg-sea-100 text-sea-700"
+                          : "bg-white text-ink-700"
+                    }`}
+                  >
+                    {family.name.replace("משפחת ", "")}
+                    {votedOption ? " ✓" : ""}
+                  </button>
+                );
+              })}
+            </div>
+            <Link
+              href="/settings"
+              className="mt-1.5 block text-xs text-sea-600"
+            >
+              💡 קשרו את עצמכם למשפחה בהגדרות — ותצביעו בלחיצה אחת ›
+            </Link>
           </div>
-        </div>
-      )}
+        ))}
 
       {/* Options with results */}
       <ul className="mt-3 space-y-2">
@@ -100,18 +130,21 @@ function PollCard({
           const place = option.placeId
             ? places.find((p) => p.id === option.placeId)
             : null;
+          const isMyVote = !poll.closed && myVote === option.id;
           return (
             <li key={option.id}>
               <button
                 type="button"
-                disabled={poll.closed || !votingAs}
+                disabled={poll.closed || !voterFamilyId}
                 onClick={() => handleVote(option.id)}
                 className={`relative w-full overflow-hidden rounded-2xl border text-right transition ${
                   isWinner
                     ? "border-lemon-400 bg-lemon-100"
-                    : votingAs
-                      ? "border-sea-200 bg-white active:bg-sea-100"
-                      : "border-cream-200 bg-white"
+                    : isMyVote
+                      ? "border-sea-500 bg-white ring-2 ring-sea-200"
+                      : voterFamilyId
+                        ? "border-sea-200 bg-white active:bg-sea-100"
+                        : "border-cream-200 bg-white"
                 } disabled:opacity-100`}
               >
                 <span
@@ -139,6 +172,7 @@ function PollCard({
                   </span>
                   <span className="min-w-0 flex-1 truncate py-3 font-medium text-ink-900">
                     {isWinner ? "🏆 " : ""}
+                    {isMyVote ? "✓ " : ""}
                     {option.label}
                   </span>
                   <span className="px-4 font-display text-lg font-bold tabular-nums text-sea-700">
@@ -163,6 +197,38 @@ function PollCard({
                 >
                   📅 שבץ בלוח ›
                 </Link>
+                <span className="flex-1" />
+                {!poll.closed &&
+                  (removingOptionId === option.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removePollOption(poll.id, option.id);
+                          setRemovingOptionId(null);
+                        }}
+                        className="font-semibold text-terra-600"
+                      >
+                        להסיר?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRemovingOptionId(null)}
+                        className="text-ink-500"
+                      >
+                        ביטול
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setRemovingOptionId(option.id)}
+                      aria-label={`הסרת ${option.label} מהסקר`}
+                      className="text-ink-300"
+                    >
+                      ✕ הסרה
+                    </button>
+                  ))}
               </span>
             </li>
           );

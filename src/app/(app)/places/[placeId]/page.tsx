@@ -18,6 +18,7 @@ import {
   MapPin,
   Star,
   Ticket,
+  Trash2,
   UtensilsCrossed,
   Vote,
 } from "lucide-react";
@@ -302,31 +303,37 @@ export default function PlaceDetailPage({
       )}
 
       {/* ── Delete ── */}
-      <div className="pt-2 text-center">
+      <div className="pt-2">
         {confirmDelete ? (
-          <div className="flex items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="btn bg-terra-600 px-5 py-2.5 text-sm text-cream-50"
-            >
-              כן, למחוק
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="btn-soft px-5 py-2.5 text-sm"
-            >
-              ביטול
-            </button>
+          <div className="card border-terra-400 p-4 text-center">
+            <p className="mb-3 text-sm font-medium text-ink-700">
+              להסיר את ״{place.name}״ מהמקומות של הקבוצה?
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="btn bg-terra-600 px-6 py-2.5 text-sm text-cream-50"
+              >
+                כן, להסיר
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="btn-soft px-6 py-2.5 text-sm"
+              >
+                ביטול
+              </button>
+            </div>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="text-sm text-ink-300"
+            className="btn w-full border border-terra-100 py-3 font-medium text-terra-600"
           >
-            מחיקת המקום
+            <Trash2 size={17} />
+            הסרת המקום מהרשימה
           </button>
         )}
       </div>
