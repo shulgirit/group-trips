@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Map as MapIcon,
   MapPin,
+  Sparkles,
   Star,
   Ticket,
   Trash2,
@@ -45,6 +46,31 @@ export default function PlaceDetailPage({
   const [pollState, setPollState] = useState<"idle" | "adding" | "added">(
     "idle"
   );
+  const [enriching, setEnriching] = useState(false);
+  const [enrichMessage, setEnrichMessage] = useState("");
+
+  async function handleEnrich() {
+    if (enriching) return;
+    setEnriching(true);
+    setEnrichMessage("");
+    try {
+      const response = await fetch("/api/import/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId }),
+      });
+      const result = await response.json();
+      setEnrichMessage(
+        result.ok
+          ? "✓ המקום הועשר — התוכן החדש כבר מופיע כאן"
+          : (result.message ?? "לא נמצא מידע נוסף")
+      );
+    } catch {
+      setEnrichMessage("ההעשרה נכשלה, נסו שוב");
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -222,6 +248,32 @@ export default function PlaceDetailPage({
             ? "מוסיף…"
             : "הוסף לסקר הקבוצתי"}
       </button>
+
+      {/* ── AI enrichment ── */}
+      <div>
+        <button
+          type="button"
+          onClick={handleEnrich}
+          disabled={enriching}
+          className={`w-full ${
+            !place.summary && detailRows.length < 2
+              ? "btn-accent py-3.5"
+              : "btn-outline py-3"
+          }`}
+        >
+          <Sparkles size={18} />
+          {enriching
+            ? "המשרת קורא על המקום… עד דקה ☕"
+            : !place.summary && detailRows.length < 2
+              ? "הוסיפו תוכן עם AI — המשרת יחפש באינטרנט"
+              : "רענון והרחבת התוכן עם AI"}
+        </button>
+        {enrichMessage && (
+          <p className="mt-2 rounded-2xl bg-cream-100 px-4 py-2.5 text-sm font-medium text-ink-700">
+            {enrichMessage}
+          </p>
+        )}
+      </div>
 
       {/* ── Editorial summary ── */}
       {place.summary && (

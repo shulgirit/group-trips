@@ -5,7 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
-import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
+import { enrichSavedPlace } from "@/lib/server/enrich";
+import { geocodePlace } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
@@ -441,56 +442,8 @@ async function executeTool(
     if (!place) {
       return { ok: false, error: `לא נמצא מקום שמור בשם "${args.placeName}"` };
     }
-    const placeRef = tripRef.collection("places").doc(place.id);
-    const existing = (await placeRef.get()).data() ?? {};
-    const url =
-      (args.url && /^https?:\/\//.test(args.url) ? args.url : null) ??
-      existing.website ??
-      existing.sourceUrl;
-    if (!url) {
-      return {
-        ok: false,
-        error: `למקום "${place.name}" אין אתר שמור — בקש מהמשתמש קישור`,
-      };
-    }
-    const draft = await importPlaceFromUrl(url);
-    const updates: Record<string, unknown> = {};
-    // Fresh content overwrites; identity/coords are only filled when missing
-    for (const field of [
-      "summary",
-      "openingHours",
-      "priceNotes",
-      "tips",
-      "popularDishes",
-      "reviewsSummary",
-    ] as const) {
-      if (draft[field]) updates[field] = draft[field];
-    }
-    if (draft.recommendedDurationMin) {
-      updates.recommendedDurationMin = draft.recommendedDurationMin;
-    }
-    if (draft.imageUrl && !existing.imageUrl) updates.imageUrl = draft.imageUrl;
-    if (draft.bookingUrl && !existing.bookingUrl) {
-      updates.bookingUrl = draft.bookingUrl;
-    }
-    if (!existing.website) updates.website = draft.website;
-    if (!existing.address && draft.address) updates.address = draft.address;
-    if (existing.lat == null && draft.lat != null) {
-      updates.lat = draft.lat;
-      updates.lng = draft.lng;
-    }
-    updates.sourceUrl = url;
-    await placeRef.update(updates);
-    return {
-      ok: true,
-      summary: `"${place.name}" עודכן מהאתר. שדות שעודכנו: ${Object.keys(updates).join(", ")}`,
-      extracted: {
-        summary: draft.summary,
-        openingHours: draft.openingHours,
-        priceNotes: draft.priceNotes,
-        reviewsSummary: draft.reviewsSummary,
-      },
-    };
+    const result = await enrichSavedPlace(place.id, args.url);
+    return { ok: result.ok, summary: result.message };
   }
 
   if (name === "create_poll") {
