@@ -58,6 +58,7 @@ export default function AiPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
+  const [canRetry, setCanRetry] = useState(false);
   const [pollTarget, setPollTarget] = useState<{
     label: string;
     placeId: string;
@@ -158,6 +159,49 @@ export default function AiPage() {
     if (id === sessionId) newChat();
   }
 
+  async function requestReply(
+    thread: ChatMessage[],
+    activeSessionId: string | null
+  ) {
+    setLoading(true);
+    setError("");
+    setCanRetry(false);
+    try {
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: thread.map(({ role, content }) => ({ role, content })),
+          speaker,
+        }),
+      });
+      if (!response.ok) throw new Error("ai_failed");
+      const data: { reply: string; candidates: ChatCandidate[] } =
+        await response.json();
+
+      const withReply: ChatMessage[] = [
+        ...thread,
+        {
+          role: "assistant",
+          content: data.reply,
+          candidates: data.candidates,
+        },
+      ];
+      setMessages(withReply);
+      await persist(withReply, activeSessionId);
+    } catch {
+      setError(
+        "התשובה לקחה יותר מדי זמן או שהחיבור נקטע — השאלה שלכם שמורה, אפשר לנסות שוב"
+      );
+      setCanRetry(true);
+    } finally {
+      setLoading(false);
+      queueMicrotask(() =>
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+      );
+    }
+  }
+
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
@@ -168,45 +212,17 @@ export default function AiPage() {
     ];
     setMessages(withUser);
     setInput("");
-    setLoading(true);
-    setError("");
     queueMicrotask(() =>
       bottomRef.current?.scrollIntoView({ behavior: "smooth" })
     );
     // Save the question right away, so leaving mid-answer loses nothing
     const activeSessionId = await persist(withUser);
+    await requestReply(withUser, activeSessionId);
+  }
 
-    try {
-      const response = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: withUser.map(({ role, content }) => ({ role, content })),
-          speaker,
-        }),
-      });
-      if (!response.ok) throw new Error("ai_failed");
-      const data: { reply: string; candidates: ChatCandidate[] } =
-        await response.json();
-
-      const withReply: ChatMessage[] = [
-        ...withUser,
-        {
-          role: "assistant",
-          content: data.reply,
-          candidates: data.candidates,
-        },
-      ];
-      setMessages(withReply);
-      await persist(withReply, activeSessionId);
-    } catch {
-      setError("ה-AI לא ענה הפעם — נסו שוב עוד רגע");
-    } finally {
-      setLoading(false);
-      queueMicrotask(() =>
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-      );
-    }
+  async function retry() {
+    if (loading || !messages.length) return;
+    await requestReply(messages, sessionId);
   }
 
   function candidateKey(messageIndex: number, candidateIndex: number) {
@@ -563,12 +579,21 @@ export default function AiPage() {
         )}
 
         {error && (
-          <p
+          <div
             role="alert"
             className="rounded-2xl bg-terra-100 px-4 py-3 text-sm font-medium text-terra-600"
           >
             {error}
-          </p>
+            {canRetry && (
+              <button
+                type="button"
+                onClick={retry}
+                className="btn-primary mt-2 w-full py-2.5 text-sm"
+              >
+                🔄 נסו שוב
+              </button>
+            )}
+          </div>
         )}
 
         <div ref={bottomRef} />

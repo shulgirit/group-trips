@@ -11,7 +11,7 @@ import { sendPushToAll } from "@/lib/server/push";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const GLOBAL_POLL_ID = "global";
 const GLOBAL_POLL_QUESTION = "🗳️ סקר הרעיונות של הקבוצה";
@@ -670,8 +670,9 @@ export async function POST(request: Request) {
     for (let round = 0; round < 4; round++) {
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL ?? "gpt-5.1",
-        // Deep-reasoning mode for smarter planning and recommendations
-        reasoning_effort: "medium",
+        // Deep reasoning on the first pass; quick synthesis after tools —
+        // keeps total latency under mobile-browser limits (~60s)
+        reasoning_effort: round === 0 ? "medium" : "low",
         messages: conversation,
         tools: TOOLS,
         response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
