@@ -254,7 +254,14 @@ export default function SettingsPage() {
             📲 להתקנה על מסך הבית: פתחו את האתר בספארי/כרום → שיתוף → ״הוסף
             למסך הבית״
           </p>
-          <p className="mt-1">🍋 סיציליה 2026 · גרסת טיול ראשונה</p>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("open-app-tour"))}
+            className="btn-soft mt-3 w-full py-2.5 text-sm"
+          >
+            🎓 הפעלת סיור ההיכרות מחדש
+          </button>
+          <p className="mt-2 text-center">🍋 סיציליה 2026 · חבורת מיחא</p>
         </div>
       </section>
     </div>

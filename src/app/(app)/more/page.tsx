@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TourRow } from "@/components/tour/TourRow";
 
 export const metadata: Metadata = { title: "עוד" };
 
@@ -58,7 +59,11 @@ export default function MorePage() {
             {href ? (
               <Link
                 href={href}
-                className="flex items-center gap-4 rounded-3xl border border-cream-200 bg-white px-4 py-4 transition active:bg-cream-100"
+                className={`flex items-center gap-4 rounded-3xl border px-4 py-4 transition active:scale-[0.99] ${
+                  href === "/ai"
+                    ? "border-lemon-300 bg-gradient-to-l from-lemon-300/70 via-lemon-100 to-lemon-100 shadow-sm"
+                    : "border-cream-200 bg-white active:bg-cream-100"
+                }`}
               >
                 <span className="text-2xl" aria-hidden>
                   {emoji}
@@ -95,6 +100,9 @@ export default function MorePage() {
             )}
           </li>
         ))}
+        <li>
+          <TourRow />
+        </li>
       </ul>
     </div>
   );

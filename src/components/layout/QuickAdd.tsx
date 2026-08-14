@@ -14,11 +14,16 @@ import {
 } from "lucide-react";
 
 const QUICK_ACTIONS = [
-  { icon: MapPinPlus, label: "הוסף מקום", href: "/places/new" },
-  { icon: CalendarPlus, label: "הוסף אירוע", href: "/calendar/new" },
-  { icon: Wallet, label: "הוסף הוצאה", href: "/expenses?add=1" },
-  { icon: Vote, label: "צור סקר", href: "/polls/new" },
-  { icon: Sparkles, label: "שאל את המשרת של החבורה", href: "/ai" },
+  { icon: MapPinPlus, label: "הוסף מקום", href: "/places/new", gold: false },
+  { icon: CalendarPlus, label: "הוסף אירוע", href: "/calendar/new", gold: false },
+  { icon: Wallet, label: "הוסף הוצאה", href: "/expenses?add=1", gold: false },
+  { icon: Vote, label: "צור סקר", href: "/polls/new", gold: false },
+  {
+    icon: Sparkles,
+    label: "שאל את המשרת של החבורה 🦻",
+    href: "/ai",
+    gold: true,
+  },
 ] as const;
 
 export function QuickAdd() {
@@ -66,18 +71,34 @@ export function QuickAdd() {
               מה מוסיפים?
             </h2>
             <p className="mb-4 text-sm text-ink-500">הכל מסתנכרן לכולם מיד</p>
-            <ul className="mb-4 space-y-1">
-              {QUICK_ACTIONS.map(({ icon: Icon, label, href }) => (
+            <ul className="mb-4 space-y-1.5">
+              {QUICK_ACTIONS.map(({ icon: Icon, label, href, gold }) => (
                 <li key={label}>
                   <Link
                     href={href}
                     onClick={() => setOpen(false)}
-                    className="flex w-full items-center gap-4 rounded-2xl px-3 py-3.5 text-right transition active:bg-cream-100"
+                    className={`flex w-full items-center gap-4 rounded-2xl px-3 py-3.5 text-right transition ${
+                      gold
+                        ? "border border-lemon-300 bg-gradient-to-l from-lemon-300/70 via-lemon-100 to-lemon-100 shadow-sm active:scale-[0.99]"
+                        : "active:bg-cream-100"
+                    }`}
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sea-100 text-sea-700">
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                        gold
+                          ? "bg-lemon-400 text-sea-950"
+                          : "bg-sea-100 text-sea-700"
+                      }`}
+                    >
                       <Icon size={21} strokeWidth={2} />
                     </span>
-                    <span className="flex-1 text-lg text-ink-900">{label}</span>
+                    <span
+                      className={`flex-1 text-lg ${
+                        gold ? "font-semibold text-ink-900" : "text-ink-900"
+                      }`}
+                    >
+                      {label}
+                    </span>
                     <ChevronLeft size={18} className="text-ink-300" />
                   </Link>
                 </li>
