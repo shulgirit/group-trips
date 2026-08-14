@@ -15,6 +15,8 @@ export async function POST() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const token = await adminAuth().createCustomToken("trip-member");
+  const token = await adminAuth().createCustomToken("trip-member", {
+    member: true,
+  });
   return NextResponse.json({ token });
 }

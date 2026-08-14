@@ -57,8 +57,11 @@ export function FirebaseProvider({
     if (!ready) return;
     return onAuthStateChanged(auth(), (nextUser) => {
       setUser(nextUser);
-      // If the user signed out of Google, fall back to the shared identity
-      if (!nextUser) {
+      if (nextUser) {
+        // Pick up freshly-set membership claims without waiting an hour
+        nextUser.getIdToken(true).catch(() => undefined);
+      } else {
+        // Signed out of the personal identity — fall back to the shared one
         ensureFirebaseSignIn().catch(() => setError(true));
       }
     });

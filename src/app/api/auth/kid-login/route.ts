@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       { merge: true }
     );
 
-  const token = await adminAuth().createCustomToken(uid);
+  const token = await adminAuth().createCustomToken(uid, { member: true });
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, createSessionToken(), {

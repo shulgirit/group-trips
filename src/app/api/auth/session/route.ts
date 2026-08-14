@@ -71,6 +71,11 @@ export async function POST(request: Request) {
     );
   }
 
+  // Membership claim lets Storage rules verify without a Firestore lookup
+  await adminAuth()
+    .setCustomUserClaims(decoded.uid, { member: true })
+    .catch(() => undefined);
+
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, createSessionToken(), {
     httpOnly: true,

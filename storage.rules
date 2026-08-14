@@ -4,30 +4,24 @@ service firebase.storage {
     function signedIn() {
       return request.auth != null;
     }
-    function isCustomIdentity() {
-      return request.auth.token.firebase.sign_in_provider == 'custom';
-    }
-    function isGoogleUser() {
-      return request.auth.token.firebase.sign_in_provider == 'google.com';
-    }
+    // Members carry a server-set `member` claim (Google accounts get it
+    // at join; custom tokens — kids and the legacy shared identity — are
+    // only ever minted by our own server).
     function isMember() {
       return signedIn()
-        && (isCustomIdentity()
-            || firestore.exists(/databases/(default)/documents/trips/sicily-2026/users/$(request.auth.uid)));
+        && (request.auth.token.firebase.sign_in_provider == 'custom'
+            || request.auth.token.member == true);
     }
 
-    // Shared documents: any member can read; only the uploader can write.
+    // Shared documents: any member reads; only the uploader writes.
     match /trips/{tripId}/documents/shared/{uid}/{fileName} {
       allow read: if isMember();
       allow write: if isMember() && request.auth.uid == uid;
     }
 
-    // Private documents: owner only, registered personal identity required
-    // (Google account or a kid's name-based identity).
+    // Private documents: owner only.
     match /trips/{tripId}/documents/private/{uid}/{fileName} {
-      allow read, write: if isMember()
-        && request.auth.uid == uid
-        && firestore.exists(/databases/(default)/documents/trips/sicily-2026/users/$(request.auth.uid));
+      allow read, write: if isMember() && request.auth.uid == uid;
     }
 
     // Trip photos and other shared media

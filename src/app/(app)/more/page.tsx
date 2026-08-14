@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LogoutRow } from "@/components/tour/LogoutRow";
 import { TourRow } from "@/components/tour/TourRow";
 
 export const metadata: Metadata = { title: "עוד" };
@@ -102,6 +103,9 @@ export default function MorePage() {
         ))}
         <li>
           <TourRow />
+        </li>
+        <li>
+          <LogoutRow />
         </li>
       </ul>
     </div>
