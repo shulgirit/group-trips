@@ -13,10 +13,11 @@ export const TRIP = {
   endDate: "2026-08-24",
   currency: "EUR",
   villa: {
-    name: "הוילה שלנו",
-    address: "",
-    lat: null as number | null,
-    lng: null as number | null,
+    name: "הוילה — קסטלמארה דל גולפו",
+    address:
+      "Contrada Bocca della Carrubba, 1, 91014 Castellammare del Golfo TP, Italy",
+    lat: 38.0140133 as number | null,
+    lng: 12.8876269 as number | null,
   },
 } as const;
 
