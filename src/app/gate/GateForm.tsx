@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GoogleAuthProvider, getRedirectResult, signInWithRedirect, type User } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  getRedirectResult,
+  signInWithCustomToken,
+  signInWithRedirect,
+  updateProfile,
+  type User,
+} from "firebase/auth";
 import { auth, signInWithGoogle } from "@/lib/firebase/client";
 
 type Step =
@@ -9,7 +16,15 @@ type Step =
   | "googling"
   | "join" // signed in with Google, needs the one-time join code
   | "establishing"
-  | "password"; // fallback: shared trip password
+  | "password" // fallback: shared trip password
+  | "kids-code" // kids without email: join code first
+  | "kids-pick"; // then pick your own name
+
+interface KidFamily {
+  id: string;
+  name: string;
+  members: { id: string; name: string }[];
+}
 
 export function GateForm() {
   const [step, setStep] = useState<Step>("idle");
@@ -17,6 +32,62 @@ export function GateForm() {
   const [joinCode, setJoinCode] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [kidFamilies, setKidFamilies] = useState<KidFamily[]>([]);
+  const [kidFamilyId, setKidFamilyId] = useState<string | null>(null);
+  const [kidBusy, setKidBusy] = useState(false);
+
+  async function handleKidsCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (!joinCode.trim() || kidBusy) return;
+    setKidBusy(true);
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/auth/kid-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ joinCode }),
+      });
+      if (!response.ok) {
+        setErrorMessage(
+          response.status === 401 ? "קוד לא נכון — נסו שוב" : "משהו השתבש"
+        );
+        return;
+      }
+      const { families } = await response.json();
+      setKidFamilies(families);
+      setStep("kids-pick");
+    } catch {
+      setErrorMessage("אין חיבור לרשת, נסו שוב");
+    } finally {
+      setKidBusy(false);
+    }
+  }
+
+  async function handleKidPick(familyId: string, memberId: string) {
+    if (kidBusy) return;
+    setKidBusy(true);
+    setErrorMessage("");
+    try {
+      const response = await fetch("/api/auth/kid-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ joinCode, familyId, memberId }),
+      });
+      if (!response.ok) {
+        setErrorMessage("משהו השתבש, נסו שוב");
+        return;
+      }
+      const { token, displayName } = await response.json();
+      const credential = await signInWithCustomToken(auth(), token);
+      await updateProfile(credential.user, { displayName }).catch(
+        () => undefined
+      );
+      window.location.replace("/");
+    } catch {
+      setErrorMessage("ההתחברות נכשלה, נסו שוב");
+      setKidBusy(false);
+    }
+  }
 
   async function establishSession(user: User, code?: string) {
     setStep("establishing");
@@ -147,6 +218,93 @@ export function GateForm() {
               {busy ? "רק רגע…" : "הצטרפות לטיול"}
             </button>
           </form>
+        ) : step === "kids-code" ? (
+          <form onSubmit={handleKidsCode}>
+            <p className="text-right font-semibold text-ink-900">
+              🧒 כניסה לילדים — בלי אימייל
+            </p>
+            <p className="mt-1 text-right text-sm text-ink-500">
+              הזינו את קוד הטיול (תשאלו את ההורים 😉), ואז תבחרו את השם שלכם
+            </p>
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(event) => setJoinCode(event.target.value)}
+              autoFocus
+              className="mt-3 w-full rounded-2xl border border-cream-300 bg-white px-4 py-3.5 text-center text-lg tracking-wide text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200"
+              placeholder="קוד הטיול"
+              aria-label="קוד הטיול"
+            />
+            <button
+              type="submit"
+              disabled={kidBusy || !joinCode.trim()}
+              className="mt-3 w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+            >
+              {kidBusy ? "רק רגע…" : "המשך"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("idle");
+                setErrorMessage("");
+              }}
+              className="mt-3 w-full text-center text-sm text-sea-600"
+            >
+              › חזרה
+            </button>
+          </form>
+        ) : step === "kids-pick" ? (
+          <div>
+            <p className="text-right font-semibold text-ink-900">
+              {kidFamilyId ? "ועכשיו — מי אתם? 👋" : "מאיזו משפחה אתם?"}
+            </p>
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              {kidFamilies.map((family) => (
+                <button
+                  key={family.id}
+                  type="button"
+                  onClick={() =>
+                    setKidFamilyId(kidFamilyId === family.id ? null : family.id)
+                  }
+                  className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                    kidFamilyId === family.id
+                      ? "bg-sea-600 text-cream-50"
+                      : "bg-cream-100 text-ink-700"
+                  }`}
+                >
+                  {family.name}
+                </button>
+              ))}
+            </div>
+            {kidFamilyId && (
+              <div className="mt-3 flex flex-wrap justify-end gap-2 rounded-2xl bg-cream-100 p-3">
+                {kidFamilies
+                  .find((f) => f.id === kidFamilyId)
+                  ?.members.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      disabled={kidBusy}
+                      onClick={() => handleKidPick(kidFamilyId, member.id)}
+                      className="rounded-full bg-white px-4 py-2.5 text-sm font-medium text-ink-900 transition active:scale-[0.97] disabled:opacity-50"
+                    >
+                      {kidBusy ? "…" : member.name}
+                    </button>
+                  ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setStep("idle");
+                setKidFamilyId(null);
+                setErrorMessage("");
+              }}
+              className="mt-3 w-full text-center text-sm text-sea-600"
+            >
+              › חזרה
+            </button>
+          </div>
         ) : step === "password" ? (
           <form onSubmit={handlePasswordSubmit}>
             <label
@@ -196,6 +354,16 @@ export function GateForm() {
             <p className="mt-3 text-center text-xs text-ink-500">
               נכנסים פעם אחת — והאפליקציה זוכרת אתכם
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("kids-code");
+                setErrorMessage("");
+              }}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-lemon-300 bg-lemon-100/80 py-3 text-sm font-semibold text-ink-900 transition active:scale-[0.98]"
+            >
+              🧒 כניסה לילדים — בלי אימייל, עם השם
+            </button>
             <button
               type="button"
               onClick={() => {

@@ -17,6 +17,6 @@ export const config = {
   // Everything is private except the gate screen, the login endpoint,
   // Next.js internals and PWA/static assets.
   matcher: [
-    "/((?!gate|api/auth/login|api/auth/session|_next|favicon\\.ico|icons/|images/|sw\\.js|manifest\\.webmanifest|apple-icon).*)",
+    "/((?!gate|api/auth/login|api/auth/session|api/auth/kid-login|_next|favicon\\.ico|icons/|images/|sw\\.js|manifest\\.webmanifest|apple-icon).*)",
   ],
 };

@@ -64,10 +64,8 @@ export function FirebaseProvider({
     });
   }, [ready]);
 
-  const personal = isPersonalUser(user);
-
   useEffect(() => {
-    if (!ready || !user || !personal) {
+    if (!ready || !user) {
       setProfile(null);
       return;
     }
@@ -81,7 +79,11 @@ export function FirebaseProvider({
         ),
       () => setProfile(null)
     );
-  }, [ready, user, personal]);
+  }, [ready, user]);
+
+  // Personal = Google account OR a registered name-based identity (kids).
+  // The legacy shared trip identity has no profile doc, so it stays shared.
+  const personal = isPersonalUser(user) || Boolean(profile);
 
   return (
     <FirebaseContext.Provider value={{ ready, error, user, personal, profile }}>

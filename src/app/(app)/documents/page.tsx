@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onAuthStateChanged, type User } from "firebase/auth";
 import {
   addDoc,
   collection,
@@ -20,13 +19,7 @@ import {
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import {
-  auth,
-  db,
-  isPersonalUser,
-  signInWithGoogle,
-  storage,
-} from "@/lib/firebase/client";
+import { db, signInWithGoogle, storage } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/hooks";
 import type { TripDocument } from "@/types";
 
@@ -44,8 +37,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function DocumentsPage() {
-  const { ready } = useFirebase();
-  const [user, setUser] = useState<User | null>(null);
+  const { ready, user, personal } = useFirebase();
   const [tab, setTab] = useState<"shared" | "private">("shared");
   const [sharedDocs, setSharedDocs] = useState<TripDocument[] | null>(null);
   const [myDocs, setMyDocs] = useState<TripDocument[] | null>(null);
@@ -53,13 +45,6 @@ export default function DocumentsPage() {
   const [message, setMessage] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const personal = isPersonalUser(user);
-
-  useEffect(() => {
-    if (!ready) return;
-    return onAuthStateChanged(auth(), setUser);
-  }, [ready]);
 
   // Shared documents
   useEffect(() => {

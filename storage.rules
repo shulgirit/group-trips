@@ -22,11 +22,12 @@ service firebase.storage {
       allow write: if isMember() && request.auth.uid == uid;
     }
 
-    // Private documents: owner only, personal Google identity required.
+    // Private documents: owner only, registered personal identity required
+    // (Google account or a kid's name-based identity).
     match /trips/{tripId}/documents/private/{uid}/{fileName} {
       allow read, write: if isMember()
         && request.auth.uid == uid
-        && isGoogleUser();
+        && firestore.exists(/databases/(default)/documents/trips/sicily-2026/users/$(request.auth.uid));
     }
 
     // Trip photos and other shared media

@@ -11,13 +11,15 @@ service cloud.firestore {
     function isGoogleUser() {
       return request.auth.token.firebase.sign_in_provider == 'google.com';
     }
-    // A member is either the shared custom identity, or a Google account
-    // that joined the trip (its users/{uid} doc was created by the server
-    // after presenting the join code).
+    // A registered personal identity: Google account or a kid's
+    // name-based identity — both have a server-created users/{uid} doc.
+    function hasProfile() {
+      return exists(/databases/$(database)/documents/trips/sicily-2026/users/$(request.auth.uid));
+    }
+    // A member is either the shared custom identity, or a registered
+    // personal identity (created after presenting the join code).
     function isMember() {
-      return signedIn()
-        && (isCustomIdentity()
-            || exists(/databases/$(database)/documents/trips/sicily-2026/users/$(request.auth.uid)));
+      return signedIn() && (isCustomIdentity() || hasProfile());
     }
 
     match /trips/{tripId} {
@@ -32,7 +34,7 @@ service cloud.firestore {
             || resource.data.ownerUid == request.auth.uid);
       allow create: if isMember()
         && request.resource.data.ownerUid == request.auth.uid
-        && (request.resource.data.visibility == 'shared' || isGoogleUser());
+        && (request.resource.data.visibility == 'shared' || hasProfile());
       allow update, delete: if isMember()
         && resource.data.ownerUid == request.auth.uid;
     }
@@ -41,9 +43,7 @@ service cloud.firestore {
     // their own profile. Creation happens server-side at join time.
     match /trips/{tripId}/users/{uid} {
       allow read: if isMember();
-      allow update: if isMember()
-        && request.auth.uid == uid
-        && isGoogleUser();
+      allow update: if isMember() && request.auth.uid == uid;
     }
 
     // AI chat sessions are always private to their owner.
@@ -52,7 +52,7 @@ service cloud.firestore {
         && resource.data.ownerUid == request.auth.uid;
       allow create: if isMember()
         && request.resource.data.ownerUid == request.auth.uid
-        && isGoogleUser();
+        && hasProfile();
     }
 
     // All other trip data is shared between the members.
