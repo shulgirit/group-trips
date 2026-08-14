@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -32,6 +33,7 @@ function AddExpenseSheet({
   onClose: () => void;
   families: Family[];
 }) {
+  const { profile } = useFirebase();
   const [payerFamilyId, setPayerFamilyId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -42,14 +44,29 @@ function AddExpenseSheet({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const valid =
-    payerFamilyId &&
-    description.trim() &&
-    Number(amount) > 0 &&
-    (everyone || participantIds.length > 0);
+  // Your own family is the usual payer — pre-select it
+  useEffect(() => {
+    if (profile?.familyId) {
+      setPayerFamilyId((current) => current || profile.familyId!);
+    }
+  }, [profile]);
+
+  function missingField(): string | null {
+    if (!payerFamilyId) return "בחרו מי שילם 👆";
+    if (!description.trim()) return "כתבו על מה ההוצאה";
+    if (!(Number(amount) > 0)) return "הזינו סכום";
+    if (!everyone && participantIds.length === 0)
+      return "בחרו אילו משפחות השתתפו";
+    return null;
+  }
 
   async function handleSave() {
-    if (!valid || saving) return;
+    if (saving) return;
+    const missing = missingField();
+    if (missing) {
+      setError(missing);
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -77,7 +94,7 @@ function AddExpenseSheet({
     <BottomSheet open={open} onClose={onClose} title="הוצאה חדשה 💶">
       <div className="space-y-4">
         <div>
-          <p className="mb-2 text-sm font-medium text-ink-700">מי שילם?</p>
+          <p className="mb-2 text-sm font-medium text-ink-700">מי שילם? *</p>
           <div className="flex flex-wrap gap-2">
             {families.map((family) => (
               <button
@@ -210,8 +227,8 @@ function AddExpenseSheet({
         <button
           type="button"
           onClick={handleSave}
-          disabled={!valid || saving}
-          className="w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+          disabled={saving}
+          className="btn-primary w-full py-3.5 text-lg"
         >
           {saving ? "שומר…" : "שמור הוצאה"}
         </button>
