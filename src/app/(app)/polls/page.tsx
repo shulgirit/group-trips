@@ -123,9 +123,19 @@ function PollCard({
           const percent = votes.length ? (count / votes.length) * 100 : 0;
           const isWinner =
             poll.closed && winners.some((w) => w.id === option.id);
-          const place = option.placeId
-            ? places.find((p) => p.id === option.placeId)
-            : null;
+          // Resolve the place by id, or by name for free-text options,
+          // so every option that CAN show a real photo does
+          const place =
+            (option.placeId
+              ? places.find((p) => p.id === option.placeId)
+              : null) ??
+            places.find(
+              (p) =>
+                option.label === p.name ||
+                option.label.includes(p.name) ||
+                p.name.includes(option.label)
+            ) ??
+            null;
           const isMyVote = !poll.closed && myVote === option.id;
           return (
             <li key={option.id}>
@@ -149,17 +159,17 @@ function PollCard({
                   style={{ width: `${percent}%` }}
                 />
                 <span className="relative flex items-center gap-3">
-                  <span className="relative h-14 w-16 shrink-0 overflow-hidden">
+                  <span className="relative h-[4.5rem] w-28 shrink-0 overflow-hidden">
                     {place?.imageUrl ? (
                       <Image
                         src={place.imageUrl}
                         alt=""
                         fill
-                        sizes="64px"
+                        sizes="112px"
                         className="object-cover"
                       />
                     ) : (
-                      <span className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-xl">
+                      <span className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-2xl">
                         {place
                           ? (PLACE_CATEGORIES[place.category]?.emoji ?? "📌")
                           : "💡"}
