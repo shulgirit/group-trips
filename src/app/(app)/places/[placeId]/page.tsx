@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { SchedulePlaceSheet } from "@/components/events/SchedulePlaceSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { deletePlace, updatePlace } from "@/lib/db";
+import { addOptionToGlobalPoll, deletePlace, updatePlace } from "@/lib/db";
 import { useEvents, usePlace } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { formatDayLabel } from "@/lib/trip";
@@ -24,6 +24,9 @@ export default function PlaceDetailPage({
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pollState, setPollState] = useState<"idle" | "adding" | "added">(
+    "idle"
+  );
 
   if (loading) {
     return (
@@ -136,6 +139,31 @@ export default function PlaceDetailPage({
           📅 הוסף ללוח
         </button>
       </div>
+      <button
+        type="button"
+        onClick={async () => {
+          if (pollState !== "idle") return;
+          setPollState("adding");
+          try {
+            await addOptionToGlobalPoll(place.name, place.id);
+            setPollState("added");
+          } catch {
+            setPollState("idle");
+          }
+        }}
+        disabled={pollState !== "idle"}
+        className={`w-full rounded-2xl border py-3 font-medium transition ${
+          pollState === "added"
+            ? "border-lemon-300 bg-lemon-100 text-ink-700"
+            : "border-sea-200 text-sea-700 active:scale-[0.99]"
+        }`}
+      >
+        {pollState === "added"
+          ? "🗳️ בסקר הקבוצתי ✓"
+          : pollState === "adding"
+            ? "מוסיף…"
+            : "🗳️ הוסף לסקר הקבוצתי"}
+      </button>
       <a
         href={googleMapsUrl(place)}
         target="_blank"

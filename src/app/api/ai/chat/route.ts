@@ -1,13 +1,19 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
-import { TRIP } from "@/lib/trip";
+import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
+
+const GLOBAL_POLL_ID = "global";
+const GLOBAL_POLL_QUESTION = "🗳️ סקר הרעיונות של הקבוצה";
+
+/* ---------- response schema ---------- */
 
 const CandidateSchema = z.object({
   name: z.string().min(1),
@@ -26,8 +32,6 @@ const AiResponseSchema = z.object({
   reply: z.string(),
   candidates: z.array(CandidateSchema),
 });
-
-export type AiCandidate = z.infer<typeof CandidateSchema>;
 
 const RequestSchema = z.object({
   messages: z
@@ -48,29 +52,20 @@ const JSON_SCHEMA = {
     type: "object",
     additionalProperties: false,
     properties: {
-      reply: {
-        type: "string",
-        description: "תשובה שיחתית קצרה בעברית",
-      },
+      reply: { type: "string", description: "תשובה שיחתית קצרה בעברית" },
       candidates: {
         type: "array",
         description:
-          "מקומות מומלצים קונקרטיים (מסעדות/אטרקציות/חופים). ריק אם השאלה לא מבקשת המלצות על מקומות.",
+          "מקומות מומלצים קונקרטיים. ריק אם השאלה לא מבקשת המלצות על מקומות.",
         items: {
           type: "object",
           additionalProperties: false,
           properties: {
             name: { type: "string" },
-            category: {
-              type: "string",
-              enum: Object.keys(PLACE_CATEGORIES),
-            },
+            category: { type: "string", enum: Object.keys(PLACE_CATEGORIES) },
             area: { type: "string" },
-            description: { type: "string", description: "תיאור קצר בעברית" },
-            why: {
-              type: "string",
-              description: "למה זה מתאים לקבוצה שלנו, בעברית",
-            },
+            description: { type: "string" },
+            why: { type: "string" },
             address: { type: "string" },
             lat: { type: ["number", "null"] },
             lng: { type: ["number", "null"] },
@@ -96,17 +91,125 @@ const JSON_SCHEMA = {
   },
 } as const;
 
-async function buildTripContext(): Promise<string> {
+/* ---------- tools ---------- */
+
+const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_event",
+      description:
+        "הוספת אירוע ללוח הטיול המשותף של הקבוצה. השתמש רק כשהמשתמש מבקש במפורש להוסיף/לשבץ משהו בלוח. האירוע נוצר מיד וכולם רואים אותו (אפשר לערוך ידנית אחר כך).",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "שם הפעילות בעברית" },
+          emoji: { type: "string", description: "אימוג׳י אחד מתאים" },
+          day: {
+            type: "string",
+            description: `תאריך YYYY-MM-DD בטווח הטיול (${TRIP.startDate} עד ${TRIP.endDate})`,
+          },
+          startTime: { type: "string", description: "שעה HH:mm (24h)" },
+          durationMin: { type: "number", description: "משך בדקות (אופציונלי)" },
+          placeName: {
+            type: "string",
+            description:
+              "שם של מקום שמור (מהרשימה בהקשר) כדי לקשר את האירוע אליו — לניווט",
+          },
+          participants: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "שמות משתתפים (חברי משפחה) או שמות משפחות. רשימה ריקה = כל הקבוצה",
+          },
+          notes: { type: "string" },
+        },
+        required: ["title", "day", "startTime"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_poll_option",
+      description:
+        "הוספת אפשרות לסקר הקבוצתי הגלובלי שבו כולם מצביעים על רעיונות. השתמש כשהמשתמש מבקש להוסיף משהו לסקר/להצבעה.",
+      parameters: {
+        type: "object",
+        properties: {
+          label: { type: "string", description: "שם האפשרות" },
+          placeName: {
+            type: "string",
+            description: "שם מקום שמור לקישור (אם קיים ברשימה)",
+          },
+        },
+        required: ["label"],
+      },
+    },
+  },
+];
+
+/* ---------- trip context ---------- */
+
+function sicilyNow(): { iso: string; pretty: string; todayIso: string; tomorrowIso: string } {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(now).map((p) => [p.type, p.value])
+  );
+  const todayIso = `${parts.year}-${parts.month}-${parts.day}`;
+  const tomorrow = new Date(`${todayIso}T12:00:00`);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowIso = tomorrow.toISOString().slice(0, 10);
+  return {
+    iso: `${todayIso} ${parts.hour}:${parts.minute}`,
+    pretty: `${parts.day}.${parts.month} ${parts.hour}:${parts.minute}`,
+    todayIso,
+    tomorrowIso,
+  };
+}
+
+interface FamilyData {
+  id: string;
+  name: string;
+  members: { id: string; name: string }[];
+}
+
+interface TripData {
+  places: { id: string; name: string; category: string; area?: string }[];
+  families: FamilyData[];
+}
+
+async function buildTripContext(): Promise<{ context: string; data: TripData }> {
   const tripRef = adminDb().collection("trips").doc(TRIP.id);
-  const [placesSnap, eventsSnap, familiesSnap] = await Promise.all([
+  const [placesSnap, eventsSnap, familiesSnap, pollsSnap] = await Promise.all([
     tripRef.collection("places").get(),
     tripRef.collection("events").get(),
     tripRef.collection("families").get(),
+    tripRef.collection("polls").get(),
   ]);
 
   const places = placesSnap.docs.map((d) => {
     const p = d.data();
-    return `- ${p.name} (${p.category}${p.area ? `, ${p.area}` : ""})`;
+    return {
+      id: d.id,
+      name: String(p.name),
+      category: String(p.category),
+      area: p.area ? String(p.area) : undefined,
+    };
+  });
+
+  const families: FamilyData[] = familiesSnap.docs.map((d) => {
+    const f = d.data();
+    return { id: d.id, name: f.name, members: f.members ?? [] };
   });
 
   const events = eventsSnap.docs
@@ -118,44 +221,199 @@ async function buildTripContext(): Promise<string> {
     )
     .map((e) => `- ${e.day} ${e.startTime}: ${e.title}`);
 
-  const families = familiesSnap.docs.map((d) => {
-    const f = d.data();
-    return `- ${f.name}: ${(f.members ?? [])
-      .map((m: { name: string }) => m.name)
-      .join(", ")}`;
+  const polls = pollsSnap.docs.map((d) => {
+    const p = d.data();
+    const votes = (p.votes ?? {}) as Record<string, string>;
+    const counts = new Map<string, number>();
+    for (const optionId of Object.values(votes)) {
+      counts.set(optionId, (counts.get(optionId) ?? 0) + 1);
+    }
+    const options = (p.options ?? [])
+      .map(
+        (o: { id: string; label: string }) =>
+          `${o.label} (${counts.get(o.id) ?? 0} קולות)`
+      )
+      .join(", ");
+    return `- ${p.question}${p.closed ? " [סגור]" : ""}: ${options || "(בלי אפשרויות עדיין)"}`;
   });
 
-  return [
-    `תאריכי הטיול: ${TRIP.startDate} עד ${TRIP.endDate}.`,
-    `המשפחות (${familiesSnap.size}):`,
-    ...families,
+  const now = sicilyNow();
+
+  const context = [
+    `עכשיו בסיציליה: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
+    `תאריכי הטיול: ${TRIP.startDate} עד ${TRIP.endDate}. הוילה: ${TRIP.villa.name}, ${TRIP.villa.address}.`,
     ``,
-    `מקומות שכבר שמורים אצלנו (${placesSnap.size}):`,
-    ...(places.length ? places : ["(אין עדיין)"]),
+    `המשפחות:`,
+    ...families.map(
+      (f) => `- ${f.name}: ${f.members.map((m) => m.name).join(", ")}`
+    ),
     ``,
-    `הלו״ז הנוכחי:`,
-    ...(events.length ? events : ["(ריק עדיין)"]),
+    `מקומות שמורים (${places.length}):`,
+    ...places.map(
+      (p) => `- ${p.name} (${p.category}${p.area ? `, ${p.area}` : ""})`
+    ),
+    ``,
+    `הלו״ז:`,
+    ...(events.length ? events : ["(ריק)"]),
+    ``,
+    `סקרים:`,
+    ...(polls.length ? polls : ["(אין)"]),
   ].join("\n");
+
+  return { context, data: { places, families } };
 }
 
-const SYSTEM_PROMPT = `אתה הקונסיירז׳ הפרטי של טיול משפחתי בסיציליה — ארבע משפחות ישראליות עם ילדים בגילאים שונים, נוסעות יחד ולנות בוילה משותפת.
+/* ---------- tool execution ---------- */
+
+function resolvePlace(placeName: string | undefined, data: TripData) {
+  if (!placeName) return null;
+  const needle = placeName.trim().toLowerCase();
+  return (
+    data.places.find((p) => p.name.toLowerCase() === needle) ??
+    data.places.find(
+      (p) =>
+        p.name.toLowerCase().includes(needle) ||
+        needle.includes(p.name.toLowerCase())
+    ) ??
+    null
+  );
+}
+
+function resolveParticipants(names: string[] | undefined, data: TripData) {
+  if (!names?.length) return { type: "all" as const };
+  const familyIds: string[] = [];
+  const memberIds: string[] = [];
+  for (const raw of names) {
+    const name = raw.replace("משפחת", "").trim();
+    const family = data.families.find((f) =>
+      f.name.replace("משפחת", "").trim() === name
+    );
+    if (family) {
+      familyIds.push(family.id);
+      continue;
+    }
+    for (const f of data.families) {
+      const member = f.members.find((m) => m.name === name);
+      if (member) memberIds.push(member.id);
+    }
+  }
+  if (memberIds.length) return { type: "members" as const, memberIds };
+  if (familyIds.length) return { type: "families" as const, familyIds };
+  return { type: "all" as const };
+}
+
+const CreateEventArgs = z.object({
+  title: z.string().min(1),
+  emoji: z.string().optional(),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startTime: z.string().regex(/^\d{1,2}:\d{2}$/),
+  durationMin: z.number().positive().optional(),
+  placeName: z.string().optional(),
+  participants: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+});
+
+const AddPollOptionArgs = z.object({
+  label: z.string().min(1),
+  placeName: z.string().optional(),
+});
+
+async function executeTool(
+  name: string,
+  rawArgs: unknown,
+  data: TripData
+): Promise<Record<string, unknown>> {
+  const tripRef = adminDb().collection("trips").doc(TRIP.id);
+
+  if (name === "create_event") {
+    const args = CreateEventArgs.parse(rawArgs);
+    if (args.day < TRIP.startDate || args.day > TRIP.endDate) {
+      return { ok: false, error: `התאריך ${args.day} מחוץ לטווח הטיול` };
+    }
+    const place = resolvePlace(args.placeName, data);
+    const startTime =
+      args.startTime.length === 4 ? `0${args.startTime}` : args.startTime;
+    const eventRef = await tripRef.collection("events").add({
+      title: args.title,
+      emoji: args.emoji ?? null,
+      placeId: place?.id ?? null,
+      day: args.day,
+      startTime,
+      durationMin: args.durationMin ?? null,
+      participants: resolveParticipants(args.participants, data),
+      notes: args.notes ?? "",
+      createdAt: Date.now(),
+      createdByName: "✨ הקונסיירז׳",
+    });
+    return {
+      ok: true,
+      eventId: eventRef.id,
+      summary: `נוצר אירוע "${args.title}" ב-${args.day} בשעה ${startTime}${
+        place ? ` (מקושר ל-${place.name})` : ""
+      }`,
+    };
+  }
+
+  if (name === "add_poll_option") {
+    const args = AddPollOptionArgs.parse(rawArgs);
+    const place = resolvePlace(args.placeName ?? args.label, data);
+    const pollRef = tripRef.collection("polls").doc(GLOBAL_POLL_ID);
+    const snapshot = await pollRef.get();
+    const existing = (snapshot.data()?.options ?? []) as {
+      label: string;
+      placeId?: string | null;
+    }[];
+    if (
+      existing.some(
+        (o) =>
+          o.label === args.label || (place && o.placeId === place.id)
+      )
+    ) {
+      return { ok: true, summary: `"${args.label}" כבר נמצא בסקר הקבוצתי` };
+    }
+    const option = {
+      id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      label: args.label,
+      placeId: place?.id ?? null,
+    };
+    if (snapshot.exists) {
+      await pollRef.update({ options: FieldValue.arrayUnion(option) });
+    } else {
+      await pollRef.set({
+        question: GLOBAL_POLL_QUESTION,
+        options: [option],
+        votes: {},
+        closed: false,
+        pinned: true,
+        createdAt: Date.now(),
+      });
+    }
+    return { ok: true, summary: `"${args.label}" נוסף לסקר הקבוצתי` };
+  }
+
+  return { ok: false, error: "unknown_tool" };
+}
+
+/* ---------- system prompt ---------- */
+
+const SYSTEM_PROMPT = `אתה הקונסיירז׳ הפרטי של טיול משפחתי בסיציליה — ארבע משפחות ישראליות עם ילדים, וילה משותפת בקסטלמארה דל גולפו.
 
 כללים:
 - ענה תמיד בעברית, בטון חם וקצר.
-- כשמבקשים ממך המלצות על מקומות (מסעדות, אטרקציות, חופים, גלידה וכו') — החזר אותם כ-candidates מובנים (3-5 לרוב), עם שם אמיתי ומדויק של המקום, אזור, ולמה זה מתאים לקבוצה. אם אתה יודע כתובת/קואורדינטות במידה סבירה של ביטחון — כלול אותן, אחרת השאר ריק/null.
-- כשאתה מחזיר candidates: אל תפרט את המקומות בתוך reply — כתוב שם רק משפט-שניים של הקדמה. הפרטים חיים בכרטיסים.
-- המלץ רק על מקומות שאתה בטוח בקיומם ובשמם המדויק. עדיף 3 מקומות בטוחים מ-5 מפוקפקים.
-- אל תמציא מקומות שאינם קיימים. המלץ רק על מקומות מוכרים בסיציליה.
-- כשהשאלה כללית (לו״ז, טיפים, שאלות על הטיול) — ענה ב-reply בלבד עם candidates ריק.
-- קח בחשבון את ההקשר: מה כבר שמור, מה כבר בלו״ז, והרכב הקבוצה.
-- שדות טקסט שאין לך מידע עבורם — השאר מחרוזת ריקה.`;
+- כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
+- כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
+- כשמבקשים להוסיף לסקר — השתמש בכלי add_poll_option.
+- אל תבצע פעולות כתיבה בלי בקשה מפורשת של המשתמש.
+- קח בחשבון את הלו״ז הקיים (התנגשויות, מרחקים) והרכב הקבוצה.
+- שדות טקסט שאין לך מידע עבורם — מחרוזת ריקה.`;
+
+/* ---------- handler ---------- */
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "not_configured" }, { status: 500 });
   }
@@ -168,33 +426,65 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tripContext = await buildTripContext();
+    const { context, data } = await buildTripContext();
     const openai = new OpenAI();
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL ?? "gpt-5.1",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "system", content: `הקשר הטיול העדכני:\n${tripContext}` },
-        ...body.messages,
-      ],
-      response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
-    });
+    const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
+      ...body.messages,
+    ];
 
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) throw new Error("empty_completion");
+    for (let round = 0; round < 4; round++) {
+      const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL ?? "gpt-5.1",
+        messages: conversation,
+        tools: TOOLS,
+        response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
+      });
 
-    const parsed = AiResponseSchema.parse(JSON.parse(raw));
-    // Drop empty-string optionals the schema forced into existence
-    const candidates = parsed.candidates.map((c) => ({
-      ...c,
-      area: c.area || undefined,
-      address: c.address || undefined,
-      priceNotes: c.priceNotes || undefined,
-      website: c.website && /^https?:\/\//.test(c.website) ? c.website : undefined,
-    }));
+      const message = completion.choices[0]?.message;
+      if (!message) throw new Error("empty_completion");
 
-    return NextResponse.json({ reply: parsed.reply, candidates });
+      if (message.tool_calls?.length) {
+        conversation.push(message);
+        for (const toolCall of message.tool_calls) {
+          if (toolCall.type !== "function") continue;
+          let result: Record<string, unknown>;
+          try {
+            result = await executeTool(
+              toolCall.function.name,
+              JSON.parse(toolCall.function.arguments || "{}"),
+              data
+            );
+          } catch (error) {
+            console.error("[ai/chat] tool failed", error);
+            result = { ok: false, error: "הפעולה נכשלה" };
+          }
+          conversation.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: JSON.stringify(result),
+          });
+        }
+        continue;
+      }
+
+      const raw = message.content;
+      if (!raw) throw new Error("empty_completion");
+      const parsed = AiResponseSchema.parse(JSON.parse(raw));
+      const candidates = parsed.candidates.map((c) => ({
+        ...c,
+        area: c.area || undefined,
+        address: c.address || undefined,
+        priceNotes: c.priceNotes || undefined,
+        website:
+          c.website && /^https?:\/\//.test(c.website) ? c.website : undefined,
+      }));
+      return NextResponse.json({ reply: parsed.reply, candidates });
+    }
+
+    throw new Error("tool_loop_exceeded");
   } catch (error) {
     console.error("[ai/chat]", error);
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });

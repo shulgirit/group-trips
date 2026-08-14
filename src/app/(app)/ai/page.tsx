@@ -13,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { addPlace } from "@/lib/db";
+import { addOptionToGlobalPoll, addPlace } from "@/lib/db";
 import { db } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/trip";
 import {
@@ -185,6 +185,26 @@ export default function AiPage() {
     await persist(next);
   }
 
+  async function persistCandidatePlace(
+    candidate: ChatCandidate
+  ): Promise<string> {
+    if (candidate.savedPlaceId) return candidate.savedPlaceId;
+    const category = (
+      candidate.category in PLACE_CATEGORIES ? candidate.category : "other"
+    ) as PlaceCategory;
+    return addPlace({
+      name: candidate.name,
+      category,
+      area: candidate.area,
+      address: candidate.address,
+      lat: candidate.lat ?? null,
+      lng: candidate.lng ?? null,
+      website: candidate.website,
+      summary: `${candidate.description}\n\n💛 ${candidate.why}`,
+      priceNotes: candidate.priceNotes,
+    });
+  }
+
   async function saveCandidate(
     candidate: ChatCandidate,
     messageIndex: number,
@@ -194,25 +214,39 @@ export default function AiPage() {
     if (savingKeys.has(key) || candidate.savedPlaceId) return;
     setSavingKeys((current) => new Set(current).add(key));
     try {
-      const category = (
-        candidate.category in PLACE_CATEGORIES ? candidate.category : "other"
-      ) as PlaceCategory;
-      const placeId = await addPlace({
-        name: candidate.name,
-        category,
-        area: candidate.area,
-        address: candidate.address,
-        lat: candidate.lat ?? null,
-        lng: candidate.lng ?? null,
-        website: candidate.website,
-        summary: `${candidate.description}\n\n💛 ${candidate.why}`,
-        priceNotes: candidate.priceNotes,
-      });
+      const placeId = await persistCandidatePlace(candidate);
       await updateCandidate(messageIndex, candidateIndex, {
         savedPlaceId: placeId,
       });
     } catch {
       setError("השמירה נכשלה, נסו שוב");
+    } finally {
+      setSavingKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  /** Saves the place (if needed) and adds it to the group poll — one tap. */
+  async function pollCandidate(
+    candidate: ChatCandidate,
+    messageIndex: number,
+    candidateIndex: number
+  ) {
+    const key = candidateKey(messageIndex, candidateIndex);
+    if (savingKeys.has(key) || candidate.polled) return;
+    setSavingKeys((current) => new Set(current).add(key));
+    try {
+      const placeId = await persistCandidatePlace(candidate);
+      await addOptionToGlobalPoll(candidate.name, placeId);
+      await updateCandidate(messageIndex, candidateIndex, {
+        savedPlaceId: placeId,
+        polled: true,
+      });
+    } catch {
+      setError("ההוספה לסקר נכשלה, נסו שוב");
     } finally {
       setSavingKeys((current) => {
         const next = new Set(current);
@@ -387,6 +421,20 @@ export default function AiPage() {
                               : "❤️ הוסף למקומות של כולם"}
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            pollCandidate(candidate, messageIndex, candidateIndex)
+                          }
+                          disabled={savingKeys.has(key) || candidate.polled}
+                          className={`rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
+                            candidate.polled
+                              ? "bg-lemon-100 text-ink-700"
+                              : "bg-cream-100 text-ink-700 active:scale-[0.98]"
+                          } disabled:opacity-70`}
+                        >
+                          {candidate.polled ? "🗳️ בסקר ✓" : "🗳️ לסקר"}
+                        </button>
                         {candidate.website && (
                           <a
                             href={candidate.website}

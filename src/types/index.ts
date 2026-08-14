@@ -103,6 +103,8 @@ export interface Poll {
   /** familyId -> optionId */
   votes: Record<string, string>;
   closed: boolean;
+  /** The standing group poll, always shown first */
+  pinned?: boolean;
   createdAt?: number;
 }
 
@@ -142,6 +144,7 @@ export interface ChatCandidate {
   website?: string;
   savedPlaceId?: string;
   dismissed?: boolean;
+  polled?: boolean;
 }
 
 export interface ChatMessage {

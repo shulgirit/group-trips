@@ -2,11 +2,15 @@
 
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
+  getDoc,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
+import type { PollOption } from "@/types";
 import { auth, db, isPersonalUser } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/hooks";
 import {
@@ -111,4 +115,45 @@ export async function setPollClosed(
 
 export async function deletePoll(pollId: string): Promise<void> {
   await deleteDoc(doc(db(), `${TRIP_PATH}/polls/${pollId}`));
+}
+
+export const GLOBAL_POLL_ID = "global";
+
+/**
+ * Adds an option to the always-open group poll (creates the poll on first
+ * use). Returns "exists" when the same place/label is already an option.
+ */
+export async function addOptionToGlobalPoll(
+  label: string,
+  placeId?: string | null
+): Promise<"added" | "exists"> {
+  const ref = doc(db(), `${TRIP_PATH}/polls/${GLOBAL_POLL_ID}`);
+  const snapshot = await getDoc(ref);
+  const options = (snapshot.data()?.options ?? []) as PollOption[];
+  if (
+    options.some(
+      (option) =>
+        option.label === label || (placeId && option.placeId === placeId)
+    )
+  ) {
+    return "exists";
+  }
+  const option: PollOption = {
+    id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    label,
+    placeId: placeId ?? null,
+  };
+  if (snapshot.exists()) {
+    await updateDoc(ref, { options: arrayUnion(option) });
+  } else {
+    await setDoc(ref, {
+      question: "🗳️ סקר הרעיונות של הקבוצה",
+      options: [option],
+      votes: {},
+      closed: false,
+      pinned: true,
+      createdAt: Date.now(),
+    });
+  }
+  return "added";
 }

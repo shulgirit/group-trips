@@ -113,14 +113,24 @@ function PollCard({ poll, families }: { poll: Poll; families: Family[] }) {
                   </span>
                 </span>
               </button>
-              {option.placeId && (
+              <span className="mt-0.5 flex items-center gap-3 ps-1 text-xs">
+                {option.placeId && (
+                  <Link
+                    href={`/places/${option.placeId}`}
+                    className="text-sea-600"
+                  >
+                    לפרטי המקום ›
+                  </Link>
+                )}
                 <Link
-                  href={`/places/${option.placeId}`}
-                  className="mt-0.5 inline-block ps-1 text-xs text-sea-600"
+                  href={`/calendar/new?title=${encodeURIComponent(option.label)}${
+                    option.placeId ? `&placeId=${option.placeId}` : ""
+                  }`}
+                  className="text-terra-500"
                 >
-                  לפרטי המקום ›
+                  📅 שבץ בלוח ›
                 </Link>
-              )}
+              </span>
             </li>
           );
         })}
@@ -205,9 +215,12 @@ export default function PollsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {polls.map((poll) => (
-            <PollCard key={poll.id} poll={poll} families={families} />
-          ))}
+          {polls
+            .slice()
+            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+            .map((poll) => (
+              <PollCard key={poll.id} poll={poll} families={families} />
+            ))}
         </div>
       )}
     </div>
