@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,7 +9,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { addExpense, deleteExpense } from "@/lib/db";
 import { useExpenses, useFamilies } from "@/lib/hooks";
 import { calcBalances, calcSettlement } from "@/lib/settlement";
-import { todayIso } from "@/lib/trip";
+import { formatDayLabel, todayIso } from "@/lib/trip";
 import type { Family } from "@/types";
 
 const CURRENCY_SYMBOL = { EUR: "€", ILS: "₪" } as const;
@@ -244,21 +244,41 @@ function ExpensesContent() {
   const [addOpen, setAddOpen] = useState(searchParams.get("add") === "1");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const eurSummary = useMemo(() => {
-    if (!expenses || !families) return null;
-    const balances = calcBalances(expenses, families, "EUR");
-    const total = expenses
-      .filter((e) => e.currency === "EUR")
-      .reduce((sum, e) => sum + e.amount, 0);
-    return { balances, total, transfers: calcSettlement(balances) };
+  // Full split + settlement for EACH currency that has expenses
+  const summaries = useMemo(() => {
+    if (!expenses || !families) return [];
+    return (["EUR", "ILS"] as const)
+      .map((currency) => {
+        const list = expenses.filter((e) => e.currency === currency);
+        if (!list.length) return null;
+        const balances = calcBalances(expenses, families, currency);
+        return {
+          currency,
+          total: list.reduce((sum, e) => sum + e.amount, 0),
+          balances,
+          transfers: calcSettlement(balances),
+        };
+      })
+      .filter(Boolean) as {
+      currency: "EUR" | "ILS";
+      total: number;
+      balances: ReturnType<typeof calcBalances>;
+      transfers: ReturnType<typeof calcSettlement>;
+    }[];
   }, [expenses, families]);
 
-  const ilsTotal = useMemo(
-    () =>
-      (expenses ?? [])
-        .filter((e) => e.currency === "ILS")
-        .reduce((sum, e) => sum + e.amount, 0),
+  // Date tabs for the list
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const expenseDates = useMemo(
+    () => [...new Set((expenses ?? []).map((e) => e.date))],
     [expenses]
+  );
+  const visibleExpenses = useMemo(
+    () =>
+      dateFilter === "all"
+        ? (expenses ?? [])
+        : (expenses ?? []).filter((e) => e.date === dateFilter),
+    [expenses, dateFilter]
   );
 
   return (
@@ -298,76 +318,124 @@ function ExpensesContent() {
         />
       ) : (
         <>
-          {/* Summary */}
-          {eurSummary && eurSummary.total > 0 && (
-            <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sea-700 to-sea-950 p-5 text-cream-50 shadow-[var(--shadow-card)]">
+          {/* Summary — full split per currency */}
+          {summaries.length > 0 && (
+            <section className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-sea-500 to-sea-800 p-5 text-white shadow-[var(--shadow-card)]">
               <div
                 aria-hidden
-                className="pointer-events-none absolute -left-10 -top-14 h-44 w-44 rounded-full bg-lemon-400/15 blur-2xl"
+                className="pointer-events-none absolute -left-10 -top-14 h-44 w-44 rounded-full bg-lemon-400/20 blur-2xl"
               />
-              <p className="kicker text-sea-200">סה״כ הוצאות משותפות</p>
+              <p className="kicker text-sea-100">סה״כ הוצאות משותפות</p>
               <p
                 dir="ltr"
                 className="mt-1.5 text-right font-display text-4xl font-bold tabular-nums"
               >
-                {formatAmount(eurSummary.total, "EUR")}
-                {ilsTotal > 0 && (
-                  <span className="ms-2 text-lg font-semibold text-sea-200">
-                    + {formatAmount(ilsTotal, "ILS")}
-                  </span>
-                )}
+                {summaries
+                  .map((s) => formatAmount(s.total, s.currency))
+                  .join("  +  ")}
               </p>
-              <div className="mt-4 space-y-1.5">
-                {eurSummary.balances.map((balance) => (
-                  <div
-                    key={balance.familyId}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span>{familyName(families, balance.familyId)}</span>
-                    <span className="tabular-nums">
-                      שילמו {formatAmount(balance.paid, "EUR")} ·{" "}
-                      {balance.balance >= 0 ? (
-                        <span className="text-lemon-300">
-                          מגיע {formatAmount(balance.balance, "EUR")}
-                        </span>
-                      ) : (
-                        <span className="text-terra-400">
-                          חייבים {formatAmount(-balance.balance, "EUR")}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {eurSummary.transfers.length > 0 && (
-                <div className="mt-4 rounded-2xl bg-sea-950/50 p-3.5 backdrop-blur">
-                  <p className="mb-2 text-sm font-semibold text-lemon-300">
-                    ✓ כדי לסגור חשבון
-                  </p>
-                  {eurSummary.transfers.map((transfer, i) => (
-                    <p
-                      key={i}
-                      className="flex items-center justify-between py-0.5 text-sm"
-                    >
-                      <span>
-                        {familyName(families, transfer.fromFamilyId)} ←{" "}
-                        {familyName(families, transfer.toFamilyId)}
-                      </span>
-                      <b dir="ltr" className="tabular-nums">
-                        {formatAmount(transfer.amount, "EUR")}
-                      </b>
+
+              {summaries.map((summary) => (
+                <div key={summary.currency} className="mt-4">
+                  {summaries.length > 1 && (
+                    <p className="mb-1.5 text-sm font-bold text-lemon-200">
+                      {summary.currency === "EUR" ? "€ באירו" : "₪ בשקלים"}
                     </p>
-                  ))}
+                  )}
+                  <div className="space-y-1.5">
+                    {summary.balances.map((balance) => (
+                      <div
+                        key={balance.familyId}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="font-medium">
+                          {familyName(families, balance.familyId)}
+                        </span>
+                        <span className="tabular-nums">
+                          שילמו {formatAmount(balance.paid, summary.currency)} ·{" "}
+                          {balance.balance >= 0 ? (
+                            <span className="font-semibold text-lemon-200">
+                              מגיע{" "}
+                              {formatAmount(balance.balance, summary.currency)}
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-terra-100">
+                              חייבים{" "}
+                              {formatAmount(-balance.balance, summary.currency)}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {summary.transfers.length > 0 && (
+                    <div className="mt-2.5 rounded-2xl bg-sea-950/45 p-3.5 backdrop-blur">
+                      <p className="mb-2 text-sm font-semibold text-lemon-200">
+                        ✓ כדי לסגור חשבון{" "}
+                        {summaries.length > 1
+                          ? summary.currency === "EUR"
+                            ? "(אירו)"
+                            : "(שקלים)"
+                          : ""}
+                      </p>
+                      {summary.transfers.map((transfer, i) => (
+                        <p
+                          key={i}
+                          className="flex items-center justify-between py-0.5 text-sm"
+                        >
+                          <span>
+                            {familyName(families, transfer.fromFamilyId)} ←{" "}
+                            {familyName(families, transfer.toFamilyId)}
+                          </span>
+                          <b dir="ltr" className="tabular-nums">
+                            {formatAmount(transfer.amount, summary.currency)}
+                          </b>
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </section>
           )}
 
-          {/* Expense list */}
+          {/* Date tabs */}
+          {expenseDates.length > 1 && (
+            <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
+              <div className="flex w-max gap-2 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setDateFilter("all")}
+                  className={`chip ${dateFilter === "all" ? "chip-active" : ""}`}
+                >
+                  הכל
+                </button>
+                {expenseDates.map((date) => (
+                  <button
+                    key={date}
+                    type="button"
+                    onClick={() => setDateFilter(date)}
+                    className={`chip ${dateFilter === date ? "chip-active" : ""}`}
+                  >
+                    {formatDayLabel(date)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Expense list, grouped by day */}
           <ul className="space-y-2">
-            {expenses.map((expense) => (
+            {visibleExpenses.map((expense, index) => (
+              <Fragment key={expense.id}>
+                {dateFilter === "all" &&
+                  (index === 0 ||
+                    visibleExpenses[index - 1].date !== expense.date) && (
+                    <li className="pt-2 text-sm font-bold text-ink-500">
+                      📅 {formatDayLabel(expense.date)}
+                    </li>
+                  )}
               <li
-                key={expense.id}
                 className="flex items-center gap-3 rounded-3xl border border-cream-200 bg-white px-4 py-3"
               >
                 <div className="min-w-0 flex-1">
@@ -409,6 +477,7 @@ function ExpensesContent() {
                   </button>
                 )}
               </li>
+              </Fragment>
             ))}
           </ul>
         </>
