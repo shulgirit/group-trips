@@ -3,6 +3,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  BedDouble,
+  Binoculars,
+  FerrisWheel,
+  Home,
+  IceCreamCone,
+  MapPin as MapPinIcon,
+  ShoppingBag,
+  ShoppingCart,
+  SquareParking,
+  Utensils,
+  Volleyball,
+  Waves,
+  type LucideIcon,
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
@@ -19,6 +35,7 @@ declare global {
 const SICILY_CENTER = { lat: 37.55, lng: 14.25 };
 
 const FILTERS = [
+  { id: "scheduled", label: "בלוח" },
   { id: "all", label: "הכל" },
   { id: "attractions", label: "אטרקציות" },
   { id: "food", label: "אוכל" },
@@ -32,6 +49,7 @@ type FilterId = (typeof FILTERS)[number]["id"];
 function categoryMatches(category: PlaceCategory, filter: FilterId): boolean {
   switch (filter) {
     case "all":
+    case "scheduled":
     case "unscheduled":
       return true;
     case "attractions":
@@ -43,6 +61,41 @@ function categoryMatches(category: PlaceCategory, filter: FilterId): boolean {
     case "stay":
       return category === "accommodation";
   }
+}
+
+/* Branded vector map pins — pin silhouette in the category color with a
+   clean white icon, replacing the default red pin + emoji. */
+const CATEGORY_MARKER: Record<
+  PlaceCategory,
+  { color: string; Icon: LucideIcon }
+> = {
+  attraction: { color: "#1e81a3", Icon: FerrisWheel },
+  restaurant: { color: "#bf653c", Icon: Utensils },
+  beach: { color: "#47a5c4", Icon: Waves },
+  icecream: { color: "#dfae38", Icon: IceCreamCone },
+  shopping: { color: "#a5502d", Icon: ShoppingBag },
+  supermarket: { color: "#757d4d", Icon: ShoppingCart },
+  viewpoint: { color: "#c9932a", Icon: Binoculars },
+  parking: { color: "#0f4f6b", Icon: SquareParking },
+  accommodation: { color: "#5c7d54", Icon: BedDouble },
+  sport: { color: "#14627f", Icon: Volleyball },
+  other: { color: "#776d5c", Icon: MapPinIcon },
+};
+
+function markerIconFor(category: PlaceCategory, isVilla: boolean) {
+  const { color, Icon } = isVilla
+    ? { color: "#b05a38", Icon: Home }
+    : (CATEGORY_MARKER[category] ?? CATEGORY_MARKER.other);
+  const glyph = renderToStaticMarkup(
+    <Icon size={14} color="#ffffff" strokeWidth={2.4} />
+  ).replace("<svg", '<svg x="10" y="8.5"');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44"><path d="M17 42.5C17 42.5 3.5 25.5 3.5 15.5A13.5 13.5 0 1 1 30.5 15.5C30.5 25.5 17 42.5 17 42.5Z" fill="${color}" stroke="#fbf8f1" stroke-width="2.4"/>${glyph}</svg>`;
+  const size = isVilla ? { w: 46, h: 60 } : { w: 34, h: 44 };
+  return {
+    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    scaledSize: new window.google.maps.Size(size.w, size.h),
+    anchor: new window.google.maps.Point(size.w / 2, size.h),
+  };
 }
 
 function loadGoogleMaps(onReady: () => void): void {
@@ -66,7 +119,7 @@ function loadGoogleMaps(onReady: () => void): void {
 export default function MapPage() {
   const { places, loading } = usePlaces();
   const { events } = useEvents();
-  const [filter, setFilter] = useState<FilterId>("all");
+  const [filter, setFilter] = useState<FilterId>("scheduled");
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [selected, setSelected] = useState<Place | null>(null);
@@ -93,7 +146,8 @@ export default function MapPage() {
           typeof place.lat === "number" &&
           typeof place.lng === "number" &&
           categoryMatches(place.category, filter) &&
-          (filter !== "unscheduled" || !scheduledIds.has(place.id))
+          (filter !== "unscheduled" || !scheduledIds.has(place.id)) &&
+          (filter !== "scheduled" || scheduledIds.has(place.id))
       ),
     [places, filter, scheduledIds]
   );
@@ -131,28 +185,14 @@ export default function MapPage() {
     if (!map || !window.google?.maps) return;
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = mappablePlaces.map((place) => {
-      // The villa is home base — it gets a big, distinct terracotta pin
+      // The villa is home base — it gets a bigger terracotta home pin
       const isVilla = place.id === "villa";
       const marker = new window.google.maps.Marker({
         map,
         position: { lat: place.lat, lng: place.lng },
         title: place.name,
         zIndex: isVilla ? 1000 : undefined,
-        label: {
-          text: PLACE_CATEGORIES[place.category]?.emoji ?? "📌",
-          fontSize: isVilla ? "22px" : "16px",
-        },
-        icon: isVilla
-          ? {
-              path: "M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z",
-              fillColor: "#b05a38",
-              fillOpacity: 1,
-              strokeColor: "#fbf8f1",
-              strokeWeight: 2.5,
-              scale: 1.6,
-              labelOrigin: new window.google.maps.Point(0, -30),
-            }
-          : undefined,
+        icon: markerIconFor(place.category, isVilla),
       });
       marker.addListener("click", () => setSelected(place));
       return marker;
