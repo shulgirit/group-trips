@@ -51,9 +51,17 @@ export async function addPlace(
   );
   if (existing) return { id: existing.id, existed: true };
 
+  const currentUser = auth().currentUser;
   const ref = await addDoc(
     collection(db(), `${TRIP_PATH}/places`),
-    compact({ ...parsed, createdAt: Date.now() })
+    compact({
+      ...parsed,
+      createdAt: Date.now(),
+      createdByUid: currentUser?.uid,
+      // Google + kid identities carry a display name; the legacy shared
+      // identity stays anonymous
+      createdByName: currentUser?.displayName ?? undefined,
+    })
   );
   return { id: ref.id, existed: false };
 }

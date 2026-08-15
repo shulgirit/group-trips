@@ -21,6 +21,7 @@ import {
   Star,
   Ticket,
   Trash2,
+  UserRound,
   UtensilsCrossed,
   Vote,
 } from "lucide-react";
@@ -178,6 +179,12 @@ export default function PlaceDetailPage({
       label: "מה אומרים בביקורות",
       value: place.reviewsSummary,
       field: "reviewsSummary",
+    },
+    place.createdByName && {
+      icon: UserRound,
+      label: "נוסף על ידי",
+      value: place.createdByName,
+      field: null,
     },
   ].filter(Boolean) as {
     icon: typeof MapPin;

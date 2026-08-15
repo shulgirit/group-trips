@@ -452,6 +452,8 @@ const CreatePollArgs = z.object({
 /** Poll-option additions are collected and pushed as ONE notification. */
 interface PendingNotifications {
   pollOptionLabels: string[];
+  /** Who is chatting — stamped as createdByName on AI-made places */
+  speaker?: string;
 }
 
 async function executeTool(
@@ -528,6 +530,9 @@ async function executeTool(
         Object.entries(placeData).filter(([, v]) => v != null && v !== "")
       ),
       createdAt: Date.now(),
+      createdByName: pending.speaker
+        ? `${pending.speaker} (דרך המשרת)`
+        : "🦻✨ המשרת של החבורה",
     });
     // keep the in-memory context fresh so a chained create_event resolves it
     data.places.push({
@@ -795,7 +800,10 @@ export async function POST(request: Request) {
             : { role: m.role, content: m.content }
       ),
     ];
-    const pending: PendingNotifications = { pollOptionLabels: [] };
+    const pending: PendingNotifications = {
+      pollOptionLabels: [],
+      speaker: body.speaker,
+    };
 
     const flushPendingNotifications = () => {
       const labels = pending.pollOptionLabels;

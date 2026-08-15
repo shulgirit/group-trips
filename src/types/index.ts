@@ -38,7 +38,8 @@ export interface Place {
   favorite?: boolean;
   sourceUrl?: string;
   createdAt?: number;
-  createdBy?: string;
+  createdByUid?: string;
+  createdByName?: string;
 }
 
 export type Participants =
