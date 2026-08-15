@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Compass,
   Map as MapIcon,
@@ -58,11 +59,17 @@ function analyzeDay(dayEvents: TripEvent[], families: Family[]) {
   return flags;
 }
 
-export default function CalendarPage() {
+function CalendarContent() {
   const days = tripDays();
   const today = todayIso();
+  // Push notifications deep-link here with ?day=YYYY-MM-DD
+  const requestedDay = useSearchParams().get("day");
   const [selectedDay, setSelectedDay] = useState(
-    days.includes(today) ? today : days[0]
+    requestedDay && days.includes(requestedDay)
+      ? requestedDay
+      : days.includes(today)
+        ? today
+        : days[0]
   );
   const { events, loading } = useEvents();
   const { places } = usePlaces();
@@ -322,5 +329,13 @@ export default function CalendarPage() {
         </ol>
       )}
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={null}>
+      <CalendarContent />
+    </Suspense>
   );
 }

@@ -23,14 +23,22 @@ self.addEventListener("push", (event) => {
       tag: data.tag || undefined,
       dir: "rtl",
       lang: "he",
-      data: { url: data.url || "/" },
+      data: { url: data.url || "/", navUrl: data.navUrl || null },
+      actions: data.navUrl
+        ? [{ action: "navigate", title: "נווט 🧭" }]
+        : undefined,
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const payload = event.notification.data || {};
+  if (event.action === "navigate" && payload.navUrl) {
+    event.waitUntil(self.clients.openWindow(payload.navUrl));
+    return;
+  }
+  const url = payload.url || "/";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

@@ -201,10 +201,10 @@ export default function NewPlacePage() {
         sourceUrl,
         recommendedDurationMin: durationMin,
       });
-      if (existed) {
-        setError("");
-      }
-      router.replace(`/places/${placeId}`);
+      // Land on the place with the schedule sheet already open (skippable)
+      router.replace(
+        existed ? `/places/${placeId}` : `/places/${placeId}?schedule=1`
+      );
     } catch {
       setError("השמירה נכשלה — בדקו את הפרטים ונסו שוב");
       setSaving(false);

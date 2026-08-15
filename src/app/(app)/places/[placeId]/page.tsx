@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,6 +50,13 @@ export default function PlaceDetailPage({
   const { place, loading } = usePlace(placeId);
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  // Arriving from "מקום חדש" with ?schedule=1 → jump straight to scheduling
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("schedule") === "1") {
+      setScheduleOpen(true);
+    }
+  }, []);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pollSheetOpen, setPollSheetOpen] = useState(false);
   const [pollAdded, setPollAdded] = useState(false);

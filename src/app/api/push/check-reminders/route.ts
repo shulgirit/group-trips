@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
+import { wazeUrl } from "@/lib/nav";
 import { sendPushToAll } from "@/lib/server/push";
 import { TRIP_PATH } from "@/lib/trip";
 
@@ -56,11 +57,30 @@ export async function POST() {
 
     // Claim first so parallel checks never double-send
     await doc.ref.update({ reminderSentAt: Date.now() });
+
+    // Waze link so the whole convoy can navigate straight from the push
+    let navUrl: string | undefined;
+    if (event.placeId) {
+      const placeSnap = await adminDb()
+        .doc(`${TRIP_PATH}/places/${event.placeId}`)
+        .get();
+      const place = placeSnap.data();
+      if (place && (place.lat != null || place.address)) {
+        navUrl = wazeUrl({
+          name: String(place.name ?? event.title),
+          address: place.address ? String(place.address) : undefined,
+          lat: place.lat ?? null,
+          lng: place.lng ?? null,
+        });
+      }
+    }
+
     await sendPushToAll({
       title: `⏰ בעוד ${lead} דקות: ${event.title}`,
       body: `${event.startTime}${event.notes ? ` · ${event.notes}` : ""}`,
       url: "/",
       tag: `reminder-${doc.id}`,
+      navUrl,
     });
     sent++;
   }

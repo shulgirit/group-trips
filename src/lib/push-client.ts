@@ -97,12 +97,13 @@ export function notifyGroup(
   type: "poll" | "poll_option" | "event",
   title: string,
   detail?: string,
-  actorUid?: string
+  actorUid?: string,
+  extras?: { day?: string; navUrl?: string }
 ): void {
   fetch("/api/push/notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, title, detail, actorUid }),
+    body: JSON.stringify({ type, title, detail, actorUid, ...extras }),
     keepalive: true,
   }).catch(() => undefined);
 }

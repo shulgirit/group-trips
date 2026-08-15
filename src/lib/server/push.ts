@@ -9,6 +9,8 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  /** Waze/Maps deep link — rendered as a "נווט" notification action */
+  navUrl?: string;
 }
 
 interface StoredSubscription {

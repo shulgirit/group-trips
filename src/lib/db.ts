@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import type { PollOption } from "@/types";
 import { auth, db, isPersonalUser } from "@/lib/firebase/client";
+import { wazeUrl } from "@/lib/nav";
 import { notifyGroup } from "@/lib/push-client";
 import { formatDayLabel } from "@/lib/trip";
 import { TRIP_PATH } from "@/lib/hooks";
@@ -36,29 +37,8 @@ function compact<T extends Record<string, unknown>>(value: T): T {
   ) as T;
 }
 
-/** Normalized name for duplicate detection (case, spacing, punctuation). */
-export function normalizePlaceName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[—–\-·.,'"׳״!?()]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/** True when two names refer to the same place ("Terme Segestane" vs
- *  "Terme Segestane — מעיינות חמים"). Single-word names never absorb
- *  longer ones — "Erice" (the town) is not "Erice Adventure Park". */
-export function samePlaceName(a: string, b: string): boolean {
-  const na = normalizePlaceName(a);
-  const nb = normalizePlaceName(b);
-  if (!na || !nb) return false;
-  if (na === nb) return true;
-  const [shorter, longer] = na.length <= nb.length ? [na, nb] : [nb, na];
-  const shorterWords = shorter.split(" ").length;
-  return (
-    shorterWords >= 2 && shorter.length >= 8 && longer.includes(shorter)
-  );
-}
+import { samePlaceName } from "@/lib/place-name";
+export { normalizePlaceName, samePlaceName } from "@/lib/place-name";
 
 export async function addPlace(
   input: PlaceInput
@@ -104,11 +84,32 @@ export async function addEvent(input: EventInput): Promise<string> {
         : undefined,
     })
   );
+  // The push deep-links to the day and, when possible, carries a Waze link
+  let navUrl: string | undefined;
+  if (parsed.placeId) {
+    try {
+      const placeSnap = await getDoc(
+        doc(db(), `${TRIP_PATH}/places/${parsed.placeId}`)
+      );
+      const place = placeSnap.data();
+      if (place && (place.lat != null || place.address)) {
+        navUrl = wazeUrl({
+          name: String(place.name ?? parsed.title),
+          address: place.address ? String(place.address) : undefined,
+          lat: place.lat ?? null,
+          lng: place.lng ?? null,
+        });
+      }
+    } catch {
+      // navigation link is a bonus
+    }
+  }
   notifyGroup(
     "event",
     parsed.title,
     `${formatDayLabel(parsed.day)} · ${parsed.startTime}`,
-    currentUser?.uid
+    currentUser?.uid,
+    { day: parsed.day, navUrl }
   );
   return ref.id;
 }

@@ -5,8 +5,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
+import { wazeUrl } from "@/lib/nav";
+import { samePlaceName } from "@/lib/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
-import { geocodePlace } from "@/lib/server/import-place";
+import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
 import { TRIP, TRIP_PATH } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
@@ -99,6 +101,37 @@ const JSON_SCHEMA = {
 /* ---------- tools ---------- */
 
 const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "add_place",
+      description:
+        "יצירת מקום חדש במאגר המשותף מתוך כתובת, שם חופשי או קישור — בלי שהמשתמש ימלא טפסים. המערכת מוצאת אוטומטית מיקום, תמונה ודירוג. אחרי היצירה אפשר לשרשר create_event כדי לשבץ אותו בלוח.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "כתובת או תיאור חופשי, למשל: 'parking Piazza Ungheria Palermo'",
+          },
+          url: {
+            type: "string",
+            description: "קישור לאתר/דף של המקום (אם המשתמש נתן קישור)",
+          },
+          name: {
+            type: "string",
+            description: "שם עברי/ידידותי למקום, למשל: 'חניון פיאצה אונגריה'",
+          },
+          category: {
+            type: "string",
+            enum: Object.keys(PLACE_CATEGORIES),
+          },
+        },
+        required: ["name", "category"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -428,6 +461,87 @@ async function executeTool(
 ): Promise<Record<string, unknown>> {
   const tripRef = adminDb().collection("trips").doc(TRIP.id);
 
+  if (name === "add_place") {
+    const args = z
+      .object({
+        query: z.string().optional(),
+        url: z.string().optional(),
+        name: z.string().min(1),
+        category: z.enum(
+          Object.keys(PLACE_CATEGORIES) as [string, ...string[]]
+        ),
+      })
+      .parse(rawArgs);
+
+    // Never duplicate — reuse an existing place with a matching name
+    const existing = data.places.find((p) => samePlaceName(p.name, args.name));
+    if (existing) {
+      return {
+        ok: true,
+        placeId: existing.id,
+        placeName: existing.name,
+        summary: `"${existing.name}" כבר קיים במאגר — השתמש בו`,
+      };
+    }
+
+    let placeData: Record<string, unknown>;
+    if (args.url && /^https?:\/\//.test(args.url)) {
+      const draft = await importPlaceFromUrl(args.url);
+      placeData = {
+        name: args.name || draft.name,
+        category: args.category,
+        area: draft.area || null,
+        address: draft.address || null,
+        lat: draft.lat,
+        lng: draft.lng,
+        website: draft.website || null,
+        imageUrl: draft.imageUrl || null,
+        summary: draft.summary || null,
+        openingHours: draft.openingHours || null,
+        priceNotes: draft.priceNotes || null,
+        tips: draft.tips || null,
+        sourceUrl: args.url,
+      };
+    } else {
+      const geo = await geocodePlace(
+        args.query?.trim() || args.name
+      );
+      if (!geo) {
+        return {
+          ok: false,
+          error: `לא הצלחתי לאתר את "${args.query ?? args.name}" בגוגל — בקש מהמשתמש כתובת מדויקת יותר`,
+        };
+      }
+      placeData = {
+        name: args.name,
+        category: args.category,
+        address: geo.address ?? null,
+        lat: geo.lat,
+        lng: geo.lng,
+        imageUrl: geo.photoUrl ?? null,
+      };
+    }
+
+    const ref = await tripRef.collection("places").add({
+      ...Object.fromEntries(
+        Object.entries(placeData).filter(([, v]) => v != null && v !== "")
+      ),
+      createdAt: Date.now(),
+    });
+    // keep the in-memory context fresh so a chained create_event resolves it
+    data.places.push({
+      id: ref.id,
+      name: String(placeData.name),
+      category: String(placeData.category),
+    });
+    return {
+      ok: true,
+      placeId: ref.id,
+      placeName: placeData.name,
+      summary: `המקום "${placeData.name}" נוצר עם מיקום${placeData.imageUrl ? ", תמונה" : ""}${placeData.address ? ` (${placeData.address})` : ""}`,
+    };
+  }
+
   if (name === "search_google_places") {
     const args = z
       .object({ query: z.string().min(2), minRating: z.number().optional() })
@@ -497,11 +611,26 @@ async function executeTool(
       createdAt: Date.now(),
       createdByName: "🦻✨ המשרת של החבורה",
     });
+    let navUrl: string | undefined;
+    if (place) {
+      const placeDoc = (
+        await tripRef.collection("places").doc(place.id).get()
+      ).data();
+      if (placeDoc && (placeDoc.lat != null || placeDoc.address)) {
+        navUrl = wazeUrl({
+          name: String(placeDoc.name ?? args.title),
+          address: placeDoc.address ? String(placeDoc.address) : undefined,
+          lat: placeDoc.lat ?? null,
+          lng: placeDoc.lng ?? null,
+        });
+      }
+    }
     sendPushToAll({
       title: "📅 המשרת של החבורה הוסיף ללוח",
       body: `${args.title} · ${args.day.slice(8, 10)}.${args.day.slice(5, 7)} · ${startTime}`,
-      url: "/calendar",
+      url: `/calendar?day=${args.day}`,
       tag: "event",
+      navUrl,
     }).catch(() => undefined);
     return {
       ok: true,
@@ -611,6 +740,7 @@ const SYSTEM_PROMPT = `אתה ״המשרת של חבורת מיחא״ 🦻✨ �
 - לכל candidate שאתה מחזיר, המערכת מצרפת אוטומטית תמונה אמיתית, דירוג גוגל ומיקום למפה — אתה רק צריך לבחור נכון.
 - כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
 - כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
+- כשנותנים לך כתובת/קישור/שם של מקום חדש (חניון, מסעדה...) עם כוונה לשבץ — שרשר: add_place ואז create_event באותו יום ושעה הגיוניים ביחס לאירוע הרלוונטי בלוח (למשל חניון: 30-45 דקות לפני הפעילות שבאותו אזור). ההתראה לקבוצה נשלחת אוטומטית מ-create_event.
 - כשמבקשים סקר חדש עם שאלה ("תעשה סקר מה עושים מחר", "תשלח סקר לכולם") — השתמש ב-create_poll ליצירת סקר נפרד. add_poll_option מיועד רק להוספת רעיון בודד לסקר הרעיונות הקבוע.
 - כשמבקשים לעדכן/להעשיר מקום מהאתר שלו — השתמש בכלי enrich_place, ואז סכם ב-reply מה התעדכן.
 - אל תבצע פעולות כתיבה בלי בקשה מפורשת של המשתמש.
