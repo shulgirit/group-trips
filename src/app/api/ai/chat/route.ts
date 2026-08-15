@@ -44,6 +44,7 @@ const RequestSchema = z.object({
       z.object({
         role: z.enum(["user", "assistant"]),
         content: z.string().max(4000),
+        imageUrl: z.string().url().max(2048).optional(),
       })
     )
     .min(1)
@@ -780,7 +781,19 @@ export async function POST(request: Request) {
             },
           ]
         : []),
-      ...body.messages,
+      // Photos attach as vision content on user messages
+      ...body.messages.map(
+        (m): OpenAI.Chat.ChatCompletionMessageParam =>
+          m.role === "user" && m.imageUrl
+            ? {
+                role: "user",
+                content: [
+                  { type: "text", text: m.content },
+                  { type: "image_url", image_url: { url: m.imageUrl } },
+                ],
+              }
+            : { role: m.role, content: m.content }
+      ),
     ];
     const pending: PendingNotifications = { pollOptionLabels: [] };
 

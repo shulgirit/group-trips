@@ -159,6 +159,8 @@ export interface ChatCandidate {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Attached photo (Storage URL) the model can see */
+  imageUrl?: string;
   candidates?: ChatCandidate[];
 }
 

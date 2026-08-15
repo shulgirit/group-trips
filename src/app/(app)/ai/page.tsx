@@ -12,12 +12,18 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
+import { Paperclip, X } from "lucide-react";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
-import { db } from "@/lib/firebase/client";
+import { db, storage } from "@/lib/firebase/client";
 import { TRIP_PATH } from "@/lib/trip";
 import {
   PLACE_CATEGORIES,
@@ -64,6 +70,30 @@ export default function AiPage() {
   const [infoText, setInfoText] = useState("");
   const [infoLoading, setInfoLoading] = useState(false);
   const infoCache = useRef(new Map<string, string>());
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImage, setPendingImage] = useState<{
+    previewUrl: string;
+    blob: Blob;
+  } | null>(null);
+
+  /** Shrinks a photo to phone-friendly size before upload. */
+  async function preparePhoto(file: File) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.8)
+      );
+      if (!blob) throw new Error("compress_failed");
+      setPendingImage({ previewUrl: URL.createObjectURL(blob), blob });
+    } catch {
+      setError("לא הצלחנו לקרוא את התמונה, נסו אחרת");
+    }
+  }
 
   async function openInfo(candidate: ChatCandidate) {
     setInfoTarget(candidate);
@@ -207,7 +237,11 @@ export default function AiPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: thread.map(({ role, content }) => ({ role, content })),
+          messages: thread.map(({ role, content, imageUrl }) => ({
+            role,
+            content,
+            imageUrl,
+          })),
           speaker,
         }),
       });
@@ -240,11 +274,32 @@ export default function AiPage() {
 
   async function send(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
+    if ((!trimmed && !pendingImage) || loading) return;
+
+    // Upload the attached photo first so the servant can see it
+    let imageUrl: string | undefined;
+    if (pendingImage) {
+      try {
+        const path = `trips/sicily-2026/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
+        const fileRef = storageRef(storage(), path);
+        await uploadBytes(fileRef, pendingImage.blob, {
+          contentType: "image/jpeg",
+        });
+        imageUrl = await getDownloadURL(fileRef);
+      } catch {
+        setError("העלאת התמונה נכשלה, נסו שוב");
+        return;
+      }
+      setPendingImage(null);
+    }
 
     const withUser: ChatMessage[] = [
       ...messages,
-      { role: "user", content: trimmed },
+      {
+        role: "user",
+        content: trimmed || "תסתכל על התמונה הזו 📷",
+        ...(imageUrl ? { imageUrl } : {}),
+      },
     ];
     setMessages(withUser);
     setInput("");
@@ -464,6 +519,14 @@ export default function AiPage() {
                   : "card ms-auto w-fit rounded-br-lg text-ink-900"
               }`}
             >
+              {message.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={message.imageUrl}
+                  alt=""
+                  className="mb-2 max-h-52 w-full rounded-2xl object-cover"
+                />
+              )}
               {message.content}
             </div>
 
@@ -635,31 +698,73 @@ export default function AiPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          send(input);
-        }}
-        className="sticky bottom-24 mt-4 flex gap-2"
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={
-            activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
-          }
-          className="field flex-1 py-3.5 shadow-[var(--shadow-card)]"
-        />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          aria-label="שליחה"
-          className="btn-primary px-5"
+      <div className="sticky bottom-24 mt-4">
+        {pendingImage && (
+          <div className="mb-2 flex items-center gap-2 rounded-2xl bg-white p-2 shadow-[var(--shadow-card)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={pendingImage.previewUrl}
+              alt="תמונה מצורפת"
+              className="h-14 w-14 rounded-xl object-cover"
+            />
+            <span className="flex-1 text-sm text-ink-500">
+              התמונה תישלח למשרת עם ההודעה
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingImage(null)}
+              aria-label="הסרת התמונה"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-ink-500"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            send(input);
+          }}
+          className="flex gap-2"
         >
-          ↑
-        </button>
-      </form>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) preparePhoto(file);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="צירוף תמונה"
+            className="btn-soft px-3.5 shadow-[var(--shadow-card)]"
+          >
+            <Paperclip size={19} />
+          </button>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={
+              activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
+            }
+            className="field min-w-0 flex-1 py-3.5 shadow-[var(--shadow-card)]"
+          />
+          <button
+            type="submit"
+            disabled={loading || (!input.trim() && !pendingImage)}
+            aria-label="שליחה"
+            className="btn-primary px-5"
+          >
+            ↑
+          </button>
+        </form>
+      </div>
 
       {/* "ספרו לי עוד" modal — stays on top of the cards */}
       {infoTarget && (
