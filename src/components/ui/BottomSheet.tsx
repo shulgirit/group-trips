@@ -37,9 +37,19 @@ export function BottomSheet({
         className="absolute inset-0 bg-ink-900/40 backdrop-blur-[2px]"
       />
       <div className="absolute inset-x-0 bottom-0 mx-auto flex max-h-[88dvh] max-w-lg flex-col rounded-t-3xl bg-cream-50 shadow-2xl">
-        <div className="px-5 pt-3">
+        <div className="relative px-5 pt-3">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-cream-300" />
-          <h2 className="mb-2 text-lg font-semibold text-ink-900">{title}</h2>
+          <h2 className="mb-2 pe-8 text-lg font-semibold text-ink-900">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="סגירה"
+            className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-cream-100 text-ink-500"
+          >
+            ✕
+          </button>
         </div>
         <div className="overflow-y-auto px-5 pb-8 pb-safe">{children}</div>
       </div>

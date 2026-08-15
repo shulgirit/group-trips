@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
@@ -59,6 +60,41 @@ export default function AiPage() {
   const [error, setError] = useState("");
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
   const [canRetry, setCanRetry] = useState(false);
+  const [infoTarget, setInfoTarget] = useState<ChatCandidate | null>(null);
+  const [infoText, setInfoText] = useState("");
+  const [infoLoading, setInfoLoading] = useState(false);
+  const infoCache = useRef(new Map<string, string>());
+
+  async function openInfo(candidate: ChatCandidate) {
+    setInfoTarget(candidate);
+    const cached = infoCache.current.get(candidate.name);
+    if (cached) {
+      setInfoText(cached);
+      return;
+    }
+    setInfoText("");
+    setInfoLoading(true);
+    try {
+      const response = await fetch("/api/ai/place-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: candidate.name,
+          area: candidate.area,
+          description: candidate.description,
+          why: candidate.why,
+        }),
+      });
+      if (!response.ok) throw new Error("failed");
+      const { text } = await response.json();
+      infoCache.current.set(candidate.name, text);
+      setInfoText(text);
+    } catch {
+      setInfoText("לא הצלחתי להביא מידע כרגע — נסו לסגור ולפתוח שוב");
+    } finally {
+      setInfoLoading(false);
+    }
+  }
   const [pollTarget, setPollTarget] = useState<{
     label: string;
     placeId: string;
@@ -543,9 +579,8 @@ export default function AiPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => send(`ספר לי עוד על ${candidate.name}`)}
-                          disabled={loading}
-                          className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700 transition active:scale-[0.98] disabled:opacity-60"
+                          onClick={() => openInfo(candidate)}
+                          className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700 transition active:scale-[0.98]"
                         >
                           ➕ ספרו לי עוד
                         </button>
@@ -624,6 +659,46 @@ export default function AiPage() {
           ↑
         </button>
       </form>
+
+      {/* "ספרו לי עוד" modal — stays on top of the cards */}
+      {infoTarget && (
+        <BottomSheet
+          open
+          onClose={() => setInfoTarget(null)}
+          title={infoTarget.name}
+        >
+          {infoTarget.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={infoTarget.imageUrl}
+              alt=""
+              className="mb-3 aspect-[16/8] w-full rounded-2xl object-cover"
+            />
+          )}
+          <p className="text-sm text-ink-500">
+            {infoTarget.area ?? ""}
+            {infoTarget.rating
+              ? `${infoTarget.area ? " · " : ""}⭐ ${infoTarget.rating}${
+                  infoTarget.ratingCount
+                    ? ` (${infoTarget.ratingCount.toLocaleString("he-IL")})`
+                    : ""
+                }`
+              : ""}
+          </p>
+          {infoLoading ? (
+            <div className="mt-3 space-y-2" aria-label="טוען מידע">
+              <div className="h-4 w-full animate-pulse rounded bg-cream-200" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-cream-200" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-cream-200" />
+            </div>
+          ) : (
+            <p className="mt-3 whitespace-pre-line leading-relaxed text-ink-700">
+              {infoText}
+            </p>
+          )}
+          <div className="h-4" />
+        </BottomSheet>
+      )}
 
       {pollTarget && (
         <AddToPollSheet
