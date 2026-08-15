@@ -8,6 +8,7 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
@@ -35,13 +36,46 @@ function compact<T extends Record<string, unknown>>(value: T): T {
   ) as T;
 }
 
-export async function addPlace(input: PlaceInput): Promise<string> {
+/** Normalized name for duplicate detection (case, spacing, punctuation). */
+export function normalizePlaceName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[—–\-·.,'"׳״!?()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** True when two names refer to the same place ("Terme Segestane" vs
+ *  "Terme Segestane — מעיינות חמים"). Single-word names never absorb
+ *  longer ones — "Erice" (the town) is not "Erice Adventure Park". */
+export function samePlaceName(a: string, b: string): boolean {
+  const na = normalizePlaceName(a);
+  const nb = normalizePlaceName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  const [shorter, longer] = na.length <= nb.length ? [na, nb] : [nb, na];
+  const shorterWords = shorter.split(" ").length;
+  return (
+    shorterWords >= 2 && shorter.length >= 8 && longer.includes(shorter)
+  );
+}
+
+export async function addPlace(
+  input: PlaceInput
+): Promise<{ id: string; existed: boolean }> {
   const parsed = PlaceInputSchema.parse(input);
+  // Never create a duplicate — reuse the existing place instead
+  const snapshot = await getDocs(collection(db(), `${TRIP_PATH}/places`));
+  const existing = snapshot.docs.find((docSnap) =>
+    samePlaceName(String(docSnap.data().name ?? ""), parsed.name)
+  );
+  if (existing) return { id: existing.id, existed: true };
+
   const ref = await addDoc(
     collection(db(), `${TRIP_PATH}/places`),
     compact({ ...parsed, createdAt: Date.now() })
   );
-  return ref.id;
+  return { id: ref.id, existed: false };
 }
 
 export async function updatePlace(

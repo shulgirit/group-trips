@@ -291,7 +291,7 @@ export default function AiPage() {
     const category = (
       candidate.category in PLACE_CATEGORIES ? candidate.category : "other"
     ) as PlaceCategory;
-    return addPlace({
+    const { id } = await addPlace({
       name: candidate.name,
       category,
       area: candidate.area,
@@ -303,6 +303,7 @@ export default function AiPage() {
       summary: `${candidate.description}\n\n💛 ${candidate.why}`,
       priceNotes: candidate.priceNotes,
     });
+    return id;
   }
 
   async function saveCandidate(

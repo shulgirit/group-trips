@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addPlace } from "@/lib/db";
+import { addPlace, samePlaceName } from "@/lib/db";
+import { usePlaces } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
 
 interface ImportedDraft {
@@ -39,6 +41,7 @@ interface SearchResult {
 
 export default function NewPlacePage() {
   const router = useRouter();
+  const { places } = usePlaces();
 
   // Import flow
   const [importUrl, setImportUrl] = useState("");
@@ -167,13 +170,19 @@ export default function NewPlacePage() {
     setFound(true);
   }
 
+  // Live duplicate warning while typing
+  const duplicateOf = useMemo(() => {
+    if (name.trim().length < 3) return null;
+    return (places ?? []).find((p) => samePlaceName(p.name, name)) ?? null;
+  }, [places, name]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (saving || !name.trim()) return;
     setSaving(true);
     setError("");
     try {
-      const placeId = await addPlace({
+      const { id: placeId, existed } = await addPlace({
         name,
         category,
         area,
@@ -192,6 +201,9 @@ export default function NewPlacePage() {
         sourceUrl,
         recommendedDurationMin: durationMin,
       });
+      if (existed) {
+        setError("");
+      }
       router.replace(`/places/${placeId}`);
     } catch {
       setError("השמירה נכשלה — בדקו את הפרטים ונסו שוב");
@@ -366,6 +378,16 @@ export default function NewPlacePage() {
           className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-lg text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
         />
       </label>
+
+      {duplicateOf && (
+        <Link
+          href={`/places/${duplicateOf.id}`}
+          className="block rounded-2xl border border-lemon-300 bg-lemon-100 px-4 py-3 text-sm font-medium text-ink-700"
+        >
+          ⚠️ ״{duplicateOf.name}״ כבר קיים ברשימה — לחצו לפתיחה במקום להוסיף
+          שוב ›
+        </Link>
+      )}
 
       <div>
         <p className="mb-2 text-sm font-medium text-ink-700">קטגוריה *</p>
