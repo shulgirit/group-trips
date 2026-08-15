@@ -34,24 +34,20 @@ export function BottomNav() {
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className="-mt-5 flex flex-col items-center gap-0.5 px-0.5 pb-1.5"
+                    className={`flex flex-col items-center gap-0.5 rounded-3xl px-0.5 py-2 text-[10px] transition ${
+                      active
+                        ? "font-bold text-sea-700"
+                        : "font-semibold text-ink-700"
+                    }`}
                   >
                     <span
-                      className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-lemon-300 to-lemon-500 text-sea-950 shadow-[var(--shadow-float)] transition active:scale-95 ${
-                        active ? "ring-2 ring-sea-700 ring-offset-2 ring-offset-cream-50" : ""
+                      className={`flex h-8 w-10 items-center justify-center rounded-full bg-gradient-to-br from-lemon-300 to-lemon-500 text-sea-950 transition active:scale-95 ${
+                        active ? "ring-2 ring-sea-700" : ""
                       }`}
                     >
-                      <Sparkles size={24} strokeWidth={2.2} />
+                      <Sparkles size={19} strokeWidth={2.2} />
                     </span>
-                    <span
-                      className={`text-[10px] ${
-                        active
-                          ? "font-bold text-sea-700"
-                          : "font-semibold text-ink-700"
-                      }`}
-                    >
-                      {label}
-                    </span>
+                    {label}
                   </Link>
                 </li>
               );
