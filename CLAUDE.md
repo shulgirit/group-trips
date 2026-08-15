@@ -13,9 +13,13 @@ Sicily **Aug 15–24, 2026**. Production: https://sicily-together.vercel.app
 ## Ship a change
 
 **`git push origin main` = production deploy.** GitHub Actions
-(`.github/workflows/deploy.yml`) runs `vercel pull/build/deploy --prebuilt
---prod` using repo secrets `VERCEL_TOKEN` / `VERCEL_ORG_ID` /
-`VERCEL_PROJECT_ID`. No local Vercel login needed. (From Omer's laptop,
+(`.github/workflows/deploy.yml`) runs `vercel deploy --prod` — a **remote
+build on Vercel's servers** — using repo secrets `VERCEL_TOKEN` /
+`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`. No local Vercel login needed.
+**Never switch the workflow to `--prebuilt`**: the `NEXT_PUBLIC_*` env
+vars are flagged Sensitive in Vercel and cannot be pulled into CI — a
+CI-side build bakes `[SENSITIVE]` into the bundle and kills the app's
+Firebase connection (happened on 2026-08-15; took the live app down). (From Omer's laptop,
 `npx vercel deploy --prod --yes --scope omer-9257s-projects` also works.)
 
 All runtime secrets live in **Vercel env** (production + preview): Firebase
