@@ -98,10 +98,19 @@ same size as siblings) · לו״ז · מפה · מקומות · עוד.
   cookie; suppress the onboarding tour via localStorage
   `micha-tour-seen-v1`).
 
-## Limitation for cloud/remote sessions
+## Firebase admin access from cloud/remote sessions
 
-The Firebase **service-account JSON exists only on Omer's laptop**
-(gitignored) — remote sessions can't run local admin scripts. For data
-fixes: use the app/servant itself, or ask Omer to paste the
-`FIREBASE_ADMIN_*` values (they also exist in Vercel env). Never put the
-key in git.
+The service-account JSON is **not in git** (only on Omer's laptop and in
+the `FIREBASE_SERVICE_ACCOUNT` repo secret — keep it that way). Remote
+sessions run admin/data-fix scripts through GitHub Actions:
+
+1. Write a script under `scripts/admin/<name>.mjs` (use
+   `applicationDefault()` credentials — see `health-check.mjs`), commit,
+   push.
+2. `gh workflow run admin.yml -f script=<name>.mjs`
+3. `gh run watch $(gh run list --workflow=admin.yml -L1 --json databaseId -q '.[0].databaseId') --exit-status`
+   then `gh run view --log` for output.
+
+Remember the push in step 1 also triggers a production deploy — scripts
+are harmless to the build, but the usual "build must pass" rule applies.
+Prefer read-only checks first; the app is live.

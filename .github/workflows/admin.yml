@@ -1,0 +1,30 @@
+name: Admin script (Firebase)
+
+# Runs a committed script from scripts/admin/ with Firebase admin
+# credentials — lets cloud/remote sessions do data fixes without the laptop:
+#   gh workflow run admin.yml -f script=<name>.mjs && gh run watch
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Filename under scripts/admin/ (e.g. health-check.mjs)"
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run script
+        env:
+          SCRIPT: ${{ github.event.inputs.script }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          node "scripts/admin/$SCRIPT"
