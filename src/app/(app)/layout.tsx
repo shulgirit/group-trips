@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/layout/BottomNav";
+import { GoHomeFab } from "@/components/layout/GoHomeFab";
 import { QuickAdd } from "@/components/layout/QuickAdd";
 import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
 import { ReminderPinger } from "@/components/providers/ReminderPinger";
@@ -16,6 +17,7 @@ export default function AppLayout({
           {children}
         </main>
         <QuickAdd />
+        <GoHomeFab />
         <BottomNav />
       </div>
     </FirebaseProvider>
