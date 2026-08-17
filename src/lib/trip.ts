@@ -15,11 +15,11 @@ export const TRIP = {
   endDate: "2026-08-24",
   currency: "EUR",
   villa: {
-    name: "הוילה — קסטלמארה דל גולפו",
+    name: "הוילה — Villa Maria con piscina e vista mare",
     address:
-      "Contrada Bocca della Carrubba, 1, 91014 Castellammare del Golfo TP, Italy",
-    lat: 38.0140133 as number | null,
-    lng: 12.8876269 as number | null,
+      "Contrada Bocca della Carrubba, sn, 91014 Castellammare del Golfo TP, Italy",
+    lat: 38.0070196 as number | null,
+    lng: 12.887506 as number | null,
   },
 } as const;
 

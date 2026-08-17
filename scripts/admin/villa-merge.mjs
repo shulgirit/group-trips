@@ -6,7 +6,7 @@
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-const DUPLICATE_ID = ""; // <-- set from villa-inspect.mjs output
+const DUPLICATE_ID = "DT4tYxU5whOcP6t9sYtZ"; // הוילה — Villa Maria con piscina e vista mare
 
 const db = getFirestore(initializeApp({ credential: applicationDefault() }));
 const TRIP = "trips/sicily-2026";
