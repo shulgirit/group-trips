@@ -88,6 +88,13 @@ export interface Expense {
   date: string;
   /** null = all families participate */
   participantFamilyIds: string[] | null;
+  /**
+   * Optional per-person split: familyId → number of people who took part.
+   * Absent = legacy equal split between participating families. When
+   * present, participantFamilyIds is written explicitly (never null) and
+   * matches this map's keys.
+   */
+  participantCounts?: Record<string, number>;
   createdAt?: number;
 }
 

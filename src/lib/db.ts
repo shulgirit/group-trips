@@ -22,10 +22,12 @@ import {
   PlaceInputSchema,
   EventInputSchema,
   ExpenseInputSchema,
+  ExpenseSplitInputSchema,
   PollInputSchema,
   type PlaceInput,
   type EventInput,
   type ExpenseInput,
+  type ExpenseSplitInput,
   type PollInput,
 } from "@/lib/schemas";
 import type { Place } from "@/types";
@@ -152,6 +154,19 @@ export async function addExpense(input: ExpenseInput): Promise<string> {
     compact({ ...parsed, createdAt: Date.now() })
   );
   return ref.id;
+}
+
+/** Changes only how an expense is split — never amount/payer. */
+export async function updateExpenseSplit(
+  expenseId: string,
+  input: ExpenseSplitInput
+): Promise<void> {
+  const parsed = ExpenseSplitInputSchema.parse(input);
+  await updateDoc(doc(db(), `${TRIP_PATH}/expenses/${expenseId}`), {
+    participantFamilyIds: parsed.participantFamilyIds,
+    // deleteField clears stale counts when switching back to equal split
+    participantCounts: parsed.participantCounts ?? deleteField(),
+  });
 }
 
 export async function deleteExpense(expenseId: string): Promise<void> {

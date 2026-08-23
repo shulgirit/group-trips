@@ -65,16 +65,49 @@ export const EventInputSchema = z.object({
 
 export type EventInput = z.infer<typeof EventInputSchema>;
 
-export const ExpenseInputSchema = z.object({
-  payerFamilyId: z.string().min(1),
-  description: z.string().trim().min(1, "חסר תיאור"),
-  amount: z.number().positive("סכום לא תקין"),
-  currency: z.enum(["EUR", "ILS"]),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  participantFamilyIds: z.array(z.string()).min(1).nullable(),
-});
+// Per-person counts must cover exactly the participating families
+const splitConsistent = (value: {
+  participantFamilyIds: string[] | null;
+  participantCounts?: Record<string, number>;
+}) =>
+  !value.participantCounts ||
+  (value.participantFamilyIds !== null &&
+    value.participantFamilyIds.length ===
+      Object.keys(value.participantCounts).length &&
+    value.participantFamilyIds.every(
+      (id) => value.participantCounts![id] !== undefined
+    ));
+
+const splitConsistentError = {
+  message: "חלוקה לפי אנשים לא תואמת את המשפחות שנבחרו",
+};
+
+export const ExpenseInputSchema = z
+  .object({
+    payerFamilyId: z.string().min(1),
+    description: z.string().trim().min(1, "חסר תיאור"),
+    amount: z.number().positive("סכום לא תקין"),
+    currency: z.enum(["EUR", "ILS"]),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    participantFamilyIds: z.array(z.string()).min(1).nullable(),
+    participantCounts: z
+      .record(z.string(), z.number().int().positive())
+      .optional(),
+  })
+  .refine(splitConsistent, splitConsistentError);
 
 export type ExpenseInput = z.infer<typeof ExpenseInputSchema>;
+
+export const ExpenseSplitInputSchema = z
+  .object({
+    participantFamilyIds: z.array(z.string()).min(1).nullable(),
+    participantCounts: z
+      .record(z.string(), z.number().int().positive())
+      .optional(),
+  })
+  .refine(splitConsistent, splitConsistentError);
+
+export type ExpenseSplitInput = z.infer<typeof ExpenseSplitInputSchema>;
 
 export const PollInputSchema = z.object({
   question: z.string().trim().min(1, "חסרה שאלה"),
