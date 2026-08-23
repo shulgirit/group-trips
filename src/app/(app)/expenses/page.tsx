@@ -9,6 +9,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { addExpense, deleteExpense, updateExpenseSplit } from "@/lib/db";
 import { useExpenses, useFamilies } from "@/lib/hooks";
 import { calcBalances, calcSettlement } from "@/lib/settlement";
+import { IlsSettlement } from "@/components/expenses/IlsSettlement";
 import { formatDayLabel, todayIso } from "@/lib/trip";
 import type { Expense, Family } from "@/types";
 import {
@@ -18,14 +19,19 @@ import {
   splitPayload,
   type SplitState,
 } from "@/components/expenses/SplitEditor";
-
-const CURRENCY_SYMBOL = { EUR: "€", ILS: "₪" } as const;
+import {
+  CURRENCIES,
+  CURRENCY_LABEL,
+  CURRENCY_PAREN,
+  CURRENCY_SYMBOL,
+  type Currency,
+} from "@/lib/currency";
 
 function familyName(families: Family[], id: string): string {
   return families.find((f) => f.id === id)?.name.replace("משפחת ", "") ?? id;
 }
 
-function formatAmount(amount: number, currency: "EUR" | "ILS"): string {
+function formatAmount(amount: number, currency: Currency): string {
   return `${CURRENCY_SYMBOL[currency]}${amount.toLocaleString("he-IL", {
     maximumFractionDigits: 0,
   })}`;
@@ -44,7 +50,7 @@ function AddExpenseSheet({
   const [payerFamilyId, setPayerFamilyId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<"EUR" | "ILS">("EUR");
+  const [currency, setCurrency] = useState<Currency>("EUR");
   const [date, setDate] = useState(todayIso());
   const [split, setSplit] = useState<SplitState>(DEFAULT_SPLIT);
   const [saving, setSaving] = useState(false);
@@ -149,12 +155,12 @@ function AddExpenseSheet({
               מטבע
             </span>
             <div className="flex gap-1 rounded-2xl bg-cream-100 p-1">
-              {(["EUR", "ILS"] as const).map((c) => (
+              {CURRENCIES.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setCurrency(c)}
-                  className={`rounded-xl px-4 py-2 text-lg font-semibold transition ${
+                  className={`rounded-xl px-3 py-2 text-lg font-semibold transition ${
                     currency === c ? "bg-white shadow-sm" : "text-ink-500"
                   }`}
                 >
@@ -292,20 +298,18 @@ function ExpensesContent() {
   // Full split + settlement for EACH currency that has expenses
   const summaries = useMemo(() => {
     if (!expenses || !families) return [];
-    return (["EUR", "ILS"] as const)
-      .map((currency) => {
-        const list = expenses.filter((e) => e.currency === currency);
-        if (!list.length) return null;
-        const balances = calcBalances(expenses, families, currency);
-        return {
-          currency,
-          total: list.reduce((sum, e) => sum + e.amount, 0),
-          balances,
-          transfers: calcSettlement(balances),
-        };
-      })
-      .filter(Boolean) as {
-      currency: "EUR" | "ILS";
+    return CURRENCIES.map((currency) => {
+      const list = expenses.filter((e) => e.currency === currency);
+      if (!list.length) return null;
+      const balances = calcBalances(expenses, families, currency);
+      return {
+        currency,
+        total: list.reduce((sum, e) => sum + e.amount, 0),
+        balances,
+        transfers: calcSettlement(balances),
+      };
+    }).filter(Boolean) as {
+      currency: Currency;
       total: number;
       balances: ReturnType<typeof calcBalances>;
       transfers: ReturnType<typeof calcSettlement>;
@@ -384,7 +388,7 @@ function ExpensesContent() {
                 <div key={summary.currency} className="mt-4">
                   {summaries.length > 1 && (
                     <p className="mb-1.5 text-sm font-bold text-lemon-200">
-                      {summary.currency === "EUR" ? "€ באירו" : "₪ בשקלים"}
+                      {CURRENCY_LABEL[summary.currency]}
                     </p>
                   )}
                   <div className="space-y-1.5">
@@ -418,9 +422,7 @@ function ExpensesContent() {
                       <p className="mb-2 text-sm font-semibold text-lemon-200">
                         ✓ כדי לסגור חשבון{" "}
                         {summaries.length > 1
-                          ? summary.currency === "EUR"
-                            ? "(אירו)"
-                            : "(שקלים)"
+                          ? CURRENCY_PAREN[summary.currency]
                           : ""}
                       </p>
                       {summary.transfers.map((transfer, i) => (
@@ -441,6 +443,8 @@ function ExpensesContent() {
                   )}
                 </div>
               ))}
+
+              <IlsSettlement expenses={expenses ?? []} families={families} />
             </section>
           )}
 

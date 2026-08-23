@@ -87,7 +87,7 @@ export const ExpenseInputSchema = z
     payerFamilyId: z.string().min(1),
     description: z.string().trim().min(1, "חסר תיאור"),
     amount: z.number().positive("סכום לא תקין"),
-    currency: z.enum(["EUR", "ILS"]),
+    currency: z.enum(["EUR", "ILS", "USD"]),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     participantFamilyIds: z.array(z.string()).min(1).nullable(),
     participantCounts: z
