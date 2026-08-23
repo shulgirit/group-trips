@@ -6,11 +6,18 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { addExpense, deleteExpense } from "@/lib/db";
+import { addExpense, deleteExpense, updateExpenseSplit } from "@/lib/db";
 import { useExpenses, useFamilies } from "@/lib/hooks";
 import { calcBalances, calcSettlement } from "@/lib/settlement";
 import { formatDayLabel, todayIso } from "@/lib/trip";
-import type { Family } from "@/types";
+import type { Expense, Family } from "@/types";
+import {
+  DEFAULT_SPLIT,
+  SplitEditor,
+  splitError,
+  splitPayload,
+  type SplitState,
+} from "@/components/expenses/SplitEditor";
 
 const CURRENCY_SYMBOL = { EUR: "€", ILS: "₪" } as const;
 
@@ -39,8 +46,7 @@ function AddExpenseSheet({
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<"EUR" | "ILS">("EUR");
   const [date, setDate] = useState(todayIso());
-  const [everyone, setEveryone] = useState(true);
-  const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [split, setSplit] = useState<SplitState>(DEFAULT_SPLIT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -55,9 +61,7 @@ function AddExpenseSheet({
     if (!payerFamilyId) return "בחרו מי שילם 👆";
     if (!description.trim()) return "כתבו על מה ההוצאה";
     if (!(Number(amount) > 0)) return "הזינו סכום";
-    if (!everyone && participantIds.length === 0)
-      return "בחרו אילו משפחות השתתפו";
-    return null;
+    return splitError(families, split);
   }
 
   async function handleSave() {
@@ -76,12 +80,11 @@ function AddExpenseSheet({
         amount: Number(amount),
         currency,
         date,
-        participantFamilyIds: everyone ? null : participantIds,
+        ...splitPayload(families, split),
       });
       setDescription("");
       setAmount("");
-      setEveryone(true);
-      setParticipantIds([]);
+      setSplit(DEFAULT_SPLIT);
       onClose();
     } catch {
       setError("השמירה נכשלה, נסו שוב");
@@ -174,49 +177,13 @@ function AddExpenseSheet({
           />
         </label>
 
-        <div>
-          <button
-            type="button"
-            onClick={() => setEveryone(!everyone)}
-            className="flex items-center gap-2 text-sm font-medium text-ink-700"
-          >
-            <span
-              aria-hidden
-              className={`flex h-6 w-6 items-center justify-center rounded-lg border text-sm ${
-                everyone
-                  ? "border-sea-600 bg-sea-600 text-cream-50"
-                  : "border-cream-300 bg-white"
-              }`}
-            >
-              {everyone ? "✓" : ""}
-            </span>
-            כולם השתתפו (חלוקה שווה בין 4 המשפחות)
-          </button>
-          {!everyone && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {families.map((family) => (
-                <button
-                  key={family.id}
-                  type="button"
-                  onClick={() =>
-                    setParticipantIds((current) =>
-                      current.includes(family.id)
-                        ? current.filter((id) => id !== family.id)
-                        : [...current, family.id]
-                    )
-                  }
-                  className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
-                    participantIds.includes(family.id)
-                      ? "bg-terra-500 text-cream-50"
-                      : "bg-cream-100 text-ink-700"
-                  }`}
-                >
-                  {family.name.replace("משפחת ", "")}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <SplitEditor
+          families={families}
+          split={split}
+          onChange={setSplit}
+          amount={Number(amount) > 0 ? Number(amount) : undefined}
+          currency={currency}
+        />
 
         {error && (
           <p role="alert" className="text-sm font-medium text-terra-600">
@@ -237,12 +204,90 @@ function AddExpenseSheet({
   );
 }
 
+function EditSplitSheet({
+  expense,
+  families,
+  onClose,
+}: {
+  expense: Expense;
+  families: Family[];
+  onClose: () => void;
+}) {
+  const [split, setSplit] = useState<SplitState>(() => ({
+    everyone: expense.participantFamilyIds === null,
+    participantIds: expense.participantFamilyIds ?? [],
+    byPeople: Boolean(expense.participantCounts),
+    counts: expense.participantCounts ?? {},
+  }));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSave() {
+    if (saving) return;
+    const invalid = splitError(families, split);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await updateExpenseSplit(expense.id, splitPayload(families, split));
+      onClose();
+    } catch {
+      setError("השמירה נכשלה, נסו שוב");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <BottomSheet open onClose={onClose} title="עריכת חלוקה 👥">
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-cream-100 px-4 py-3">
+          <p className="font-semibold text-ink-900">{expense.description}</p>
+          <p className="text-sm text-ink-500">
+            {familyName(families, expense.payerFamilyId)} שילמו{" "}
+            <span dir="ltr" className="tabular-nums">
+              {formatAmount(expense.amount, expense.currency)}
+            </span>
+          </p>
+        </div>
+
+        <SplitEditor
+          families={families}
+          split={split}
+          onChange={setSplit}
+          amount={expense.amount}
+          currency={expense.currency}
+        />
+
+        {error && (
+          <p role="alert" className="text-sm font-medium text-terra-600">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="btn-primary w-full py-3.5 text-lg"
+        >
+          {saving ? "שומר…" : "שמירת חלוקה"}
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+
 function ExpensesContent() {
   const searchParams = useSearchParams();
   const { expenses, loading } = useExpenses();
   const { families } = useFamilies();
   const [addOpen, setAddOpen] = useState(searchParams.get("add") === "1");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   // Full split + settlement for EACH currency that has expenses
   const summaries = useMemo(() => {
@@ -451,10 +496,34 @@ function ExpensesContent() {
                           .join("+")}`
                       : ""}
                   </p>
+                  {expense.participantCounts && (
+                    <p className="text-xs text-ink-400">
+                      👥 לפי אנשים:{" "}
+                      {families
+                        .filter(
+                          (f) => (expense.participantCounts![f.id] ?? 0) > 0
+                        )
+                        .map(
+                          (f) =>
+                            `${f.name.replace("משפחת ", "")} ${
+                              expense.participantCounts![f.id]
+                            }`
+                        )
+                        .join(" · ")}
+                    </p>
+                  )}
                 </div>
                 <p className="text-lg font-bold tabular-nums text-ink-900">
                   {formatAmount(expense.amount, expense.currency)}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(expense)}
+                  aria-label="עריכת חלוקה"
+                  className="text-ink-300"
+                >
+                  👥
+                </button>
                 {deletingId === expense.id ? (
                   <button
                     type="button"
@@ -488,6 +557,14 @@ function ExpensesContent() {
           open={addOpen}
           onClose={() => setAddOpen(false)}
           families={families}
+        />
+      )}
+      {families && editingExpense && (
+        <EditSplitSheet
+          key={editingExpense.id}
+          expense={editingExpense}
+          families={families}
+          onClose={() => setEditingExpense(null)}
         />
       )}
     </div>

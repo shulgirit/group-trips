@@ -37,9 +37,25 @@ export function calcBalances(
     const payer = balances.get(expense.payerFamilyId);
     if (payer) payer.paid += expense.amount;
 
-    const perFamily = expense.amount / validParticipants.length;
-    for (const id of validParticipants) {
-      balances.get(id)!.share += perFamily;
+    // Per-person split when usable counts exist; equal split otherwise
+    // (also the path for every expense saved before counts existed)
+    const counts = expense.participantCounts;
+    const counted = counts
+      ? validParticipants
+          .map((id) => ({ id, people: counts[id] ?? 0 }))
+          .filter((entry) => entry.people > 0)
+      : [];
+    const totalPeople = counted.reduce((sum, entry) => sum + entry.people, 0);
+
+    if (totalPeople > 0) {
+      for (const { id, people } of counted) {
+        balances.get(id)!.share += (expense.amount * people) / totalPeople;
+      }
+    } else {
+      const perFamily = expense.amount / validParticipants.length;
+      for (const id of validParticipants) {
+        balances.get(id)!.share += perFamily;
+      }
     }
   }
 
