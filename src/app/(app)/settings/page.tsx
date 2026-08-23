@@ -237,7 +237,7 @@ export default function SettingsPage() {
           </div>
           <div className="px-4 py-3">
             <p className="text-sm font-medium text-ink-500">💶 מטבע</p>
-            <p className="mt-0.5 text-ink-900">אירו (EUR)</p>
+            <p className="mt-0.5 text-ink-900">אירו · שקל · דולר</p>
           </div>
         </div>
       </section>

@@ -1,8 +1,7 @@
 "use client";
 
 import type { Family } from "@/types";
-
-const CURRENCY_SYMBOL = { EUR: "€", ILS: "₪" } as const;
+import { CURRENCY_SYMBOL, type Currency } from "@/lib/currency";
 
 /** Shared shape for the add/edit expense split UI. counts is sparse — a
  *  family without an entry defaults to its full size. */
@@ -88,7 +87,7 @@ export function SplitEditor({
   split: SplitState;
   onChange: (next: SplitState) => void;
   amount?: number;
-  currency: "EUR" | "ILS";
+  currency: Currency;
 }) {
   const participating = participatingFamilies(families, split);
   const total = totalPeople(families, split);

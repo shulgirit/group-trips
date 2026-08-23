@@ -69,7 +69,7 @@ function calcNew(currency) {
 }
 
 let identical = true;
-for (const currency of ["EUR", "ILS"]) {
+for (const currency of ["EUR", "ILS", "USD"]) {
   const before = calcOld(currency);
   const after = calcNew(currency);
   console.log(`== ${currency} ==`);

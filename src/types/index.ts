@@ -1,3 +1,5 @@
+import type { Currency } from "@/lib/currency";
+
 export const PLACE_CATEGORIES = {
   attraction: { label: "אטרקציה", emoji: "🎡" },
   restaurant: { label: "מסעדה", emoji: "🍝" },
@@ -83,7 +85,7 @@ export interface Expense {
   payerFamilyId: string;
   description: string;
   amount: number;
-  currency: "EUR" | "ILS";
+  currency: Currency;
   /** ISO date YYYY-MM-DD */
   date: string;
   /** null = all families participate */
