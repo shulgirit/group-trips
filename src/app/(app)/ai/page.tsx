@@ -24,7 +24,7 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
 import { db, storage } from "@/lib/firebase/client";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 import {
   PLACE_CATEGORIES,
   type ChatCandidate,
@@ -44,6 +44,7 @@ const SUGGESTED_PROMPTS = [
 
 export default function AiPage() {
   const { ready, user, personal, profile } = useFirebase();
+  const { path: tripPath } = useTrip();
   const { families } = useFamilies();
 
   // "מיקה ממשפחת טל" — so the servant knows who it's talking to
@@ -141,7 +142,7 @@ export default function AiPage() {
     }
     return onSnapshot(
       query(
-        collection(db(), `${TRIP_PATH}/chatSessions`),
+        collection(db(), `${tripPath}/chatSessions`),
         where("ownerUid", "==", user.uid)
       ),
       (snap) =>
@@ -194,7 +195,7 @@ export default function AiPage() {
     try {
       if (knownSessionId) {
         await updateDoc(
-          doc(db(), `${TRIP_PATH}/chatSessions/${knownSessionId}`),
+          doc(db(), `${tripPath}/chatSessions/${knownSessionId}`),
           {
             messages: nextMessages,
             updatedAt: Date.now(),
@@ -203,7 +204,7 @@ export default function AiPage() {
         return knownSessionId;
       }
       const firstUser = nextMessages.find((m) => m.role === "user");
-      const ref = await addDoc(collection(db(), `${TRIP_PATH}/chatSessions`), {
+      const ref = await addDoc(collection(db(), `${tripPath}/chatSessions`), {
         ownerUid: user.uid,
         title: (firstUser?.content ?? "שיחה").slice(0, 40),
         messages: nextMessages,
@@ -219,7 +220,7 @@ export default function AiPage() {
   }
 
   async function deleteSession(id: string) {
-    await deleteDoc(doc(db(), `${TRIP_PATH}/chatSessions/${id}`)).catch(
+    await deleteDoc(doc(db(), `${tripPath}/chatSessions/${id}`)).catch(
       () => undefined
     );
     if (id === sessionId) newChat();
@@ -280,7 +281,7 @@ export default function AiPage() {
     let imageUrl: string | undefined;
     if (pendingImage) {
       try {
-        const path = `trips/sicily-2026/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
+        const path = `${tripPath}/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
         const fileRef = storageRef(storage(), path);
         await uploadBytes(fileRef, pendingImage.blob, {
           contentType: "image/jpeg",

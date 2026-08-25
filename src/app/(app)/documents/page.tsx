@@ -20,7 +20,7 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { db, signInWithGoogle, storage } from "@/lib/firebase/client";
-import { TRIP_PATH } from "@/lib/hooks";
+import { useTrip } from "@/components/providers/TripProvider";
 import type { TripDocument } from "@/types";
 
 const MAX_FILE_MB = 20;
@@ -38,6 +38,7 @@ function formatSize(bytes: number): string {
 
 export default function DocumentsPage() {
   const { ready, user, personal } = useFirebase();
+  const { path: tripPath } = useTrip();
   const [tab, setTab] = useState<"shared" | "private">("shared");
   const [sharedDocs, setSharedDocs] = useState<TripDocument[] | null>(null);
   const [myDocs, setMyDocs] = useState<TripDocument[] | null>(null);
@@ -51,7 +52,7 @@ export default function DocumentsPage() {
     if (!ready || !user) return;
     return onSnapshot(
       query(
-        collection(db(), `${TRIP_PATH}/documents`),
+        collection(db(), `${tripPath}/documents`),
         where("visibility", "==", "shared")
       ),
       (snap) =>
@@ -72,7 +73,7 @@ export default function DocumentsPage() {
     }
     return onSnapshot(
       query(
-        collection(db(), `${TRIP_PATH}/documents`),
+        collection(db(), `${tripPath}/documents`),
         where("ownerUid", "==", user.uid)
       ),
       (snap) =>
@@ -107,11 +108,11 @@ export default function DocumentsPage() {
     setMessage("");
     try {
       const visibility = tab;
-      const path = `${TRIP_PATH}/documents/${visibility}/${user.uid}/${Date.now()}-${file.name}`;
+      const path = `${tripPath}/documents/${visibility}/${user.uid}/${Date.now()}-${file.name}`;
       await uploadBytes(storageRef(storage(), path), file, {
         contentType: file.type || "application/octet-stream",
       });
-      await addDoc(collection(db(), `${TRIP_PATH}/documents`), {
+      await addDoc(collection(db(), `${tripPath}/documents`), {
         name: file.name,
         ownerUid: user.uid,
         ownerName: user.displayName ?? "מישהו מהקבוצה",
@@ -143,7 +144,7 @@ export default function DocumentsPage() {
   async function handleDelete(document_: TripDocument) {
     setDeletingId(null);
     try {
-      await deleteDoc(doc(db(), `${TRIP_PATH}/documents/${document_.id}`));
+      await deleteDoc(doc(db(), `${tripPath}/documents/${document_.id}`));
       await deleteObject(storageRef(storage(), document_.storagePath)).catch(
         () => undefined
       );

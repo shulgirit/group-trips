@@ -8,7 +8,8 @@ import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deleteEvent, updateEvent } from "@/lib/db";
-import { useDocData, useFamilies, usePlaces, TRIP_PATH } from "@/lib/hooks";
+import { useDocData, useFamilies, usePlaces } from "@/lib/hooks";
+import { useTrip } from "@/components/providers/TripProvider";
 import { formatDayLabel, todayIso, tripDays } from "@/lib/trip";
 import type { Participants, TripEvent } from "@/types";
 
@@ -25,7 +26,7 @@ export default function EditEventPage({
   const today = todayIso();
 
   const { data: event, loading } = useDocData<TripEvent>(
-    `${TRIP_PATH}/events/${eventId}`
+    `${useTrip().path}/events/${eventId}`
   );
   const { families } = useFamilies();
   const { places } = usePlaces();

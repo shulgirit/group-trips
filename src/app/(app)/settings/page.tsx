@@ -11,10 +11,12 @@ import { db, signInWithGoogle } from "@/lib/firebase/client";
 import { logoutEverywhere } from "@/lib/logout";
 import { useFamilies } from "@/lib/hooks";
 import { googleMapsUrl } from "@/lib/nav";
-import { TRIP, TRIP_PATH, formatDayLabel, tripDays } from "@/lib/trip";
+import { TRIP, formatDayLabel, tripDays } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 
 export default function SettingsPage() {
   const { user, personal, profile } = useFirebase();
+  const trip = useTrip();
   const { families } = useFamilies();
   const [pickingFamilyId, setPickingFamilyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -54,7 +56,7 @@ export default function SettingsPage() {
     setMessage("");
     try {
       await setDoc(
-        doc(db(), `${TRIP_PATH}/users/${user.uid}`),
+        doc(db(), `${trip.path}/users/${user.uid}`),
         {
           displayName: user.displayName ?? "",
           email: user.email ?? "",

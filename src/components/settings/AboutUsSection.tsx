@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useDocData } from "@/lib/hooks";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 
 /**
  * Free-text knowledge the families write about themselves — fed straight
  * into the servant's context so it knows names, stories and preferences.
  */
 export function AboutUsSection() {
-  const { data } = useDocData<{ aboutUs?: string }>(TRIP_PATH);
+  const { path: tripPath } = useTrip();
+  const { data } = useDocData<{ aboutUs?: string }>(tripPath);
   const [text, setText] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -28,7 +29,7 @@ export function AboutUsSection() {
     setSaving(true);
     setMessage("");
     try {
-      await updateDoc(doc(db(), TRIP_PATH), { aboutUs: text.trim() });
+      await updateDoc(doc(db(), tripPath), { aboutUs: text.trim() });
       setMessage("✓ נשמר — המשרת כבר מכיר את זה");
     } catch {
       setMessage("השמירה נכשלה, נסו שוב");
