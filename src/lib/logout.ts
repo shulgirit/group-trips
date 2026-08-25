@@ -1,7 +1,7 @@
-import { activeTrip } from "@/lib/active-trip";
 "use client";
 
 import { signOut } from "firebase/auth";
+import { activeTrip } from "@/lib/active-trip";
 import { auth } from "@/lib/firebase/client";
 
 /** Full logout: clears the app session cookie and the Firebase identity,
