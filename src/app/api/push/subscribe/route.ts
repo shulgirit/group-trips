@@ -4,7 +4,7 @@ import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { sendPushTo, subscriptionDocId } from "@/lib/server/push";
-import { TRIP_PATH } from "@/lib/trip";
+import { resolveTrip } from "@/lib/server/trip-server";
 
 const SubscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -18,6 +18,7 @@ const RequestSchema = z.object({
   subscription: SubscriptionSchema,
   uid: z.string().optional(),
   userName: z.string().optional(),
+  tripId: z.string().optional(),
 });
 
 async function authorized(): Promise<boolean> {
@@ -36,9 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const trip = resolveTrip(body.tripId);
   const id = subscriptionDocId(body.subscription.endpoint);
   await adminDb()
-    .doc(`${TRIP_PATH}/pushSubscriptions/${id}`)
+    .doc(`${trip.path}/pushSubscriptions/${id}`)
     .set(
       {
         endpoint: body.subscription.endpoint,
@@ -52,9 +54,9 @@ export async function POST(request: Request) {
 
   // Welcome ping so the user immediately sees it works
   await sendPushTo(body.subscription, {
-    title: "ההתראות פועלות 🍋",
+    title: `ההתראות פועלות ${trip.emoji}`,
     body: "נעדכן אתכם על סקרים חדשים ותזכורות לפני כל פעילות",
-    url: "/",
+    url: trip.prefix || "/",
     tag: "welcome",
   });
 
@@ -66,15 +68,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   let endpoint: string;
+  let tripId: string | undefined;
   try {
-    ({ endpoint } = z
-      .object({ endpoint: z.string().url() })
+    ({ endpoint, tripId } = z
+      .object({ endpoint: z.string().url(), tripId: z.string().optional() })
       .parse(await request.json()));
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
   await adminDb()
-    .doc(`${TRIP_PATH}/pushSubscriptions/${subscriptionDocId(endpoint)}`)
+    .doc(`${resolveTrip(tripId).path}/pushSubscriptions/${subscriptionDocId(endpoint)}`)
     .delete()
     .catch(() => undefined);
   return NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut } from "firebase/auth";
+import { activeTrip } from "@/lib/active-trip";
 import { auth } from "@/lib/firebase/client";
 
 /** Full logout: clears the app session cookie and the Firebase identity,
@@ -8,5 +9,5 @@ import { auth } from "@/lib/firebase/client";
 export async function logoutEverywhere(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   await signOut(auth()).catch(() => undefined);
-  window.location.replace("/gate");
+  window.location.replace(`${activeTrip().prefix}/gate`);
 }

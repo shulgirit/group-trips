@@ -9,7 +9,7 @@ import {
   ensureFirebaseSignIn,
   isPersonalUser,
 } from "@/lib/firebase/client";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 import type { UserProfile } from "@/types";
 
 interface FirebaseState {
@@ -67,13 +67,15 @@ export function FirebaseProvider({
     });
   }, [ready]);
 
+  const { path: tripPath } = useTrip();
+
   useEffect(() => {
     if (!ready || !user) {
       setProfile(null);
       return;
     }
     return onSnapshot(
-      doc(db(), `${TRIP_PATH}/users/${user.uid}`),
+      doc(db(), `${tripPath}/users/${user.uid}`),
       (snapshot) =>
         setProfile(
           snapshot.exists()
@@ -82,7 +84,7 @@ export function FirebaseProvider({
         ),
       () => setProfile(null)
     );
-  }, [ready, user]);
+  }, [ready, user, tripPath]);
 
   // Personal = Google account OR a registered name-based identity (kids).
   // The legacy shared trip identity has no profile doc, so it stays shared.

@@ -17,7 +17,7 @@ import { auth, db, isPersonalUser } from "@/lib/firebase/client";
 import { wazeUrl } from "@/lib/nav";
 import { notifyGroup } from "@/lib/push-client";
 import { formatDayLabel } from "@/lib/trip";
-import { TRIP_PATH } from "@/lib/hooks";
+import { activeTrip, activeTripPath } from "@/lib/active-trip";
 import {
   PlaceInputSchema,
   EventInputSchema,
@@ -47,7 +47,7 @@ export async function addPlace(
 ): Promise<{ id: string; existed: boolean }> {
   const parsed = PlaceInputSchema.parse(input);
   // Never create a duplicate — reuse the existing place instead
-  const snapshot = await getDocs(collection(db(), `${TRIP_PATH}/places`));
+  const snapshot = await getDocs(collection(db(), `${activeTripPath()}/places`));
   const existing = snapshot.docs.find((docSnap) =>
     samePlaceName(String(docSnap.data().name ?? ""), parsed.name)
   );
@@ -55,7 +55,7 @@ export async function addPlace(
 
   const currentUser = auth().currentUser;
   const ref = await addDoc(
-    collection(db(), `${TRIP_PATH}/places`),
+    collection(db(), `${activeTripPath()}/places`),
     compact({
       ...parsed,
       createdAt: Date.now(),
@@ -72,11 +72,11 @@ export async function updatePlace(
   placeId: string,
   partial: Partial<Place>
 ): Promise<void> {
-  await updateDoc(doc(db(), `${TRIP_PATH}/places/${placeId}`), compact(partial));
+  await updateDoc(doc(db(), `${activeTripPath()}/places/${placeId}`), compact(partial));
 }
 
 export async function deletePlace(placeId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${TRIP_PATH}/places/${placeId}`));
+  await deleteDoc(doc(db(), `${activeTripPath()}/places/${placeId}`));
 }
 
 export async function addEvent(input: EventInput): Promise<string> {
@@ -84,7 +84,7 @@ export async function addEvent(input: EventInput): Promise<string> {
   const currentUser = auth().currentUser;
   const personal = isPersonalUser(currentUser);
   const ref = await addDoc(
-    collection(db(), `${TRIP_PATH}/events`),
+    collection(db(), `${activeTripPath()}/events`),
     compact({
       ...parsed,
       createdAt: Date.now(),
@@ -99,16 +99,19 @@ export async function addEvent(input: EventInput): Promise<string> {
   if (parsed.placeId) {
     try {
       const placeSnap = await getDoc(
-        doc(db(), `${TRIP_PATH}/places/${parsed.placeId}`)
+        doc(db(), `${activeTripPath()}/places/${parsed.placeId}`)
       );
       const place = placeSnap.data();
       if (place && (place.lat != null || place.address)) {
-        navUrl = wazeUrl({
-          name: String(place.name ?? parsed.title),
-          address: place.address ? String(place.address) : undefined,
-          lat: place.lat ?? null,
-          lng: place.lng ?? null,
-        });
+        navUrl = wazeUrl(
+          {
+            name: String(place.name ?? parsed.title),
+            address: place.address ? String(place.address) : undefined,
+            lat: place.lat ?? null,
+            lng: place.lng ?? null,
+          },
+          activeTrip().searchRegionHint
+        );
       }
     } catch {
       // navigation link is a bonus
@@ -129,7 +132,7 @@ export async function updateEvent(
   input: EventInput
 ): Promise<void> {
   const parsed = EventInputSchema.parse(input);
-  await updateDoc(doc(db(), `${TRIP_PATH}/events/${eventId}`), {
+  await updateDoc(doc(db(), `${activeTripPath()}/events/${eventId}`), {
     title: parsed.title,
     emoji: parsed.emoji ?? null,
     placeId: parsed.placeId ?? null,
@@ -144,13 +147,13 @@ export async function updateEvent(
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${TRIP_PATH}/events/${eventId}`));
+  await deleteDoc(doc(db(), `${activeTripPath()}/events/${eventId}`));
 }
 
 export async function addExpense(input: ExpenseInput): Promise<string> {
   const parsed = ExpenseInputSchema.parse(input);
   const ref = await addDoc(
-    collection(db(), `${TRIP_PATH}/expenses`),
+    collection(db(), `${activeTripPath()}/expenses`),
     compact({ ...parsed, createdAt: Date.now() })
   );
   return ref.id;
@@ -162,7 +165,7 @@ export async function updateExpenseSplit(
   input: ExpenseSplitInput
 ): Promise<void> {
   const parsed = ExpenseSplitInputSchema.parse(input);
-  await updateDoc(doc(db(), `${TRIP_PATH}/expenses/${expenseId}`), {
+  await updateDoc(doc(db(), `${activeTripPath()}/expenses/${expenseId}`), {
     participantFamilyIds: parsed.participantFamilyIds,
     // deleteField clears stale counts when switching back to equal split
     participantCounts: parsed.participantCounts ?? deleteField(),
@@ -170,13 +173,13 @@ export async function updateExpenseSplit(
 }
 
 export async function deleteExpense(expenseId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${TRIP_PATH}/expenses/${expenseId}`));
+  await deleteDoc(doc(db(), `${activeTripPath()}/expenses/${expenseId}`));
 }
 
 export async function addPoll(input: PollInput): Promise<string> {
   const parsed = PollInputSchema.parse(input);
   const ref = await addDoc(
-    collection(db(), `${TRIP_PATH}/polls`),
+    collection(db(), `${activeTripPath()}/polls`),
     compact({ ...parsed, votes: {}, closed: false, createdAt: Date.now() })
   );
   notifyGroup("poll", parsed.question, undefined, auth().currentUser?.uid);
@@ -187,7 +190,7 @@ export async function removePollOption(
   pollId: string,
   optionId: string
 ): Promise<void> {
-  const ref = doc(db(), `${TRIP_PATH}/polls/${pollId}`);
+  const ref = doc(db(), `${activeTripPath()}/polls/${pollId}`);
   const snapshot = await getDoc(ref);
   const options = (snapshot.data()?.options ?? []) as PollOption[];
   await updateDoc(ref, {
@@ -201,7 +204,7 @@ export async function votePoll(
   optionId: string,
   voterName: string
 ): Promise<void> {
-  await updateDoc(doc(db(), `${TRIP_PATH}/polls/${pollId}`), {
+  await updateDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`), {
     [`votes.${voterUid}`]: { optionId, name: voterName },
   });
 }
@@ -210,11 +213,11 @@ export async function setPollClosed(
   pollId: string,
   closed: boolean
 ): Promise<void> {
-  await updateDoc(doc(db(), `${TRIP_PATH}/polls/${pollId}`), { closed });
+  await updateDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`), { closed });
 }
 
 export async function deletePoll(pollId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${TRIP_PATH}/polls/${pollId}`));
+  await deleteDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`));
 }
 
 export const GLOBAL_POLL_ID = "global";
@@ -233,7 +236,7 @@ export async function addOptionToPoll(
   label: string,
   placeId?: string | null
 ): Promise<"added" | "exists"> {
-  const ref = doc(db(), `${TRIP_PATH}/polls/${pollId}`);
+  const ref = doc(db(), `${activeTripPath()}/polls/${pollId}`);
   const snapshot = await getDoc(ref);
   const options = (snapshot.data()?.options ?? []) as PollOption[];
   if (
@@ -254,7 +257,7 @@ export async function createPollWithOption(
   label: string,
   placeId?: string | null
 ): Promise<string> {
-  const ref = await addDoc(collection(db(), `${TRIP_PATH}/polls`), {
+  const ref = await addDoc(collection(db(), `${activeTripPath()}/polls`), {
     question: question.trim(),
     options: [newPollOption(label, placeId)],
     votes: {},
@@ -273,7 +276,7 @@ export async function addOptionToGlobalPoll(
   label: string,
   placeId?: string | null
 ): Promise<"added" | "exists"> {
-  const ref = doc(db(), `${TRIP_PATH}/polls/${GLOBAL_POLL_ID}`);
+  const ref = doc(db(), `${activeTripPath()}/polls/${GLOBAL_POLL_ID}`);
   const snapshot = await getDoc(ref);
   const options = (snapshot.data()?.options ?? []) as PollOption[];
   if (

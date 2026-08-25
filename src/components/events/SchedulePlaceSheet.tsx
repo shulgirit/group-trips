@@ -8,6 +8,7 @@ import { useFamilies } from "@/lib/hooks";
 import { addEvent } from "@/lib/db";
 import { tripDays, todayIso, formatDayLabel } from "@/lib/trip";
 import { PLACE_CATEGORIES, type Participants, type Place } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const DURATIONS = [
   { minutes: null, label: "בלי הגבלה" },
@@ -27,6 +28,7 @@ export function SchedulePlaceSheet({
   open: boolean;
   onClose: () => void;
 }) {
+  const { prefix } = useTrip();
   const router = useRouter();
   const { families } = useFamilies();
   const days = tripDays();
@@ -62,7 +64,7 @@ export function SchedulePlaceSheet({
         notes: notes.trim() || undefined,
       });
       onClose();
-      router.push("/calendar");
+      router.push(`${prefix}/calendar`);
     } catch {
       setError("השמירה נכשלה, נסו שוב");
       setSaving(false);

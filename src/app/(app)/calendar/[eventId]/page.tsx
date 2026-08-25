@@ -8,7 +8,8 @@ import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deleteEvent, updateEvent } from "@/lib/db";
-import { useDocData, useFamilies, usePlaces, TRIP_PATH } from "@/lib/hooks";
+import { useDocData, useFamilies, usePlaces } from "@/lib/hooks";
+import { useTrip } from "@/components/providers/TripProvider";
 import { formatDayLabel, todayIso, tripDays } from "@/lib/trip";
 import type { Participants, TripEvent } from "@/types";
 
@@ -19,13 +20,14 @@ export default function EditEventPage({
 }: {
   params: Promise<{ eventId: string }>;
 }) {
+  const { prefix } = useTrip();
   const { eventId } = use(params);
   const router = useRouter();
   const days = tripDays();
   const today = todayIso();
 
   const { data: event, loading } = useDocData<TripEvent>(
-    `${TRIP_PATH}/events/${eventId}`
+    `${useTrip().path}/events/${eventId}`
   );
   const { families } = useFamilies();
   const { places } = usePlaces();
@@ -68,7 +70,7 @@ export default function EditEventPage({
         title="האירוע לא נמצא"
         description="אולי הוא נמחק"
         action={
-          <Link href="/calendar" className="btn-primary px-5 py-2.5 text-sm">
+          <Link href={`${prefix}/calendar`} className="btn-primary px-5 py-2.5 text-sm">
             ללוח הטיול
           </Link>
         }
@@ -96,7 +98,7 @@ export default function EditEventPage({
         participants,
         notes: notes.trim() || undefined,
       });
-      router.push("/calendar");
+      router.push(`${prefix}/calendar`);
     } catch {
       setError("השמירה נכשלה, נסו שוב");
       setSaving(false);
@@ -105,7 +107,7 @@ export default function EditEventPage({
 
   async function handleDelete() {
     await deleteEvent(eventId);
-    router.replace("/calendar");
+    router.replace(`${prefix}/calendar`);
   }
 
   return (

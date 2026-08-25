@@ -2,10 +2,12 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { resolveTrip } from "@/lib/server/trip-server";
 import type { PlaceCategory } from "@/types";
 
 const RequestSchema = z.object({
   query: z.string().trim().min(2).max(120),
+  tripId: z.string().optional(),
 });
 
 /** Maps Google place types to our trip categories. */
@@ -42,8 +44,9 @@ export async function POST(request: Request) {
   }
 
   let query: string;
+  let tripId: string | undefined;
   try {
-    ({ query } = RequestSchema.parse(await request.json()));
+    ({ query, tripId } = RequestSchema.parse(await request.json()));
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
@@ -58,7 +61,10 @@ export async function POST(request: Request) {
         "X-Goog-FieldMask":
           "places.displayName,places.formattedAddress,places.location,places.types,places.primaryType,places.websiteUri,places.photos,places.rating",
       },
-      body: JSON.stringify({ textQuery: `${query} Sicily`, pageSize: 3 }),
+      body: JSON.stringify({
+        textQuery: `${query} ${resolveTrip(tripId).searchRegionHint}`,
+        pageSize: 3,
+      }),
     }
   );
   if (!search.ok) {

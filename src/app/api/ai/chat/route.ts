@@ -10,7 +10,8 @@ import { samePlaceName } from "@/lib/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
 import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
-import { TRIP, TRIP_PATH } from "@/lib/trip";
+import { resolveTrip, systemPromptFor } from "@/lib/server/trip-server";
+import type { TripConfig } from "@/lib/trips";
 import { PLACE_CATEGORIES } from "@/types";
 
 export const maxDuration = 300;
@@ -51,6 +52,7 @@ const RequestSchema = z.object({
     .max(30),
   /** Who is talking, e.g. "מיקה ממשפחת טל" */
   speaker: z.string().max(80).optional(),
+  tripId: z.string().optional(),
 });
 
 const JSON_SCHEMA = {
@@ -101,7 +103,7 @@ const JSON_SCHEMA = {
 
 /* ---------- tools ---------- */
 
-const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
+const buildTools = (trip: TripConfig): OpenAI.Chat.ChatCompletionTool[] => [
   {
     type: "function",
     function: {
@@ -146,7 +148,7 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
           emoji: { type: "string", description: "אימוג׳י אחד מתאים" },
           day: {
             type: "string",
-            description: `תאריך YYYY-MM-DD בטווח הטיול (${TRIP.startDate} עד ${TRIP.endDate})`,
+            description: `תאריך YYYY-MM-DD בטווח הטיול (${trip.startDate} עד ${trip.endDate})`,
           },
           startTime: { type: "string", description: "שעה HH:mm (24h)" },
           durationMin: { type: "number", description: "משך בדקות (אופציונלי)" },
@@ -303,8 +305,10 @@ interface TripData {
   families: FamilyData[];
 }
 
-async function buildTripContext(): Promise<{ context: string; data: TripData }> {
-  const tripRef = adminDb().collection("trips").doc(TRIP.id);
+async function buildTripContext(
+  trip: TripConfig
+): Promise<{ context: string; data: TripData }> {
+  const tripRef = adminDb().collection("trips").doc(trip.id);
   const [tripSnap, placesSnap, eventsSnap, familiesSnap, pollsSnap] =
     await Promise.all([
       tripRef.get(),
@@ -362,11 +366,11 @@ async function buildTripContext(): Promise<{ context: string; data: TripData }> 
   const now = sicilyNow();
 
   const context = [
-    `עכשיו בסיציליה: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
-    `תאריכי הטיול: ${TRIP.startDate} עד ${TRIP.endDate}. הוילה: ${TRIP.villa.name}, ${TRIP.villa.address}.`,
+    `עכשיו ב${trip.shortName}: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
+    `תאריכי הטיול: ${trip.startDate} עד ${trip.endDate}.${trip.homeBase ? ` הוילה: ${trip.homeBase.name}, ${trip.homeBase.address}.` : ""}`,
     ``,
     ...(aboutUs ? [`על החבורה (נכתב על ידי המשפחות):`, aboutUs, ``] : []),
-    `המשפחות:`,
+    trip.key === "sicily" ? `המשפחות:` : `החברים:`,
     ...families.map(
       (f) => `- ${f.name}: ${f.members.map((m) => m.name).join(", ")}`
     ),
@@ -457,12 +461,16 @@ interface PendingNotifications {
 }
 
 async function executeTool(
+  trip: TripConfig,
   name: string,
   rawArgs: unknown,
   data: TripData,
   pending: PendingNotifications
 ): Promise<Record<string, unknown>> {
-  const tripRef = adminDb().collection("trips").doc(TRIP.id);
+  const tripRef = adminDb().collection("trips").doc(trip.id);
+  // "🦻✨ המשרת של החבורה" for sicily — byte-identical to the original
+  const aiName = trip.key === "sicily" ? "המשרת של החבורה" : "הטייס";
+  const aiSigner = `${trip.ai.emoji} ${aiName}`;
 
   if (name === "add_place") {
     const args = z
@@ -489,7 +497,7 @@ async function executeTool(
 
     let placeData: Record<string, unknown>;
     if (args.url && /^https?:\/\//.test(args.url)) {
-      const draft = await importPlaceFromUrl(args.url);
+      const draft = await importPlaceFromUrl(args.url, trip.searchRegionHint);
       placeData = {
         name: args.name || draft.name,
         category: args.category,
@@ -507,7 +515,8 @@ async function executeTool(
       };
     } else {
       const geo = await geocodePlace(
-        args.query?.trim() || args.name
+        args.query?.trim() || args.name,
+        trip.searchRegionHint
       );
       if (!geo) {
         return {
@@ -531,8 +540,8 @@ async function executeTool(
       ),
       createdAt: Date.now(),
       createdByName: pending.speaker
-        ? `${pending.speaker} (דרך המשרת)`
-        : "🦻✨ המשרת של החבורה",
+        ? `${pending.speaker} (דרך ${trip.ai.navLabel})`
+        : aiSigner,
     });
     // keep the in-memory context fresh so a chained create_event resolves it
     data.places.push({
@@ -565,7 +574,7 @@ async function executeTool(
             "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.websiteUri,places.priceLevel",
         },
         body: JSON.stringify({
-          textQuery: `${args.query} Sicily`,
+          textQuery: `${args.query} ${trip.searchRegionHint}`,
           pageSize: 10,
         }),
       }
@@ -599,7 +608,7 @@ async function executeTool(
 
   if (name === "create_event") {
     const args = CreateEventArgs.parse(rawArgs);
-    if (args.day < TRIP.startDate || args.day > TRIP.endDate) {
+    if (args.day < trip.startDate || args.day > trip.endDate) {
       return { ok: false, error: `התאריך ${args.day} מחוץ לטווח הטיול` };
     }
     const place = resolvePlace(args.placeName, data);
@@ -615,7 +624,7 @@ async function executeTool(
       participants: resolveParticipants(args.participants, data),
       notes: args.notes ?? "",
       createdAt: Date.now(),
-      createdByName: "🦻✨ המשרת של החבורה",
+      createdByName: aiSigner,
     });
     let navUrl: string | undefined;
     if (place) {
@@ -631,10 +640,10 @@ async function executeTool(
         });
       }
     }
-    sendPushToAll({
-      title: "📅 המשרת של החבורה הוסיף ללוח",
+    sendPushToAll(trip.path, {
+      title: `📅 ${aiName} הוסיף ללוח`,
       body: `${args.title} · ${args.day.slice(8, 10)}.${args.day.slice(5, 7)} · ${startTime}`,
-      url: `/calendar?day=${args.day}`,
+      url: `${trip.prefix}/calendar?day=${args.day}`,
       tag: "event",
       navUrl,
     }).catch(() => undefined);
@@ -655,7 +664,7 @@ async function executeTool(
     if (!place) {
       return { ok: false, error: `לא נמצא מקום שמור בשם "${args.placeName}"` };
     }
-    const result = await enrichSavedPlace(place.id, args.url);
+    const result = await enrichSavedPlace(trip, place.id, args.url);
     return { ok: result.ok, summary: result.message };
   }
 
@@ -677,10 +686,10 @@ async function executeTool(
       createdAt: Date.now(),
     });
     // Exactly one notification, led by the question
-    sendPushToAll({
+    sendPushToAll(trip.path, {
       title: "🗳️ סקר חדש בקבוצה",
       body: args.question,
-      url: "/polls",
+      url: `${trip.prefix}/polls`,
       tag: "poll",
     }).catch(() => undefined);
     return {
@@ -733,25 +742,7 @@ async function executeTool(
 
 /* ---------- system prompt ---------- */
 
-const SYSTEM_PROMPT = `אתה ״המשרת של חבורת מיחא״ 🦻✨ — העוזר האישי של טיול משפחתי בסיציליה: ארבע משפחות ישראליות, הורים וילדים, וילה משותפת בקסטלמארה דל גולפו. חלק מהילדים המקסימים שלנו הם חירשים ומשתמשים בשתלים קוכלאריים (החבורה נקראת על שם ארגון מיח״א).
-
-רגישות שמיעה — בטבעיות ורק כשזה רלוונטי (לא בכל תשובה):
-- העדף חוויות ויזואליות ומוחשיות; שים לב לסביבות רועשות מאוד.
-- בפעילויות מים, הוסף תזכורת קצרה לגבי מעבדי השתלים (הסרה/הגנה עמידה למים).
-- בסיורים מודרכים, ציין אם החוויה מסתמכת בעיקר על הסבר קולי.
-
-כללים:
-- ענה תמיד בעברית, בטון חם וקצר.
-- יש לך גישה חיה לגוגל מפות דרך הכלי search_google_places (דירוגים, ביקורות, כתובות). כשמבקשים "הכי טובים" או לפי ציון — חפש בו ואז החזר candidates. לעולם אל תגיד שאין לך גישה לגוגל מפות או לאינטרנט.
-- לכל candidate שאתה מחזיר, המערכת מצרפת אוטומטית תמונה אמיתית, דירוג גוגל ומיקום למפה — אתה רק צריך לבחור נכון.
-- כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
-- כשמבקשים ממך לשבץ משהו בלוח ("תוסיף למחר ב-14:00...") — השתמש בכלי create_event. חשב את התאריך לפי "היום"/"מחר" מההקשר. אחרי הפעולה, אשר ב-reply מה בדיוק נוצר.
-- כשנותנים לך כתובת/קישור/שם של מקום חדש (חניון, מסעדה...) עם כוונה לשבץ — שרשר: add_place ואז create_event באותו יום ושעה הגיוניים ביחס לאירוע הרלוונטי בלוח (למשל חניון: 30-45 דקות לפני הפעילות שבאותו אזור). ההתראה לקבוצה נשלחת אוטומטית מ-create_event.
-- כשמבקשים סקר חדש עם שאלה ("תעשה סקר מה עושים מחר", "תשלח סקר לכולם") — השתמש ב-create_poll ליצירת סקר נפרד. add_poll_option מיועד רק להוספת רעיון בודד לסקר הרעיונות הקבוע.
-- כשמבקשים לעדכן/להעשיר מקום מהאתר שלו — השתמש בכלי enrich_place, ואז סכם ב-reply מה התעדכן.
-- אל תבצע פעולות כתיבה בלי בקשה מפורשת של המשתמש.
-- קח בחשבון את הלו״ז הקיים (התנגשויות, מרחקים) והרכב הקבוצה.
-- שדות טקסט שאין לך מידע עבורם — מחרוזת ריקה.`;
+// System prompt moved to systemPromptFor() in lib/server/trip-server.ts
 
 /* ---------- handler ---------- */
 
@@ -771,12 +762,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const trip = resolveTrip(body.tripId);
+
   try {
-    const { context, data } = await buildTripContext();
+    const { context, data } = await buildTripContext(trip);
     const openai = new OpenAI();
 
     const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPromptFor(trip) },
       { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
       ...(body.speaker
         ? [
@@ -808,12 +801,12 @@ export async function POST(request: Request) {
     const flushPendingNotifications = () => {
       const labels = pending.pollOptionLabels;
       if (!labels.length) return;
-      sendPushToAll({
+      sendPushToAll(trip.path, {
         title: "🗳️ סקר הרעיונות של הקבוצה התעדכן",
         body:
           labels.slice(0, 3).join(" · ") +
           (labels.length > 3 ? ` ועוד ${labels.length - 3}` : ""),
-        url: "/polls",
+        url: `${trip.prefix}/polls`,
         tag: "poll",
       }).catch(() => undefined);
     };
@@ -825,7 +818,7 @@ export async function POST(request: Request) {
         // keeps total latency under mobile-browser limits (~60s)
         reasoning_effort: round === 0 ? "medium" : "low",
         messages: conversation,
-        tools: TOOLS,
+        tools: buildTools(trip),
         response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
       });
 
@@ -839,6 +832,7 @@ export async function POST(request: Request) {
           let result: Record<string, unknown>;
           try {
             result = await executeTool(
+              trip,
               toolCall.function.name,
               JSON.parse(toolCall.function.arguments || "{}"),
               data,
@@ -865,7 +859,8 @@ export async function POST(request: Request) {
       const candidates = await Promise.all(
         parsed.candidates.map(async (c) => {
           const geo = await geocodePlace(
-            `${c.name} ${c.area ?? ""}`.trim()
+            `${c.name} ${c.area ?? ""}`.trim(),
+            trip.searchRegionHint
           ).catch(() => null);
           return {
             ...c,

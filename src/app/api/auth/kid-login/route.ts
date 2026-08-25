@@ -6,15 +6,15 @@ import {
   SESSION_MAX_AGE_SECONDS,
   constantTimeEquals,
   createSessionToken,
-  getTripPassword,
 } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { TRIP_PATH } from "@/lib/trip";
+import { getJoinCode, resolveTrip } from "@/lib/server/trip-server";
 
 const RequestSchema = z.object({
   joinCode: z.string().min(1),
   familyId: z.string().optional(),
   memberId: z.string().optional(),
+  tripId: z.string().optional(),
 });
 
 /**
@@ -31,13 +31,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const tripPassword = getTripPassword();
+  const trip = resolveTrip(body.tripId);
+  const tripPassword = await getJoinCode(trip);
   if (!tripPassword || !constantTimeEquals(body.joinCode.trim(), tripPassword)) {
     return NextResponse.json({ error: "wrong_code" }, { status: 401 });
   }
 
   const familiesSnap = await adminDb()
-    .collection(`${TRIP_PATH}/families`)
+    .collection(`${trip.path}/families`)
     .get();
   const families = familiesSnap.docs
     .map((doc) => {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
 
   const uid = `member-${member.id}`;
   await adminDb()
-    .doc(`${TRIP_PATH}/users/${uid}`)
+    .doc(`${trip.path}/users/${uid}`)
     .set(
       {
         displayName: member.name,

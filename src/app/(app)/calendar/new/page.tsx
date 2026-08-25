@@ -7,10 +7,12 @@ import { addEvent } from "@/lib/db";
 import { useFamilies, usePlaces } from "@/lib/hooks";
 import { formatDayLabel, todayIso, tripDays } from "@/lib/trip";
 import type { Participants } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const EMOJI_OPTIONS = ["🍝", "🏖️", "🏊", "⚽", "🛒", "🚗", "🏡", "🎉", "☕", "✈️"];
 
 function NewEventForm() {
+  const { prefix } = useTrip();
   const router = useRouter();
   const searchParams = useSearchParams();
   const days = tripDays();
@@ -59,7 +61,7 @@ function NewEventForm() {
         participants,
         notes: notes.trim() || undefined,
       });
-      router.replace("/calendar");
+      router.replace(`${prefix}/calendar`);
     } catch {
       setError("השמירה נכשלה, נסו שוב");
       setSaving(false);

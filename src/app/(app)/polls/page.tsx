@@ -15,6 +15,7 @@ import {
 } from "@/lib/db";
 import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type Family, type Place, type Poll } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 interface NormalizedVote {
   voterKey: string;
@@ -42,6 +43,7 @@ function PollCard({
   families: Family[];
   places: Place[];
 }) {
+  const { prefix } = useTrip();
   const { user, personal, profile } = useFirebase();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removingOptionId, setRemovingOptionId] = useState<string | null>(null);
@@ -109,7 +111,7 @@ function PollCard({
           </p>
         ) : (
           <Link
-            href="/settings"
+            href={`${prefix}/settings`}
             className="mt-3 block rounded-2xl bg-cream-100 px-3.5 py-2 text-sm text-ink-700"
           >
             🔐 כדי להצביע, השלימו כניסה עם Google בהגדרות ›
@@ -189,7 +191,7 @@ function PollCard({
               <span className="mt-1.5 flex items-center gap-2 ps-1 text-xs">
                 {place && (
                   <Link
-                    href={`/places/${place.id}`}
+                    href={`${prefix}/places/${place.id}`}
                     className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-sea-700"
                   >
                     <BookOpen size={13} />
@@ -197,7 +199,7 @@ function PollCard({
                   </Link>
                 )}
                 <Link
-                  href={`/calendar/new?title=${encodeURIComponent(option.label)}${
+                  href={`${prefix}/calendar/new?title=${encodeURIComponent(option.label)}${
                     place ? `&placeId=${place.id}` : ""
                   }`}
                   className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-terra-600"
@@ -288,7 +290,7 @@ function PollCard({
       <div className="mt-3 flex items-center gap-2 border-t border-cream-100 pt-3 text-sm">
         {poll.closed && winners.length === 1 && winners[0] && (
           <Link
-            href={`/calendar/new?title=${encodeURIComponent(winners[0].label)}${
+            href={`${prefix}/calendar/new?title=${encodeURIComponent(winners[0].label)}${
               winners[0].placeId ? `&placeId=${winners[0].placeId}` : ""
             }`}
             className="btn-primary px-3.5 py-2 text-sm"
@@ -328,6 +330,7 @@ function PollCard({
 }
 
 export default function PollsPage() {
+  const { prefix } = useTrip();
   const { polls, loading } = usePolls();
   const { families } = useFamilies();
   const { places } = usePlaces();
@@ -341,7 +344,7 @@ export default function PollsPage() {
             סקרים
           </h1>
         </div>
-        <Link href="/polls/new" className="btn-accent px-4 py-2.5 text-sm">
+        <Link href={`${prefix}/polls/new`} className="btn-accent px-4 py-2.5 text-sm">
           + סקר
         </Link>
       </div>
@@ -354,7 +357,7 @@ export default function PollsPage() {
           title="עוד אין סקרים"
           description="מתלבטים בין אטרקציות? פתחו סקר וכולם יצביעו"
           action={
-            <Link href="/polls/new" className="btn-primary px-5 py-2.5 text-sm">
+            <Link href={`${prefix}/polls/new`} className="btn-primary px-5 py-2.5 text-sm">
               + סקר ראשון
             </Link>
           }

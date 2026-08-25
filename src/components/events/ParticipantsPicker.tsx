@@ -1,13 +1,9 @@
 "use client";
 
 import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useTrip } from "@/components/providers/TripProvider";
 import type { Family, Participants } from "@/types";
 
-const MODES = [
-  { type: "all", label: "כולם" },
-  { type: "families", label: "משפחות" },
-  { type: "members", label: "מותאם אישית" },
-] as const;
 
 export function ParticipantsPicker({
   value,
@@ -19,6 +15,12 @@ export function ParticipantsPicker({
   families: Family[];
 }) {
   const { profile } = useFirebase();
+  const { group } = useTrip();
+  const modes = [
+    { type: "all", label: "כולם" },
+    { type: "families", label: group.unitLabel },
+    { type: "members", label: "מותאם אישית" },
+  ] as const;
 
   function switchMode(type: Participants["type"]) {
     if (type === value.type) return;
@@ -52,7 +54,7 @@ export function ParticipantsPicker({
   return (
     <div>
       <div className="flex gap-2">
-        {MODES.map((mode) => (
+        {modes.map((mode) => (
           <button
             key={mode.type}
             type="button"

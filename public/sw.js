@@ -1,4 +1,4 @@
-/* Sicily Together — service worker: web push + notification clicks */
+/* Group Trips — service worker: web push + notification clicks */
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -16,7 +16,7 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "" };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || "סיציליה 2026 🍋", {
+    self.registration.showNotification(data.title || "הטיול שלנו ✈️", {
       body: data.body || "",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",

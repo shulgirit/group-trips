@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useDocData } from "@/lib/hooks";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 
 /**
  * Free-text knowledge the families write about themselves — fed straight
  * into the servant's context so it knows names, stories and preferences.
  */
 export function AboutUsSection() {
-  const { data } = useDocData<{ aboutUs?: string }>(TRIP_PATH);
+  const trip = useTrip();
+  const { path: tripPath } = trip;
+  const { data } = useDocData<{ aboutUs?: string }>(tripPath);
   const [text, setText] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -28,8 +30,8 @@ export function AboutUsSection() {
     setSaving(true);
     setMessage("");
     try {
-      await updateDoc(doc(db(), TRIP_PATH), { aboutUs: text.trim() });
-      setMessage("✓ נשמר — המשרת כבר מכיר את זה");
+      await updateDoc(doc(db(), tripPath), { aboutUs: text.trim() });
+      setMessage(trip.ai.aboutSaved);
     } catch {
       setMessage("השמירה נכשלה, נסו שוב");
     } finally {
@@ -39,17 +41,16 @@ export function AboutUsSection() {
 
   return (
     <section>
-      <h2 className="section-title mb-3 text-lg">🦻 ספרו למשרת עלינו</h2>
+      <h2 className="section-title mb-3 text-lg">{trip.ai.aboutTitle}</h2>
       <div className="card px-4 py-4">
         <p className="text-sm leading-relaxed text-ink-500">
-          כל מה שתכתבו כאן נכנס לידע של המשרת: מי זה מי, גילאים, סיפורים,
-          מה הילדים אוהבים, בדיחות פנימיות — והוא ישתמש בזה בשיחות ובהמלצות
+          {trip.ai.aboutDescription}
         </p>
         <textarea
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={6}
-          placeholder="למשל: מיקה בת 10 ואוהבת פארקי מים. אורי משוגע על כדורגל..."
+          placeholder={trip.ai.aboutPlaceholder}
           className="field mt-3 leading-relaxed"
         />
         <button

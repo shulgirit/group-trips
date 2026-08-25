@@ -24,7 +24,7 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
 import { db, storage } from "@/lib/firebase/client";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 import {
   PLACE_CATEGORIES,
   type ChatCandidate,
@@ -33,17 +33,11 @@ import {
   type PlaceCategory,
 } from "@/types";
 
-const SUGGESTED_PROMPTS = [
-  "תמליץ לנו על אטרקציה",
-  "מה כדאי לעשות מחר?",
-  "תמצא לנו מסעדה טובה לילדים",
-  "תמצא פעילות לילדים",
-  "תמצא Plan B אם יורד גשם",
-  "מה עוד לא שובץ בלוח?",
-];
 
 export default function AiPage() {
   const { ready, user, personal, profile } = useFirebase();
+  const trip = useTrip();
+  const { path: tripPath, prefix, id: tripId } = trip;
   const { families } = useFamilies();
 
   // "מיקה ממשפחת טל" — so the servant knows who it's talking to
@@ -113,6 +107,7 @@ export default function AiPage() {
           area: candidate.area,
           description: candidate.description,
           why: candidate.why,
+          tripId,
         }),
       });
       if (!response.ok) throw new Error("failed");
@@ -141,7 +136,7 @@ export default function AiPage() {
     }
     return onSnapshot(
       query(
-        collection(db(), `${TRIP_PATH}/chatSessions`),
+        collection(db(), `${tripPath}/chatSessions`),
         where("ownerUid", "==", user.uid)
       ),
       (snap) =>
@@ -194,7 +189,7 @@ export default function AiPage() {
     try {
       if (knownSessionId) {
         await updateDoc(
-          doc(db(), `${TRIP_PATH}/chatSessions/${knownSessionId}`),
+          doc(db(), `${tripPath}/chatSessions/${knownSessionId}`),
           {
             messages: nextMessages,
             updatedAt: Date.now(),
@@ -203,7 +198,7 @@ export default function AiPage() {
         return knownSessionId;
       }
       const firstUser = nextMessages.find((m) => m.role === "user");
-      const ref = await addDoc(collection(db(), `${TRIP_PATH}/chatSessions`), {
+      const ref = await addDoc(collection(db(), `${tripPath}/chatSessions`), {
         ownerUid: user.uid,
         title: (firstUser?.content ?? "שיחה").slice(0, 40),
         messages: nextMessages,
@@ -219,7 +214,7 @@ export default function AiPage() {
   }
 
   async function deleteSession(id: string) {
-    await deleteDoc(doc(db(), `${TRIP_PATH}/chatSessions/${id}`)).catch(
+    await deleteDoc(doc(db(), `${tripPath}/chatSessions/${id}`)).catch(
       () => undefined
     );
     if (id === sessionId) newChat();
@@ -243,6 +238,7 @@ export default function AiPage() {
             imageUrl,
           })),
           speaker,
+          tripId,
         }),
       });
       if (!response.ok) throw new Error("ai_failed");
@@ -280,7 +276,7 @@ export default function AiPage() {
     let imageUrl: string | undefined;
     if (pendingImage) {
       try {
-        const path = `trips/sicily-2026/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
+        const path = `${tripPath}/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
         const fileRef = storageRef(storage(), path);
         await uploadBytes(fileRef, pendingImage.blob, {
           contentType: "image/jpeg",
@@ -418,9 +414,9 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <p className="kicker text-terra-500">חבורת מיחא</p>
+      <p className="kicker text-terra-500">{trip.ai.kicker}</p>
       <h1 className="mb-1 font-display text-3xl font-bold text-ink-900">
-        🦻✨ המשרת של חבורת מיחא
+        {trip.ai.title}
       </h1>
       <p className="mb-3 text-sm text-ink-500">
         {personal
@@ -476,7 +472,7 @@ export default function AiPage() {
 
       {!personal && (
         <Link
-          href="/settings"
+          href={`${prefix}/settings`}
           className="mb-3 block rounded-2xl bg-lemon-100 px-4 py-2.5 text-sm font-medium text-ink-700"
         >
           🔒 רוצים היסטוריית שיחות פרטית? התחברו עם Google בהגדרות ›
@@ -488,15 +484,14 @@ export default function AiPage() {
           <>
             <div className="card relative overflow-hidden px-5 py-6 text-center">
               <span aria-hidden className="text-4xl">
-                🦻✨
+                {trip.ai.emoji}
               </span>
               <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-                המשרת של החבורה לשירותכם — המלצות, שיבוצים בלוח, סקרים
-                ועדכון מקומות. מחובר לכל נתוני הטיול
+                {trip.ai.heroBlurb}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {SUGGESTED_PROMPTS.map((prompt) => (
+              {trip.ai.suggestedPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
@@ -606,7 +601,7 @@ export default function AiPage() {
                       <div className="mt-3 flex items-center gap-2">
                         {candidate.savedPlaceId ? (
                           <Link
-                            href={`/places/${candidate.savedPlaceId}`}
+                            href={`${prefix}/places/${candidate.savedPlaceId}`}
                             className="btn rounded-2xl bg-sea-100 px-4 py-2.5 text-sm text-sea-700"
                           >
                             ✓ נשמר · לפרטים ולשיבוץ ›
@@ -751,7 +746,7 @@ export default function AiPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-              activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
+              activeSession ? "המשיכו את השיחה…" : trip.ai.inputPlaceholder
             }
             className="field min-w-0 flex-1 py-3.5 shadow-[var(--shadow-card)]"
           />

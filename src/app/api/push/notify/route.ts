@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { sendPushToAll } from "@/lib/server/push";
+import { resolveTrip } from "@/lib/server/trip-server";
 
 const RequestSchema = z.object({
   type: z.enum(["poll", "poll_option", "event"]),
@@ -16,6 +17,7 @@ const RequestSchema = z.object({
     .optional(),
   /** Waze deep link for a נווט notification action */
   navUrl: z.string().url().optional(),
+  tripId: z.string().optional(),
 });
 
 /** Client-triggered group notifications (new poll / option / event). */
@@ -32,29 +34,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const trip = resolveTrip(body.tripId);
   const payloads = {
     poll: {
       title: "🗳️ סקר חדש בקבוצה",
       body: body.title,
-      url: "/polls",
+      url: `${trip.prefix}/polls`,
       tag: "poll",
     },
     poll_option: {
       title: "🗳️ אפשרות חדשה בסקר הקבוצתי",
       body: `${body.title} — בואו להצביע`,
-      url: "/polls",
+      url: `${trip.prefix}/polls`,
       tag: "poll",
     },
     event: {
       title: "📅 נוסף ללוח הטיול",
       body: body.detail ? `${body.title} · ${body.detail}` : body.title,
-      url: body.day ? `/calendar?day=${body.day}` : "/calendar",
+      url: body.day
+        ? `${trip.prefix}/calendar?day=${body.day}`
+        : `${trip.prefix}/calendar`,
       tag: "event",
       navUrl: body.navUrl,
     },
   } as const;
 
-  const result = await sendPushToAll(payloads[body.type], {
+  const result = await sendPushToAll(trip.path, payloads[body.type], {
     excludeUid: body.actorUid,
   });
   return NextResponse.json({ ok: true, ...result });

@@ -2,12 +2,14 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { resolveTrip } from "@/lib/server/trip-server";
 import { ImportError, importPlaceFromUrl } from "@/lib/server/import-place";
 
 export const maxDuration = 120;
 
 const RequestSchema = z.object({
   url: z.string().url(),
+  tripId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -17,14 +19,18 @@ export async function POST(request: Request) {
   }
 
   let url: string;
+  let tripId: string | undefined;
   try {
-    ({ url } = RequestSchema.parse(await request.json()));
+    ({ url, tripId } = RequestSchema.parse(await request.json()));
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
   try {
-    const draft = await importPlaceFromUrl(url);
+    const draft = await importPlaceFromUrl(
+      url,
+      resolveTrip(tripId).searchRegionHint
+    );
     return NextResponse.json({ draft });
   } catch (error) {
     const reason = error instanceof ImportError ? error.reason : "extract_failed";

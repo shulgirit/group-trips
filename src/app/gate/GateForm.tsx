@@ -10,6 +10,7 @@ import {
   type User,
 } from "firebase/auth";
 import { auth, signInWithGoogle } from "@/lib/firebase/client";
+import { TRIPS, type TripKey } from "@/lib/trips";
 
 type Step =
   | "idle"
@@ -26,7 +27,9 @@ interface KidFamily {
   members: { id: string; name: string }[];
 }
 
-export function GateForm() {
+export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
+  const trip = TRIPS[tripKey];
+  const home = trip.prefix || "/";
   const [step, setStep] = useState<Step>("idle");
   const [googleUser, setGoogleUser] = useState<User | null>(null);
   const [joinCode, setJoinCode] = useState("");
@@ -45,7 +48,7 @@ export function GateForm() {
       const response = await fetch("/api/auth/kid-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ joinCode }),
+        body: JSON.stringify({ joinCode, tripId: trip.id }),
       });
       if (!response.ok) {
         setErrorMessage(
@@ -71,7 +74,7 @@ export function GateForm() {
       const response = await fetch("/api/auth/kid-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ joinCode, familyId, memberId }),
+        body: JSON.stringify({ joinCode, familyId, memberId, tripId: trip.id }),
       });
       if (!response.ok) {
         setErrorMessage("משהו השתבש, נסו שוב");
@@ -82,7 +85,7 @@ export function GateForm() {
       await updateProfile(credential.user, { displayName }).catch(
         () => undefined
       );
-      window.location.replace("/");
+      window.location.replace(home);
     } catch {
       setErrorMessage("ההתחברות נכשלה, נסו שוב");
       setKidBusy(false);
@@ -97,10 +100,10 @@ export function GateForm() {
       const response = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, joinCode: code }),
+        body: JSON.stringify({ idToken, joinCode: code, tripId: trip.id }),
       });
       if (response.ok) {
-        window.location.replace("/");
+        window.location.replace(home);
         return;
       }
       const { error } = await response.json().catch(() => ({ error: "" }));
@@ -174,7 +177,7 @@ export function GateForm() {
         body: JSON.stringify({ password }),
       });
       if (response.ok) {
-        window.location.replace("/");
+        window.location.replace(home);
         return;
       }
       setStep("password");
@@ -221,10 +224,10 @@ export function GateForm() {
         ) : step === "kids-code" ? (
           <form onSubmit={handleKidsCode}>
             <p className="text-right font-semibold text-ink-900">
-              🧒 כניסה לילדים — בלי אימייל
+              {trip.group.quickLoginTitle}
             </p>
             <p className="mt-1 text-right text-sm text-ink-500">
-              הזינו את קוד הטיול (תשאלו את ההורים 😉), ואז תבחרו את השם שלכם
+              {trip.group.quickLoginHint}
             </p>
             <input
               type="text"
@@ -256,7 +259,7 @@ export function GateForm() {
         ) : step === "kids-pick" ? (
           <div>
             <p className="text-right font-semibold text-ink-900">
-              {kidFamilyId ? "ועכשיו — מי אתם? 👋" : "מאיזו משפחה אתם?"}
+              {kidFamilyId ? trip.group.pickNamePrompt : trip.group.pickUnitPrompt}
             </p>
             <div className="mt-3 flex flex-wrap justify-end gap-2">
               {kidFamilies.map((family) => (
@@ -362,7 +365,7 @@ export function GateForm() {
               }}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-lemon-300 bg-lemon-100/80 py-3 text-sm font-semibold text-ink-900 transition active:scale-[0.98]"
             >
-              🧒 כניסה לילדים — בלי אימייל, עם השם
+              {trip.group.quickLoginTitle}
             </button>
             <button
               type="button"

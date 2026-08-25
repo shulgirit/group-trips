@@ -4,10 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { TRIP_PATH } from "@/lib/trip";
+import { useTrip } from "@/components/providers/TripProvider";
 import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
-
-export { TRIP_PATH };
 
 export function useCollectionData<T extends { id: string }>(path: string) {
   const { ready } = useFirebase();
@@ -58,7 +56,8 @@ export function useDocData<T>(path: string) {
 }
 
 export function usePlaces() {
-  const { data, ...rest } = useCollectionData<Place>(`${TRIP_PATH}/places`);
+  const { path } = useTrip();
+  const { data, ...rest } = useCollectionData<Place>(`${path}/places`);
   const sorted = useMemo(
     () => data?.slice().sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
     [data]
@@ -67,12 +66,14 @@ export function usePlaces() {
 }
 
 export function usePlace(placeId: string) {
-  const { data, ...rest } = useDocData<Place>(`${TRIP_PATH}/places/${placeId}`);
+  const { path } = useTrip();
+  const { data, ...rest } = useDocData<Place>(`${path}/places/${placeId}`);
   return { place: data, ...rest };
 }
 
 export function useEvents() {
-  const { data, ...rest } = useCollectionData<TripEvent>(`${TRIP_PATH}/events`);
+  const { path } = useTrip();
+  const { data, ...rest } = useCollectionData<TripEvent>(`${path}/events`);
   const sorted = useMemo(
     () =>
       data
@@ -88,9 +89,8 @@ export function useEvents() {
 }
 
 export function useExpenses() {
-  const { data, ...rest } = useCollectionData<Expense>(
-    `${TRIP_PATH}/expenses`
-  );
+  const { path } = useTrip();
+  const { data, ...rest } = useCollectionData<Expense>(`${path}/expenses`);
   const sorted = useMemo(
     () =>
       data
@@ -106,7 +106,8 @@ export function useExpenses() {
 }
 
 export function usePolls() {
-  const { data, ...rest } = useCollectionData<Poll>(`${TRIP_PATH}/polls`);
+  const { path } = useTrip();
+  const { data, ...rest } = useCollectionData<Poll>(`${path}/polls`);
   const sorted = useMemo(
     () => data?.slice().sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
     [data]
@@ -115,7 +116,8 @@ export function usePolls() {
 }
 
 export function useFamilies() {
-  const { data, ...rest } = useCollectionData<Family>(`${TRIP_PATH}/families`);
+  const { path } = useTrip();
+  const { data, ...rest } = useCollectionData<Family>(`${path}/families`);
   const sorted = useMemo(
     () => data?.slice().sort((a, b) => a.order - b.order),
     [data]

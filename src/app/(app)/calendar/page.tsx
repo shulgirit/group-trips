@@ -21,6 +21,7 @@ import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { participantsIntersect, participantsLabel } from "@/lib/participants";
 import { formatDayLabel, todayIso, tripDayNumber, tripDays } from "@/lib/trip";
 import { PLACE_CATEGORIES, type Family, type TripEvent } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const DEFAULT_DURATION_MIN = 90;
 
@@ -60,6 +61,7 @@ function analyzeDay(dayEvents: TripEvent[], families: Family[]) {
 }
 
 function CalendarContent() {
+  const { prefix } = useTrip();
   const days = tripDays();
   const today = todayIso();
   // Push notifications deep-link here with ?day=YYYY-MM-DD
@@ -99,7 +101,7 @@ function CalendarContent() {
           </h1>
         </div>
         <Link
-          href={`/calendar/new?day=${selectedDay}`}
+          href={`${prefix}/calendar/new?day=${selectedDay}`}
           className="btn-accent px-4 py-2.5 text-sm"
         >
           + אירוע
@@ -153,7 +155,7 @@ function CalendarContent() {
           title="יום פנוי לגמרי"
           description="אפשר לשבץ מקום מתוך ׳מקומות׳ או להוסיף אירוע חופשי"
           action={
-            <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
+            <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
               לבחור מקום
             </Link>
           }
@@ -191,7 +193,7 @@ function CalendarContent() {
                   }`}
                 >
                   <Link
-                    href={`/calendar/${event.id}`}
+                    href={`${prefix}/calendar/${event.id}`}
                     className="flex items-stretch transition active:bg-cream-100/60"
                   >
                     {/* Visual side */}
@@ -281,7 +283,7 @@ function CalendarContent() {
                           <MapIcon size={14} />
                         </a>
                         <Link
-                          href={`/places/${place.id}`}
+                          href={`${prefix}/places/${place.id}`}
                           className="btn-soft px-3 py-1.5 text-sm"
                         >
                           פרטים
