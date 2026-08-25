@@ -126,3 +126,24 @@ export function useFamilies() {
   );
   return { families: sorted ?? null, ...rest };
 }
+
+/**
+ * The trip's "home base": the fixed-id "villa" place when it exists
+ * (sicily), otherwise the earliest accommodation-category place — so
+ * adding a hotel (e.g. via the AI) lights up the HOME button and the
+ * map's home pin automatically.
+ */
+export function useHomeBase() {
+  const { places, ...rest } = usePlaces();
+  const home = useMemo(() => {
+    if (!places) return null;
+    return (
+      places.find((p) => p.id === "villa") ??
+      places
+        .filter((p) => p.category === "accommodation")
+        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0] ??
+      null
+    );
+  }, [places]);
+  return { home, ...rest };
+}
