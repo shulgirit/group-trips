@@ -44,7 +44,7 @@ const SUGGESTED_PROMPTS = [
 
 export default function AiPage() {
   const { ready, user, personal, profile } = useFirebase();
-  const { path: tripPath } = useTrip();
+  const { path: tripPath, prefix } = useTrip();
   const { families } = useFamilies();
 
   // "מיקה ממשפחת טל" — so the servant knows who it's talking to
@@ -477,7 +477,7 @@ export default function AiPage() {
 
       {!personal && (
         <Link
-          href="/settings"
+          href={`${prefix}/settings`}
           className="mb-3 block rounded-2xl bg-lemon-100 px-4 py-2.5 text-sm font-medium text-ink-700"
         >
           🔒 רוצים היסטוריית שיחות פרטית? התחברו עם Google בהגדרות ›
@@ -607,7 +607,7 @@ export default function AiPage() {
                       <div className="mt-3 flex items-center gap-2">
                         {candidate.savedPlaceId ? (
                           <Link
-                            href={`/places/${candidate.savedPlaceId}`}
+                            href={`${prefix}/places/${candidate.savedPlaceId}`}
                             className="btn rounded-2xl bg-sea-100 px-4 py-2.5 text-sm text-sea-700"
                           >
                             ✓ נשמר · לפרטים ולשיבוץ ›

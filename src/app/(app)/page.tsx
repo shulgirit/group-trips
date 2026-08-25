@@ -18,6 +18,7 @@ import {
   tripDays,
 } from "@/lib/trip";
 import { PLACE_CATEGORIES, type Place, type TripEvent } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const DEFAULT_DURATION_MIN = 90;
 
@@ -53,6 +54,7 @@ function timeUntilLabel(target: Date, now: Date): string | null {
 }
 
 export default function HomePage() {
+  const { prefix } = useTrip();
   const { events, loading: eventsLoading } = useEvents();
   const { places } = usePlaces();
   const { families } = useFamilies();
@@ -215,7 +217,7 @@ export default function HomePage() {
                       נווט
                     </a>
                     <Link
-                      href={`/places/${nextPlace.id}`}
+                      href={`${prefix}/places/${nextPlace.id}`}
                       className="btn-soft flex-1 py-3"
                     >
                       פרטים
@@ -231,7 +233,7 @@ export default function HomePage() {
                     </a>
                   </>
                 ) : (
-                  <Link href="/calendar" className="btn-soft flex-1 py-3">
+                  <Link href={`${prefix}/calendar`} className="btn-soft flex-1 py-3">
                     <CalendarDays size={18} />
                     ללוח המלא
                   </Link>
@@ -245,7 +247,7 @@ export default function HomePage() {
             title="אין פעילות מתוכננת"
             description="שבצו מקום מ׳מקומות׳ או הוסיפו אירוע בלוח"
             action={
-              <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
+              <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
                 למקומות
               </Link>
             }
@@ -311,7 +313,7 @@ export default function HomePage() {
         <section>
           <h2 className="section-title mb-3">שווה לבדוק</h2>
           <Link
-            href="/places"
+            href={`${prefix}/places`}
             className="card flex items-center gap-4 px-5 py-4 transition active:scale-[0.99]"
           >
             <span className="text-2xl" aria-hidden>

@@ -20,6 +20,7 @@ export default function EditEventPage({
 }: {
   params: Promise<{ eventId: string }>;
 }) {
+  const { prefix } = useTrip();
   const { eventId } = use(params);
   const router = useRouter();
   const days = tripDays();
@@ -69,7 +70,7 @@ export default function EditEventPage({
         title="האירוע לא נמצא"
         description="אולי הוא נמחק"
         action={
-          <Link href="/calendar" className="btn-primary px-5 py-2.5 text-sm">
+          <Link href={`${prefix}/calendar`} className="btn-primary px-5 py-2.5 text-sm">
             ללוח הטיול
           </Link>
         }
@@ -97,7 +98,7 @@ export default function EditEventPage({
         participants,
         notes: notes.trim() || undefined,
       });
-      router.push("/calendar");
+      router.push(`${prefix}/calendar`);
     } catch {
       setError("השמירה נכשלה, נסו שוב");
       setSaving(false);
@@ -106,7 +107,7 @@ export default function EditEventPage({
 
   async function handleDelete() {
     await deleteEvent(eventId);
-    router.replace("/calendar");
+    router.replace(`${prefix}/calendar`);
   }
 
   return (

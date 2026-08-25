@@ -36,12 +36,14 @@ import { useEvents, usePlace } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { formatDayLabel } from "@/lib/trip";
 import { PLACE_CATEGORIES } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 export default function PlaceDetailPage({
   params,
 }: {
   params: Promise<{ placeId: string }>;
 }) {
+  const { prefix } = useTrip();
   const { placeId } = use(params);
   const router = useRouter();
   const { user } = useFirebase();
@@ -126,7 +128,7 @@ export default function PlaceDetailPage({
         title="המקום לא נמצא"
         description="אולי הוא נמחק"
         action={
-          <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
+          <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
             לכל המקומות
           </Link>
         }
@@ -195,7 +197,7 @@ export default function PlaceDetailPage({
 
   async function handleDelete() {
     await deletePlace(placeId);
-    router.replace("/places");
+    router.replace(`${prefix}/places`);
   }
 
   return (

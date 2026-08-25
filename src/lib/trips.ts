@@ -18,6 +18,9 @@ export interface TripAiConfig {
   heroBlurb: string;
   subtitle: string;
   quickAddLabel: string;
+  /** עוד page row */
+  moreEmoji: string;
+  moreLabel: string;
   suggestedPrompts: string[];
   aboutTitle: string;
   aboutDescription: string;
@@ -134,6 +137,8 @@ const SICILY: TripConfig = {
       "המשרת של החבורה לשירותכם — המלצות, שיבוצים בלוח, סקרים ועדכון מקומות. מחובר לכל נתוני הטיול",
     subtitle: "מכיר את המקומות, הלו״ז ואת כל החבורה",
     quickAddLabel: "שאל את המשרת של החבורה 🦻",
+    moreEmoji: "🦻",
+    moreLabel: "המשרת של חבורת מיחא",
     suggestedPrompts: [
       "תמליץ לנו על אטרקציה",
       "מה כדאי לעשות מחר?",
@@ -201,6 +206,8 @@ const SARDINIA: TripConfig = {
       "הטייס בקבינה לשירותכם — המלצות, נופים, מסעדות ושיבוצים בלוח. מחובר לכל נתוני הטיול",
     subtitle: "מכיר את המקומות, הלו״ז ואת כל החבורה",
     quickAddLabel: "שאל את הטייס ✈️",
+    moreEmoji: "✈️",
+    moreLabel: "הטייס",
     suggestedPrompts: [
       "תמליץ לנו על נקודת תצפית מטורפת",
       "מה כדאי לעשות מחר?",

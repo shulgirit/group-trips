@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CalendarCheck, Heart } from "lucide-react";
 import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 /** Category-tinted fallback art for places without photography */
 const CATEGORY_TONES: Record<PlaceCategory, string> = {
@@ -27,11 +28,12 @@ export function PlaceCard({
   place: Place;
   scheduled: boolean;
 }) {
+  const { prefix } = useTrip();
   const category = PLACE_CATEGORIES[place.category] ?? PLACE_CATEGORIES.other;
 
   return (
     <Link
-      href={`/places/${place.id}`}
+      href={`${prefix}/places/${place.id}`}
       className="card block overflow-hidden transition active:scale-[0.99]"
     >
       <div className="relative aspect-[16/9]">

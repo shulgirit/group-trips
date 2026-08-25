@@ -1,67 +1,70 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
 import { LogoutRow } from "@/components/tour/LogoutRow";
 import { TourRow } from "@/components/tour/TourRow";
-
-export const metadata: Metadata = { title: "עוד" };
-
-const SECTIONS = [
-  {
-    emoji: "🦻",
-    label: "המשרת של חבורת מיחא",
-    description: "ה-AI הפרטי שלנו — מכיר את כל הטיול",
-    href: "/ai",
-  },
-  {
-    emoji: "🗳️",
-    label: "סקרים",
-    description: "מחליטים ביחד",
-    href: "/polls",
-  },
-  {
-    emoji: "💶",
-    label: "הוצאות",
-    description: "מי שילם ומי חייב",
-    href: "/expenses",
-  },
-  {
-    emoji: "👨‍👩‍👧‍👦",
-    label: "משפחות",
-    description: "ארבע המשפחות שלנו",
-    href: "/families",
-  },
-  {
-    emoji: "🎟️",
-    label: "הזמנות ומסמכים",
-    description: "כרטיסים, אישורים ואזור אישי",
-    href: "/documents",
-  },
-  {
-    emoji: "📸",
-    label: "תמונות",
-    description: "הגלריה של הטיול",
-    href: null,
-  },
-  {
-    emoji: "⚙️",
-    label: "הגדרות",
-    description: "החשבון שלי, זהות משפחתית ופרטי הטיול",
-    href: "/settings",
-  },
-] as const;
+import { useTrip } from "@/components/providers/TripProvider";
 
 export default function MorePage() {
+  const trip = useTrip();
+  const aiHref = `${trip.prefix}/ai`;
+
+  const sections = [
+    {
+      emoji: trip.ai.moreEmoji,
+      label: trip.ai.moreLabel,
+      description: "ה-AI הפרטי שלנו — מכיר את כל הטיול",
+      href: aiHref,
+    },
+    {
+      emoji: "🗳️",
+      label: "סקרים",
+      description: "מחליטים ביחד",
+      href: `${trip.prefix}/polls`,
+    },
+    {
+      emoji: "💶",
+      label: "הוצאות",
+      description: "מי שילם ומי חייב",
+      href: `${trip.prefix}/expenses`,
+    },
+    {
+      emoji: trip.key === "sicily" ? "👨‍👩‍👧‍👦" : "👨‍✈️",
+      label: trip.group.moreLabel,
+      description: trip.group.moreDescription,
+      href: `${trip.prefix}/families`,
+    },
+    {
+      emoji: "🎟️",
+      label: "הזמנות ומסמכים",
+      description: "כרטיסים, אישורים ואזור אישי",
+      href: `${trip.prefix}/documents`,
+    },
+    {
+      emoji: "📸",
+      label: "תמונות",
+      description: "הגלריה של הטיול",
+      href: null,
+    },
+    {
+      emoji: "⚙️",
+      label: "הגדרות",
+      description: "החשבון שלי, הזהות שלי ופרטי הטיול",
+      href: `${trip.prefix}/settings`,
+    },
+  ] as const;
+
   return (
     <div className="space-y-4">
       <h1 className="font-display text-2xl font-bold text-ink-900">עוד</h1>
       <ul className="space-y-2">
-        {SECTIONS.map(({ emoji, label, description, href }) => (
+        {sections.map(({ emoji, label, description, href }) => (
           <li key={label}>
             {href ? (
               <Link
                 href={href}
                 className={`flex items-center gap-4 rounded-3xl border px-4 py-4 transition active:scale-[0.99] ${
-                  href === "/ai"
+                  href === aiHref
                     ? "border-lemon-300 bg-gradient-to-l from-lemon-300/70 via-lemon-100 to-lemon-100 shadow-sm"
                     : "border-cream-200 bg-white active:bg-cream-100"
                 }`}

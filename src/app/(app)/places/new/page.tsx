@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { addPlace, samePlaceName } from "@/lib/db";
 import { usePlaces } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 interface ImportedDraft {
   name: string;
@@ -40,6 +41,7 @@ interface SearchResult {
 }
 
 export default function NewPlacePage() {
+  const { prefix } = useTrip();
   const router = useRouter();
   const { places } = usePlaces();
 
@@ -381,7 +383,7 @@ export default function NewPlacePage() {
 
       {duplicateOf && (
         <Link
-          href={`/places/${duplicateOf.id}`}
+          href={`${prefix}/places/${duplicateOf.id}`}
           className="block rounded-2xl border border-lemon-300 bg-lemon-100 px-4 py-3 text-sm font-medium text-ink-700"
         >
           ⚠️ ״{duplicateOf.name}״ כבר קיים ברשימה — לחצו לפתיחה במקום להוסיף

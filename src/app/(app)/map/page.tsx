@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
@@ -117,6 +118,7 @@ function loadGoogleMaps(onReady: () => void): void {
 }
 
 export default function MapPage() {
+  const { prefix } = useTrip();
   const { places, loading } = usePlaces();
   const { events } = useEvents();
   const [filter, setFilter] = useState<FilterId>("scheduled");
@@ -267,7 +269,7 @@ export default function MapPage() {
           title="המפה לא נטענה"
           description="עדיין אפשר לנווט לכל מקום מתוך דף המקום עצמו"
           action={
-            <Link href="/places" className="btn-primary px-5 py-2.5 text-sm">
+            <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
               לרשימת המקומות
             </Link>
           }
@@ -338,7 +340,7 @@ export default function MapPage() {
                       🗺️
                     </a>
                     <Link
-                      href={`/places/${selected.id}`}
+                      href={`${prefix}/places/${selected.id}`}
                       className="btn-soft flex-1 py-2 text-sm"
                     >
                       פרטים

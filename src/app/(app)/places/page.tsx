@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import type { Place } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const FILTERS = [
   { id: "all", label: "הכל" },
@@ -47,6 +48,7 @@ function matchesFilter(
 }
 
 export default function PlacesPage() {
+  const { prefix } = useTrip();
   const { places, loading, error } = usePlaces();
   const { events } = useEvents();
   const [search, setSearch] = useState("");
@@ -83,7 +85,7 @@ export default function PlacesPage() {
             מקומות
           </h1>
         </div>
-        <Link href="/places/new" className="btn-accent px-4 py-2.5 text-sm">
+        <Link href={`${prefix}/places/new`} className="btn-accent px-4 py-2.5 text-sm">
           + הוסף מקום
         </Link>
       </div>
@@ -132,7 +134,7 @@ export default function PlacesPage() {
           action={
             !places?.length && (
               <Link
-                href="/places/new"
+                href={`${prefix}/places/new`}
                 className="btn-primary px-5 py-2.5 text-sm"
               >
                 + הוסף מקום ראשון

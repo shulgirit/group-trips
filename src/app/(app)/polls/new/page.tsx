@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addPoll } from "@/lib/db";
 import { usePlaces } from "@/lib/hooks";
 import { PLACE_CATEGORIES } from "@/types";
+import { useTrip } from "@/components/providers/TripProvider";
 
 let optionCounter = 0;
 
@@ -15,6 +16,7 @@ interface DraftOption {
 }
 
 export default function NewPollPage() {
+  const { prefix } = useTrip();
   const router = useRouter();
   const { places } = usePlaces();
   const [question, setQuestion] = useState("");
@@ -52,7 +54,7 @@ export default function NewPollPage() {
     setError("");
     try {
       await addPoll({ question, options });
-      router.replace("/polls");
+      router.replace(`${prefix}/polls`);
     } catch {
       setError("השמירה נכשלה, נסו שוב");
       setSaving(false);

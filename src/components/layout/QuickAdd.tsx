@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTrip } from "@/components/providers/TripProvider";
 import {
   CalendarPlus,
   ChevronLeft,
@@ -13,22 +14,23 @@ import {
   Wallet,
 } from "lucide-react";
 
-const QUICK_ACTIONS = [
-  { icon: MapPinPlus, label: "הוסף מקום", href: "/places/new", gold: false },
-  { icon: CalendarPlus, label: "הוסף אירוע", href: "/calendar/new", gold: false },
-  { icon: Wallet, label: "הוסף הוצאה", href: "/expenses?add=1", gold: false },
-  { icon: Vote, label: "צור סקר", href: "/polls/new", gold: false },
-  {
-    icon: Sparkles,
-    label: "שאל את המשרת של החבורה 🦻",
-    href: "/ai",
-    gold: true,
-  },
-] as const;
-
 export function QuickAdd() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const trip = useTrip();
+
+  const quickActions = [
+    { icon: MapPinPlus, label: "הוסף מקום", href: `${trip.prefix}/places/new`, gold: false },
+    { icon: CalendarPlus, label: "הוסף אירוע", href: `${trip.prefix}/calendar/new`, gold: false },
+    { icon: Wallet, label: "הוסף הוצאה", href: `${trip.prefix}/expenses?add=1`, gold: false },
+    { icon: Vote, label: "צור סקר", href: `${trip.prefix}/polls/new`, gold: false },
+    {
+      icon: Sparkles,
+      label: trip.ai.quickAddLabel,
+      href: `${trip.prefix}/ai`,
+      gold: true,
+    },
+  ] as const;
 
   useEffect(() => {
     if (!open) return;
@@ -44,7 +46,7 @@ export function QuickAdd() {
   }, [open]);
 
   // The chat input owns the bottom edge on the concierge screen
-  if (pathname.startsWith("/ai")) return null;
+  if (pathname.startsWith(`${trip.prefix}/ai`)) return null;
 
   return (
     <>
@@ -72,7 +74,7 @@ export function QuickAdd() {
             </h2>
             <p className="mb-4 text-sm text-ink-500">הכל מסתנכרן לכולם מיד</p>
             <ul className="mb-4 space-y-1.5">
-              {QUICK_ACTIONS.map(({ icon: Icon, label, href, gold }) => (
+              {quickActions.map(({ icon: Icon, label, href, gold }) => (
                 <li key={label}>
                   <Link
                     href={href}
