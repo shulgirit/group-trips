@@ -121,6 +121,18 @@ export default function MapPage() {
   const trip = useTrip();
   const { prefix } = trip;
   const { places, loading } = usePlaces();
+  // Home pin: the "villa" place, else the first accommodation added
+  const homeBaseId = useMemo(() => {
+    if (!places) return null;
+    return (
+      (
+        places.find((p) => p.id === "villa") ??
+        places
+          .filter((p) => p.category === "accommodation")
+          .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0]
+      )?.id ?? null
+    );
+  }, [places]);
   const { events } = useEvents();
   const [filter, setFilter] = useState<FilterId>("scheduled");
   const [mapReady, setMapReady] = useState(false);
@@ -189,7 +201,7 @@ export default function MapPage() {
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = mappablePlaces.map((place) => {
       // The villa is home base — it gets a bigger terracotta home pin
-      const isVilla = place.id === "villa";
+      const isVilla = place.id === homeBaseId;
       const marker = new window.google.maps.Marker({
         map,
         position: { lat: place.lat, lng: place.lng },
@@ -210,7 +222,7 @@ export default function MapPage() {
       map.fitBounds(bounds, 60);
       if (mappablePlaces.length === 1) map.setZoom(13);
     }
-  }, [mappablePlaces]);
+  }, [mappablePlaces, homeBaseId]);
 
   useEffect(() => {
     if (!mapReady || !containerRef.current) return;

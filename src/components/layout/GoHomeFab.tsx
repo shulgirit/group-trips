@@ -2,22 +2,22 @@
 
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
-import { usePlace } from "@/lib/hooks";
+import { useHomeBase } from "@/lib/hooks";
 import { wazeUrl } from "@/lib/nav";
 import { useTrip } from "@/components/providers/TripProvider";
 
 /** Floating "navigate home" button — one tap opens Waze to the trip's
- *  home base (the place with the fixed id "villa", or the config
- *  fallback). Hidden when the trip has no home base yet. */
+ *  home base (the "villa" place, or the first accommodation added, or
+ *  the config fallback). Hidden while the trip has no home base. */
 export function GoHomeFab() {
   const pathname = usePathname();
   const trip = useTrip();
-  const { place } = usePlace("villa");
+  const { home } = useHomeBase();
 
   // The chat input owns the bottom edge on the concierge screen
   if (pathname.startsWith(`${trip.prefix}/ai`)) return null;
 
-  const target = place ?? trip.homeBase;
+  const target = home ?? trip.homeBase;
   if (!target) return null;
 
   return (
