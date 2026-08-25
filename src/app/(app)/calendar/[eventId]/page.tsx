@@ -23,7 +23,7 @@ export default function EditEventPage({
   const { prefix } = useTrip();
   const { eventId } = use(params);
   const router = useRouter();
-  const days = tripDays();
+  const days = tripDays(useTrip());
   const today = todayIso();
 
   const { data: event, loading } = useDocData<TripEvent>(
