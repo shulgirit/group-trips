@@ -11,7 +11,7 @@ import { db, signInWithGoogle } from "@/lib/firebase/client";
 import { logoutEverywhere } from "@/lib/logout";
 import { useFamilies } from "@/lib/hooks";
 import { googleMapsUrl } from "@/lib/nav";
-import { TRIP, formatDayLabel, tripDays } from "@/lib/trip";
+import { formatDayLabel, tripDays } from "@/lib/trip";
 import { useTrip } from "@/components/providers/TripProvider";
 
 export default function SettingsPage() {
@@ -216,27 +216,24 @@ export default function SettingsPage() {
           <div className="px-4 py-3">
             <p className="text-sm font-medium text-ink-500">📅 תאריכים</p>
             <p className="mt-0.5 text-ink-900">
-              {formatDayLabel(TRIP.startDate)} — {formatDayLabel(TRIP.endDate)}{" "}
-              · {tripDays().length} ימים
+              {formatDayLabel(trip.startDate)} — {formatDayLabel(trip.endDate)}{" "}
+              · {tripDays(trip).length} ימים
             </p>
           </div>
-          <div className="px-4 py-3">
-            <p className="text-sm font-medium text-ink-500">🏡 הוילה</p>
-            <p className="mt-0.5 text-ink-900">{TRIP.villa.name}</p>
-            <a
-              href={googleMapsUrl({
-                name: TRIP.villa.name,
-                address: TRIP.villa.address,
-                lat: TRIP.villa.lat,
-                lng: TRIP.villa.lng,
-              })}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-0.5 block text-sm text-sea-600"
-            >
-              {TRIP.villa.address} ›
-            </a>
-          </div>
+          {trip.homeBase && (
+            <div className="px-4 py-3">
+              <p className="text-sm font-medium text-ink-500">🏡 הוילה</p>
+              <p className="mt-0.5 text-ink-900">{trip.homeBase.name}</p>
+              <a
+                href={googleMapsUrl(trip.homeBase, trip.searchRegionHint)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-0.5 block text-sm text-sea-600"
+              >
+                {trip.homeBase.address} ›
+              </a>
+            </div>
+          )}
           <div className="px-4 py-3">
             <p className="text-sm font-medium text-ink-500">💶 מטבע</p>
             <p className="mt-0.5 text-ink-900">אירו · שקל · דולר</p>
@@ -261,7 +258,7 @@ export default function SettingsPage() {
           >
             🎓 הפעלת סיור ההיכרות מחדש
           </button>
-          <p className="mt-2 text-center">🍋 סיציליה 2026 · חבורת מיחא</p>
+          <p className="mt-2 text-center">{trip.signature}</p>
         </div>
       </section>
     </div>

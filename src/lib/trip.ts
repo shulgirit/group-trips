@@ -26,10 +26,12 @@ export const TRIP = {
 export const TRIP_PATH = `trips/${TRIP.id}`;
 
 /** All trip days as ISO date strings (YYYY-MM-DD), inclusive. */
-export function tripDays(): string[] {
+export function tripDays(
+  trip: { startDate: string; endDate: string } = TRIP
+): string[] {
   const days: string[] = [];
-  const current = new Date(`${TRIP.startDate}T12:00:00`);
-  const last = new Date(`${TRIP.endDate}T12:00:00`);
+  const current = new Date(`${trip.startDate}T12:00:00`);
+  const last = new Date(`${trip.endDate}T12:00:00`);
   while (current <= last) {
     days.push(current.toISOString().slice(0, 10));
     current.setDate(current.getDate() + 1);
@@ -45,8 +47,11 @@ export function todayIso(): string {
 }
 
 /** 1-based trip day number for a date, or null outside the trip. */
-export function tripDayNumber(dateIso: string): number | null {
-  const days = tripDays();
+export function tripDayNumber(
+  dateIso: string,
+  trip: { startDate: string; endDate: string } = TRIP
+): number | null {
+  const days = tripDays(trip);
   const index = days.indexOf(dateIso);
   return index === -1 ? null : index + 1;
 }

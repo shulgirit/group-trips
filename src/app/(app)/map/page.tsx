@@ -33,7 +33,7 @@ declare global {
   }
 }
 
-const SICILY_CENTER = { lat: 37.55, lng: 14.25 };
+
 
 const FILTERS = [
   { id: "scheduled", label: "בלוח" },
@@ -118,7 +118,8 @@ function loadGoogleMaps(onReady: () => void): void {
 }
 
 export default function MapPage() {
-  const { prefix } = useTrip();
+  const trip = useTrip();
+  const { prefix } = trip;
   const { places, loading } = usePlaces();
   const { events } = useEvents();
   const [filter, setFilter] = useState<FilterId>("scheduled");
@@ -215,7 +216,7 @@ export default function MapPage() {
     if (!mapReady || !containerRef.current) return;
     if (!mapRef.current) {
       mapRef.current = new window.google.maps.Map(containerRef.current, {
-        center: SICILY_CENTER,
+        center: trip.mapCenter,
         zoom: 8,
         disableDefaultUI: true,
         zoomControl: true,

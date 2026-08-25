@@ -48,7 +48,8 @@ function matchesFilter(
 }
 
 export default function PlacesPage() {
-  const { prefix } = useTrip();
+  const trip = useTrip();
+  const { prefix } = trip;
   const { places, loading, error } = usePlaces();
   const { events } = useEvents();
   const [search, setSearch] = useState("");
@@ -80,7 +81,7 @@ export default function PlacesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="kicker text-terra-500">Sicily Together</p>
+          <p className="kicker text-terra-500">{trip.kicker}</p>
           <h1 className="font-display text-3xl font-bold text-ink-900">
             מקומות
           </h1>

@@ -33,18 +33,11 @@ import {
   type PlaceCategory,
 } from "@/types";
 
-const SUGGESTED_PROMPTS = [
-  "תמליץ לנו על אטרקציה",
-  "מה כדאי לעשות מחר?",
-  "תמצא לנו מסעדה טובה לילדים",
-  "תמצא פעילות לילדים",
-  "תמצא Plan B אם יורד גשם",
-  "מה עוד לא שובץ בלוח?",
-];
 
 export default function AiPage() {
   const { ready, user, personal, profile } = useFirebase();
-  const { path: tripPath, prefix, id: tripId } = useTrip();
+  const trip = useTrip();
+  const { path: tripPath, prefix, id: tripId } = trip;
   const { families } = useFamilies();
 
   // "מיקה ממשפחת טל" — so the servant knows who it's talking to
@@ -421,9 +414,9 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <p className="kicker text-terra-500">חבורת מיחא</p>
+      <p className="kicker text-terra-500">{trip.ai.kicker}</p>
       <h1 className="mb-1 font-display text-3xl font-bold text-ink-900">
-        🦻✨ המשרת של חבורת מיחא
+        {trip.ai.title}
       </h1>
       <p className="mb-3 text-sm text-ink-500">
         {personal
@@ -491,15 +484,14 @@ export default function AiPage() {
           <>
             <div className="card relative overflow-hidden px-5 py-6 text-center">
               <span aria-hidden className="text-4xl">
-                🦻✨
+                {trip.ai.emoji}
               </span>
               <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-                המשרת של החבורה לשירותכם — המלצות, שיבוצים בלוח, סקרים
-                ועדכון מקומות. מחובר לכל נתוני הטיול
+                {trip.ai.heroBlurb}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {SUGGESTED_PROMPTS.map((prompt) => (
+              {trip.ai.suggestedPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
@@ -754,7 +746,7 @@ export default function AiPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-              activeSession ? "המשיכו את השיחה…" : "שאלו אותי כל דבר על הטיול…"
+              activeSession ? "המשיכו את השיחה…" : trip.ai.inputPlaceholder
             }
             className="field min-w-0 flex-1 py-3.5 shadow-[var(--shadow-card)]"
           />

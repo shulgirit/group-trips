@@ -11,7 +11,6 @@ import { useEvents, useFamilies, usePlaces } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { participantsLabel } from "@/lib/participants";
 import {
-  TRIP,
   formatDayLabel,
   todayIso,
   tripDayNumber,
@@ -19,6 +18,7 @@ import {
 } from "@/lib/trip";
 import { PLACE_CATEGORIES, type Place, type TripEvent } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { TripHeroBackdrop } from "@/components/layout/TripHeroBackdrop";
 
 const DEFAULT_DURATION_MIN = 90;
 
@@ -54,7 +54,8 @@ function timeUntilLabel(target: Date, now: Date): string | null {
 }
 
 export default function HomePage() {
-  const { prefix } = useTrip();
+  const trip = useTrip();
+  const { prefix } = trip;
   const { events, loading: eventsLoading } = useEvents();
   const { places } = usePlaces();
   const { families } = useFamilies();
@@ -67,7 +68,7 @@ export default function HomePage() {
   }, []);
 
   const today = todayIso();
-  const duringTrip = today >= TRIP.startDate && today <= TRIP.endDate;
+  const duringTrip = today >= trip.startDate && today <= trip.endDate;
 
   const { nextEvent, todayEvents, currentEvent } = useMemo(() => {
     if (!events || !now)
@@ -86,24 +87,17 @@ export default function HomePage() {
     ? (PLACE_CATEGORIES[nextPlace.category] ?? PLACE_CATEGORIES.other)
     : null;
 
-  const dayNumber = tripDayNumber(today);
+  const dayNumber = tripDayNumber(today, trip);
 
   return (
     <div className="space-y-8">
       {/* ── Cinematic hero ── */}
       <section className="relative -mx-4 -mt-4 overflow-hidden md:mx-0 md:mt-0 md:rounded-[2rem]">
         <div className="relative h-[340px] md:h-[400px]">
-          <Image
-            src={TRIP.heroImage}
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 576px"
-            className="object-cover"
-          />
+          <TripHeroBackdrop trip={trip} />
           <div className="hero-overlay absolute inset-0" />
           <div className="absolute inset-x-0 bottom-0 px-6 pb-7 text-center">
-            <p className="kicker text-lemon-300">Sicily Together</p>
+            <p className="kicker text-lemon-300">{trip.kicker}</p>
             {duringTrip ? (
               <>
                 <h1 className="mt-2 font-display text-4xl font-bold text-cream-50">
@@ -111,20 +105,21 @@ export default function HomePage() {
                 </h1>
                 {dayNumber && (
                   <p className="mt-2 text-lg text-cream-50/85">
-                    יום {dayNumber} מתוך {tripDays().length} · סיציליה 🇮🇹
+                    יום {dayNumber} מתוך {tripDays(trip).length} ·{" "}
+                    {trip.dayLabelSuffix}
                   </p>
                 )}
               </>
             ) : (
               <>
                 <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-cream-50">
-                  {TRIP.heroTitle}
+                  {trip.heroTitle}
                 </h1>
                 <div className="mt-5">
-                  <Countdown targetIso={TRIP.countdownTarget} />
+                  <Countdown targetIso={trip.countdownTarget} />
                 </div>
                 <p className="mt-4 text-sm text-cream-50/80">
-                  ✈️ ההמראה מנתב״ג · שבת 15.8 · 21:35
+                  {trip.departureNote}
                 </p>
               </>
             )}
@@ -317,7 +312,7 @@ export default function HomePage() {
             className="card flex items-center gap-4 px-5 py-4 transition active:scale-[0.99]"
           >
             <span className="text-2xl" aria-hidden>
-              🍋
+              {trip.emoji}
             </span>
             <span className="flex-1 text-ink-700">
               {places!.length} מקומות שמורים · מה עוד לא שובץ?

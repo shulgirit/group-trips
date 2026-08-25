@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { TRIP } from "@/lib/trip";
+import { activeTrip } from "@/lib/active-trip";
+import { useTrip } from "@/components/providers/TripProvider";
 
 interface TourStep {
   emoji: string;
@@ -14,7 +15,7 @@ interface TourStep {
   accent: string;
 }
 
-const STEPS: TourStep[] = [
+const SICILY_STEPS: TourStep[] = [
   {
     emoji: "🍋",
     kicker: "חבורת מיחא · סיציליה 2026",
@@ -118,11 +119,100 @@ const STEPS: TourStep[] = [
   },
 ];
 
-const TOUR_SEEN_KEY = "micha-tour-seen-v1";
+const SARDINIA_STEPS: TourStep[] = [
+  {
+    emoji: "🎉",
+    kicker: "טייסת סרדיניה · חוגגים 60",
+    title: "ברוכים הבאים לאפליקציית הטיול!",
+    lines: [
+      "כל הטיול במקום אחד — במקום לחפש כתובות והחלטות בוואטסאפ",
+      "כל מה שמישהו מוסיף — כולם רואים מיד, בזמן אמת",
+      "דקה של הסבר ואתם באוויר. מוכנים? קדימה 👇",
+    ],
+    accent: "bg-lemon-400",
+  },
+  {
+    emoji: "🏠",
+    kicker: "המסך הראשי",
+    title: "עכשיו — מה קורה ומה הבא?",
+    lines: [
+      "ספירה לאחור להמראה, הפעילות הבאה והלו״ז של היום",
+      "אחרי שנקבע בסיס — כפתור בית כחול 🏠 ינווט אליו בוויז מכל מסך",
+    ],
+    accent: "bg-sea-500",
+  },
+  {
+    emoji: "📍",
+    kicker: "טאב מקומות",
+    title: "כל ההמלצות במקום אחד",
+    lines: [
+      "מסעדות, תצפיות, חופים ויקבים — עם תמונות, דירוגים וניווט",
+      "מצאתם משהו שווה? מוסיפים בשניות והשאר רואים מיד",
+    ],
+    accent: "bg-terra-400",
+  },
+  {
+    emoji: "📅",
+    kicker: "טאב לו״ז",
+    title: "התוכנית של כל יום",
+    lines: [
+      "משבצים פעילויות ורואים מי משתתף",
+      "תזכורת אוטומטית לכולם ~45 דקות לפני כל פעילות",
+    ],
+    accent: "bg-olive-500",
+  },
+  {
+    emoji: "🗺️",
+    kicker: "טאב מפה",
+    title: "כל המקומות על מפה אחת",
+    lines: [
+      "רואים מה קרוב למה ומתכננים ימים חכמים",
+      "לחיצה על סיכה — פרטים וניווט מיידי",
+    ],
+    accent: "bg-sea-400",
+  },
+  {
+    emoji: "💶",
+    kicker: "הוצאות",
+    title: "מי שילם ומי חייב",
+    lines: [
+      "רושמים כל הוצאה בשניות — האפליקציה מחלקת בין החברים",
+      "בסוף הטיול: סיכום אחד בשקלים וסוגרים חשבון",
+    ],
+    accent: "bg-lemon-400",
+  },
+  {
+    emoji: "✈️",
+    kicker: "הקסם האמיתי",
+    title: "הטייס ✨",
+    lines: [
+      "ה-AI הפרטי של החבורה — מכיר את כל הטיול",
+      "מדברים אליו חופשי:",
+    ],
+    chips: [
+      "״תמליץ על נקודת תצפית בדרך לאלגרו״",
+      "״תוסיף למחר ב-19:00 מסעדת דגים בקליארי״",
+      "״תעשה סקר — יקב או שייט מחר?״",
+      "״מה הלו״ז של מחר?״",
+    ],
+    accent: "bg-terra-400",
+  },
+  {
+    emoji: "🎯",
+    kicker: "שלושה צעדים ואתם מסודרים",
+    title: "מה עושים עכשיו?",
+    lines: [
+      "1️⃣ אשרו התראות 🔔 — כדי לקבל תזכורות וסקרים",
+      "2️⃣ הוסיפו המלצה ראשונה למקומות 📍",
+      "3️⃣ בהגדרות: קשרו את עצמכם לשם שלכם 👤 — ותצביעו בקליק",
+    ],
+    accent: "bg-sea-400",
+  },
+];
 
 export function markTourSeen() {
   try {
-    localStorage.setItem(TOUR_SEEN_KEY, "1");
+    localStorage.setItem(activeTrip().tourKey, "1");
   } catch {
     // storage unavailable — the tour will simply offer itself again
   }
@@ -130,7 +220,7 @@ export function markTourSeen() {
 
 export function wasTourSeen(): boolean {
   try {
-    return localStorage.getItem(TOUR_SEEN_KEY) === "1";
+    return localStorage.getItem(activeTrip().tourKey) === "1";
   } catch {
     return true;
   }
@@ -143,6 +233,8 @@ export function AppTour({
   open: boolean;
   onClose: () => void;
 }) {
+  const trip = useTrip();
+  const steps = trip.key === "sicily" ? SICILY_STEPS : SARDINIA_STEPS;
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
@@ -157,9 +249,9 @@ export function AppTour({
 
   if (!open) return null;
 
-  const step = STEPS[stepIndex];
+  const step = steps[stepIndex];
   const isFirst = stepIndex === 0;
-  const isLast = stepIndex === STEPS.length - 1;
+  const isLast = stepIndex === steps.length - 1;
 
   function finish() {
     markTourSeen();
@@ -174,10 +266,10 @@ export function AppTour({
       aria-label="סיור היכרות באפליקציה"
     >
       {/* Welcome photo on the first step */}
-      {isFirst && (
+      {isFirst && trip.heroImage && (
         <div aria-hidden className="absolute inset-0 opacity-25">
           <Image
-            src={TRIP.heroImage}
+            src={trip.heroImage}
             alt=""
             fill
             sizes="100vw"
@@ -189,7 +281,7 @@ export function AppTour({
       {/* Top bar: progress + skip */}
       <div className="relative flex items-center gap-3 px-5 pb-2 pt-[calc(1rem+env(safe-area-inset-top))]">
         <div className="flex flex-1 gap-1.5">
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <span
               key={i}
               className={`h-1 flex-1 rounded-full transition ${
@@ -267,7 +359,7 @@ export function AppTour({
               : "bg-cream-50 text-sea-900"
           }`}
         >
-          {isLast ? "🍋 יאללה, מתחילים!" : "הבא"}
+          {isLast ? `${trip.emoji} יאללה, מתחילים!` : "הבא"}
           {!isLast && <ChevronLeft size={20} />}
         </button>
       </div>

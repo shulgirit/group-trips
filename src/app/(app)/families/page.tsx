@@ -2,6 +2,7 @@
 
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useFamilies } from "@/lib/hooks";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const FAMILY_COLORS: Record<string, string> = {
   sea: "from-sea-500 to-sea-700",
@@ -12,11 +13,12 @@ const FAMILY_COLORS: Record<string, string> = {
 
 export default function FamiliesPage() {
   const { families, loading } = useFamilies();
+  const trip = useTrip();
 
   return (
     <div className="space-y-4">
       <h1 className="font-display text-2xl font-bold text-ink-900">
-        👨‍👩‍👧‍👦 המשפחות
+        {trip.group.pageTitle}
       </h1>
       {loading ? (
         <ListSkeleton rows={4} />
@@ -52,7 +54,7 @@ export default function FamiliesPage() {
       )}
       <p className="text-center text-sm text-ink-500">
         {families
-          ? `${families.reduce((sum, f) => sum + f.members.length, 0)} מטיילים · ${families.length} משפחות · וילה אחת 🏡`
+          ? `${families.reduce((sum, f) => sum + f.members.length, 0)} מטיילים · ${families.length} ${trip.group.unitLabel}${trip.group.summarySuffix}`
           : ""}
       </p>
     </div>

@@ -2,6 +2,8 @@
 
 import type { Family } from "@/types";
 import { CURRENCY_SYMBOL, type Currency } from "@/lib/currency";
+import { activeTrip } from "@/lib/active-trip";
+import { useTrip } from "@/components/providers/TripProvider";
 
 /** Shared shape for the add/edit expense split UI. counts is sparse — a
  *  family without an entry defaults to its full size. */
@@ -45,7 +47,7 @@ export function splitError(
   split: SplitState
 ): string | null {
   if (!split.everyone && split.participantIds.length === 0)
-    return "בחרו אילו משפחות השתתפו";
+    return activeTrip().group.splitPickLabel;
   if (split.byPeople && totalPeople(families, split) <= 0)
     return "בחרו לפחות אדם אחד בחלוקה לפי אנשים";
   return null;
@@ -89,6 +91,7 @@ export function SplitEditor({
   amount?: number;
   currency: Currency;
 }) {
+  const { group } = useTrip();
   const participating = participatingFamilies(families, split);
   const total = totalPeople(families, split);
 
@@ -120,7 +123,7 @@ export function SplitEditor({
           >
             {split.everyone ? "✓" : ""}
           </span>
-          כולם השתתפו (כל המשפחות)
+          {group.splitEveryoneLabel}
         </button>
         {!split.everyone && (
           <div className="mt-3 flex flex-wrap gap-2">
