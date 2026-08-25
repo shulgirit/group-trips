@@ -17,7 +17,7 @@ import { auth, db, isPersonalUser } from "@/lib/firebase/client";
 import { wazeUrl } from "@/lib/nav";
 import { notifyGroup } from "@/lib/push-client";
 import { formatDayLabel } from "@/lib/trip";
-import { activeTripPath } from "@/lib/active-trip";
+import { activeTrip, activeTripPath } from "@/lib/active-trip";
 import {
   PlaceInputSchema,
   EventInputSchema,
@@ -103,12 +103,15 @@ export async function addEvent(input: EventInput): Promise<string> {
       );
       const place = placeSnap.data();
       if (place && (place.lat != null || place.address)) {
-        navUrl = wazeUrl({
-          name: String(place.name ?? parsed.title),
-          address: place.address ? String(place.address) : undefined,
-          lat: place.lat ?? null,
-          lng: place.lng ?? null,
-        });
+        navUrl = wazeUrl(
+          {
+            name: String(place.name ?? parsed.title),
+            address: place.address ? String(place.address) : undefined,
+            lat: place.lat ?? null,
+            lng: place.lng ?? null,
+          },
+          activeTrip().searchRegionHint
+        );
       }
     } catch {
       // navigation link is a bonus

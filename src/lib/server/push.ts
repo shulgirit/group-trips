@@ -2,7 +2,6 @@ import "server-only";
 import { createHash } from "node:crypto";
 import webpush from "web-push";
 import { adminDb } from "@/lib/firebase/admin";
-import { TRIP_PATH } from "@/lib/trip";
 
 export interface PushPayload {
   title: string;
@@ -37,8 +36,8 @@ export function subscriptionDocId(endpoint: string): string {
   return createHash("sha256").update(endpoint).digest("hex").slice(0, 32);
 }
 
-function subscriptionsRef() {
-  return adminDb().collection(`${TRIP_PATH}/pushSubscriptions`);
+export function subscriptionsRef(tripPath: string) {
+  return adminDb().collection(`${tripPath}/pushSubscriptions`);
 }
 
 /**
@@ -47,13 +46,14 @@ function subscriptionsRef() {
  * Best-effort by design — never throws.
  */
 export async function sendPushToAll(
+  tripPath: string,
   payload: PushPayload,
   options?: { excludeUid?: string }
 ): Promise<{ sent: number; removed: number }> {
   if (!configured()) return { sent: 0, removed: 0 };
   setup();
 
-  const snapshot = await subscriptionsRef().get();
+  const snapshot = await subscriptionsRef(tripPath).get();
   let sent = 0;
   let removed = 0;
   const body = JSON.stringify(payload);

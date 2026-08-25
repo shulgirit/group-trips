@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { resolveTrip } from "@/lib/server/trip-server";
 
 export const maxDuration = 60;
 
@@ -11,6 +12,7 @@ const RequestSchema = z.object({
   area: z.string().max(120).optional(),
   description: z.string().max(600).optional(),
   why: z.string().max(600).optional(),
+  tripId: z.string().optional(),
 });
 
 /** Fast, focused briefing about a single recommended place — used by the
@@ -30,6 +32,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
+  const trip = resolveTrip(body.tripId);
 
   try {
     const openai = new OpenAI();
@@ -39,11 +42,13 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "אתה המשרת של חבורת מיחא — עוזר טיולים לארבע משפחות ישראליות עם ילדים בסיציליה (חלק מהילדים עם שתלים קוכלאריים; ציין שיקולי שמיעה רק אם באמת רלוונטי). ענה בעברית, חם, תמציתי ומעשי. בלי פתיחים מיותרים.",
+            trip.key === "sicily"
+              ? "אתה המשרת של חבורת מיחא — עוזר טיולים לארבע משפחות ישראליות עם ילדים בסיציליה (חלק מהילדים עם שתלים קוכלאריים; ציין שיקולי שמיעה רק אם באמת רלוונטי). ענה בעברית, חם, תמציתי ומעשי. בלי פתיחים מיותרים."
+              : "אתה ״הטייס״ — עוזר טיולים לחמישה חברים מבוגרים שחוגגים 60 בסרדיניה. ענה בעברית, ישיר, תמציתי ומעשי. בלי פתיחים מיותרים.",
         },
         {
           role: "user",
-          content: `ספר לי על ${body.name}${body.area ? ` (${body.area})` : ""} בסיציליה: מה זה בעצם, למה שווה לקבוצה כמו שלנו, ו-2-3 טיפים מעשיים (עלות משוערת, משך, האם צריך להזמין מראש). עד 120 מילים.${
+          content: `ספר לי על ${body.name}${body.area ? ` (${body.area})` : ""} ב${trip.shortName}: מה זה בעצם, למה שווה לקבוצה כמו שלנו, ו-2-3 טיפים מעשיים (עלות משוערת, משך, האם צריך להזמין מראש). עד 120 מילים.${
             body.description ? `\nמה שכבר ידוע: ${body.description}` : ""
           }${body.why ? `\n${body.why}` : ""}`,
         },

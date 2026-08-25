@@ -41,7 +41,7 @@ interface SearchResult {
 }
 
 export default function NewPlacePage() {
-  const { prefix } = useTrip();
+  const { prefix, id: tripId } = useTrip();
   const router = useRouter();
   const { places } = usePlaces();
 
@@ -94,6 +94,7 @@ export default function NewPlacePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: /^https?:\/\//.test(url) ? url : `https://${url}`,
+          tripId,
         }),
       });
       if (!response.ok) throw new Error("import_failed");
@@ -139,7 +140,7 @@ export default function NewPlacePage() {
       const response = await fetch("/api/import/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, tripId }),
       });
       if (!response.ok) throw new Error("search_failed");
       const { results }: { results: SearchResult[] } = await response.json();

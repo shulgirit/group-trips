@@ -1,5 +1,7 @@
 "use client";
 
+import { activeTrip } from "@/lib/active-trip";
+
 /** Client helpers for web-push subscribe/unsubscribe. */
 
 export function pushSupported(): boolean {
@@ -73,6 +75,7 @@ export async function subscribeToPush(meta: {
         subscription: subscription.toJSON(),
         uid: meta.uid,
         userName: meta.userName,
+        tripId: activeTrip().id,
       }),
     });
     return response.ok ? "subscribed" : "failed";
@@ -87,7 +90,7 @@ export async function unsubscribeFromPush(): Promise<void> {
   await fetch("/api/push/subscribe", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: subscription.endpoint }),
+    body: JSON.stringify({ endpoint: subscription.endpoint, tripId: activeTrip().id }),
   }).catch(() => undefined);
   await subscription.unsubscribe().catch(() => undefined);
 }
@@ -103,7 +106,7 @@ export function notifyGroup(
   fetch("/api/push/notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, title, detail, actorUid, ...extras }),
+    body: JSON.stringify({ type, title, detail, actorUid, tripId: activeTrip().id, ...extras }),
     keepalive: true,
   }).catch(() => undefined);
 }

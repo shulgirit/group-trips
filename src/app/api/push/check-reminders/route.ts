@@ -4,12 +4,12 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@/lib/nav";
 import { sendPushToAll } from "@/lib/server/push";
-import { TRIP_PATH } from "@/lib/trip";
+import { resolveTrip } from "@/lib/server/trip-server";
 
 const REMINDER_WINDOW_MIN = 50;
 const REMINDER_MIN_LEAD_MIN = 10;
 
-function sicilyNowParts() {
+function tripNowParts() {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Rome",
     year: "numeric",
@@ -30,18 +30,24 @@ function sicilyNowParts() {
 
 /**
  * Sends "leaving soon" reminders for events starting within the next
- * ~10-50 minutes (Sicily time). Idempotent via reminderSentAt.
+ * ~10-50 minutes (trip-local time, both trips are Europe/Rome). Idempotent via reminderSentAt.
  * Called opportunistically by open clients every few minutes.
  */
-export async function POST() {
+export async function POST(request: Request) {
   const cookieStore = await cookies();
   if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { dateIso, minutes } = sicilyNowParts();
+  const tripId = await request
+    .json()
+    .then((body) => (body as { tripId?: string })?.tripId)
+    .catch(() => undefined);
+  const trip = resolveTrip(tripId);
+
+  const { dateIso, minutes } = tripNowParts();
   const snapshot = await adminDb()
-    .collection(`${TRIP_PATH}/events`)
+    .collection(`${trip.path}/events`)
     .where("day", "==", dateIso)
     .get();
 
@@ -62,23 +68,26 @@ export async function POST() {
     let navUrl: string | undefined;
     if (event.placeId) {
       const placeSnap = await adminDb()
-        .doc(`${TRIP_PATH}/places/${event.placeId}`)
+        .doc(`${trip.path}/places/${event.placeId}`)
         .get();
       const place = placeSnap.data();
       if (place && (place.lat != null || place.address)) {
-        navUrl = wazeUrl({
-          name: String(place.name ?? event.title),
-          address: place.address ? String(place.address) : undefined,
-          lat: place.lat ?? null,
-          lng: place.lng ?? null,
-        });
+        navUrl = wazeUrl(
+          {
+            name: String(place.name ?? event.title),
+            address: place.address ? String(place.address) : undefined,
+            lat: place.lat ?? null,
+            lng: place.lng ?? null,
+          },
+          trip.searchRegionHint
+        );
       }
     }
 
-    await sendPushToAll({
+    await sendPushToAll(trip.path, {
       title: `⏰ בעוד ${lead} דקות: ${event.title}`,
       body: `${event.startTime}${event.notes ? ` · ${event.notes}` : ""}`,
-      url: "/",
+      url: trip.prefix || "/",
       tag: `reminder-${doc.id}`,
       navUrl,
     });

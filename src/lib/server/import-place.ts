@@ -38,7 +38,7 @@ const EXTRACT_JSON_SCHEMA = {
     properties: {
       name: { type: "string" },
       category: { type: "string", enum: Object.keys(PLACE_CATEGORIES) },
-      area: { type: "string", description: "אזור/עיר בסיציליה, בעברית אם אפשר" },
+      area: { type: "string", description: "אזור/עיר, בעברית אם אפשר" },
       address: { type: "string", description: "כתובת מלאה אם מופיעה בדף" },
       summary: {
         type: "string",
@@ -121,7 +121,10 @@ interface SearchResult {
   data?: { web?: { title?: string; description?: string }[] };
 }
 
-export async function geocodePlace(query: string): Promise<{
+export async function geocodePlace(
+  query: string,
+  region = "Sicily"
+): Promise<{
   lat: number;
   lng: number;
   address?: string;
@@ -143,7 +146,7 @@ export async function geocodePlace(query: string): Promise<{
           "X-Goog-FieldMask":
             "places.formattedAddress,places.location,places.photos,places.rating,places.userRatingCount",
         },
-        body: JSON.stringify({ textQuery: `${query} Sicily` }),
+        body: JSON.stringify({ textQuery: `${query} ${region}` }),
       }
     );
     if (!response.ok) return null;
@@ -192,7 +195,10 @@ export class ImportError extends Error {
 }
 
 /** Scrapes a URL, hunts for reviews, extracts a Hebrew place draft. */
-export async function importPlaceFromUrl(url: string): Promise<PlaceDraft> {
+export async function importPlaceFromUrl(
+  url: string,
+  region = "Sicily"
+): Promise<PlaceDraft> {
   if (!process.env.FIRECRAWL_API_KEY || !process.env.OPENAI_API_KEY) {
     throw new ImportError("scrape_failed");
   }
@@ -227,7 +233,7 @@ export async function importPlaceFromUrl(url: string): Promise<PlaceDraft> {
         {
           role: "system",
           content:
-            "אתה עוזר של אפליקציית טיול משפחתי בסיציליה. חלץ מהדף מידע מובנה על המקום. אל תמציא — שדה שאין לו מידע בדף, השאר מחרוזת ריקה. טקסטים חופשיים בעברית.",
+            "אתה עוזר של אפליקציית טיולים. חלץ מהדף מידע מובנה על המקום. אל תמציא — שדה שאין לו מידע בדף, השאר מחרוזת ריקה. טקסטים חופשיים בעברית.",
         },
         {
           role: "user",
@@ -245,7 +251,10 @@ export async function importPlaceFromUrl(url: string): Promise<PlaceDraft> {
     if (!raw) throw new Error("empty");
     const draft = PlaceDraftSchema.parse(JSON.parse(raw));
 
-    const geo = await geocodePlace(draft.address || `${draft.name} ${draft.area}`);
+    const geo = await geocodePlace(
+      draft.address || `${draft.name} ${draft.area}`,
+      region
+    );
 
     return {
       ...draft,

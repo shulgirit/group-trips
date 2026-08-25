@@ -44,7 +44,7 @@ const SUGGESTED_PROMPTS = [
 
 export default function AiPage() {
   const { ready, user, personal, profile } = useFirebase();
-  const { path: tripPath, prefix } = useTrip();
+  const { path: tripPath, prefix, id: tripId } = useTrip();
   const { families } = useFamilies();
 
   // "מיקה ממשפחת טל" — so the servant knows who it's talking to
@@ -114,6 +114,7 @@ export default function AiPage() {
           area: candidate.area,
           description: candidate.description,
           why: candidate.why,
+          tripId,
         }),
       });
       if (!response.ok) throw new Error("failed");
@@ -244,6 +245,7 @@ export default function AiPage() {
             imageUrl,
           })),
           speaker,
+          tripId,
         }),
       });
       if (!response.ok) throw new Error("ai_failed");

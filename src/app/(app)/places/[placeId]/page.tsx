@@ -43,7 +43,7 @@ export default function PlaceDetailPage({
 }: {
   params: Promise<{ placeId: string }>;
 }) {
-  const { prefix } = useTrip();
+  const { prefix, id: tripId } = useTrip();
   const { placeId } = use(params);
   const router = useRouter();
   const { user } = useFirebase();
@@ -92,7 +92,9 @@ export default function PlaceDetailPage({
       const response = await fetch("/api/import/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(url ? { placeId, url } : { placeId }),
+        body: JSON.stringify(
+          url ? { placeId, url, tripId } : { placeId, tripId }
+        ),
       });
       const result = await response.json();
       if (result.ok) {

@@ -8,7 +8,7 @@ import {
   importPlaceFromUrl,
   type PlaceDraft,
 } from "@/lib/server/import-place";
-import { TRIP_PATH } from "@/lib/trip";
+import type { TripConfig } from "@/lib/trips";
 
 export interface EnrichResult {
   ok: boolean;
@@ -21,6 +21,7 @@ const AGGREGATORS =
 
 /** Finds an official-looking website for a place via Firecrawl search. */
 async function findOfficialUrl(
+  region: string,
   name: string,
   area?: string
 ): Promise<string | null> {
@@ -35,7 +36,7 @@ async function findOfficialUrl(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        query: `${name} ${area ?? ""} Sicily official website`,
+        query: `${name} ${area ?? ""} ${region} official website`,
         limit: 5,
       }),
       signal: controller.signal,
@@ -64,6 +65,8 @@ const KnowledgeSchema = z.object({
 
 /** Last resort: the model's own knowledge, gated hard against invention. */
 async function knowledgeEnrich(
+  region: string,
+  audience: string,
   name: string,
   area?: string
 ): Promise<z.infer<typeof KnowledgeSchema> | null> {
@@ -76,7 +79,7 @@ async function knowledgeEnrich(
         {
           role: "system",
           content:
-            "אתה עוזר טיולים. אם אתה מזהה בביטחון גבוה את המקום הספציפי הזה בסיציליה — כתוב עליו תוכן שימושי בעברית למשפחות. אם אינך בטוח שאתה מכיר את המקום המדויק — החזר known=false ואל תמציא כלום. אל תנחש שעות פתיחה או מחירים מדויקים; עדיף שדה ריק.",
+            `אתה עוזר טיולים. אם אתה מזהה בביטחון גבוה את המקום הספציפי הזה ב${region} — כתוב עליו תוכן שימושי בעברית ${audience}. אם אינך בטוח שאתה מכיר את המקום המדויק — החזר known=false ואל תמציא כלום. אל תנחש שעות פתיחה או מחירים מדויקים; עדיף שדה ריק.`,
         },
         { role: "user", content: `המקום: ${name}${area ? `, ${area}` : ""}` },
       ],
@@ -156,10 +159,11 @@ function mergeDraft(
  * place has no image. Honest failure when nothing solid is found.
  */
 export async function enrichSavedPlace(
+  trip: TripConfig,
   placeId: string,
   explicitUrl?: string
 ): Promise<EnrichResult> {
-  const placeRef = adminDb().doc(`${TRIP_PATH}/places/${placeId}`);
+  const placeRef = adminDb().doc(`${trip.path}/places/${placeId}`);
   const snapshot = await placeRef.get();
   if (!snapshot.exists) return { ok: false, message: "המקום לא נמצא" };
   const existing = snapshot.data() as Record<string, unknown>;
@@ -176,7 +180,7 @@ export async function enrichSavedPlace(
     (existing.sourceUrl as string | undefined) ??
     null;
   if (!url) {
-    url = await findOfficialUrl(name, area);
+    url = await findOfficialUrl(trip.searchRegionHint, name, area);
   }
 
   if (url) {
@@ -196,7 +200,12 @@ export async function enrichSavedPlace(
 
   // 2) Model knowledge fallback when the web gave us nothing
   if (!Object.keys(updates).some((k) => k === "summary" || k === "tips")) {
-    const knowledge = await knowledgeEnrich(name, area);
+    const knowledge = await knowledgeEnrich(
+      trip.shortName,
+      trip.key === "sicily" ? "למשפחות" : "למטיילים מבוגרים",
+      name,
+      area
+    );
     if (knowledge) {
       updates = {
         ...mergeDraft(existing, {

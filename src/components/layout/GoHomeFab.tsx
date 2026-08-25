@@ -22,7 +22,7 @@ export function GoHomeFab() {
 
   return (
     <a
-      href={wazeUrl(target)}
+      href={wazeUrl(target, trip.searchRegionHint)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={trip.homeBase?.navAria ?? "נווט הביתה"}

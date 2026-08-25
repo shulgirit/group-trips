@@ -6,15 +6,15 @@ import {
   SESSION_MAX_AGE_SECONDS,
   constantTimeEquals,
   createSessionToken,
-  getTripPassword,
   verifySessionToken,
 } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { TRIP_PATH } from "@/lib/trip";
+import { getJoinCode, resolveTrip } from "@/lib/server/trip-server";
 
 const RequestSchema = z.object({
   idToken: z.string().min(10),
   joinCode: z.string().optional(),
+  tripId: z.string().optional(),
 });
 
 /**
@@ -38,7 +38,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_token" }, { status: 401 });
   }
 
-  const userRef = adminDb().doc(`${TRIP_PATH}/users/${decoded.uid}`);
+  const trip = resolveTrip(body.tripId);
+  const userRef = adminDb().doc(`${trip.path}/users/${decoded.uid}`);
   const snapshot = await userRef.get();
 
   if (!snapshot.exists) {
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
       if (!joinCode) {
         return NextResponse.json({ error: "join_required" }, { status: 403 });
       }
-      const tripPassword = getTripPassword();
+      const tripPassword = await getJoinCode(trip);
       if (!tripPassword || !constantTimeEquals(joinCode, tripPassword)) {
         return NextResponse.json({ error: "wrong_code" }, { status: 401 });
       }

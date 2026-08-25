@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { registerServiceWorker } from "@/lib/push-client";
+import { useTrip } from "@/components/providers/TripProvider";
 
 const PING_INTERVAL_MS = 5 * 60_000;
 
@@ -12,14 +13,17 @@ const PING_INTERVAL_MS = 5 * 60_000;
  * registration fresh for devices that already subscribed.
  */
 export function ReminderPinger() {
+  const { id: tripId } = useTrip();
   useEffect(() => {
     registerServiceWorker();
 
     const ping = () => {
       if (document.visibilityState !== "visible") return;
-      fetch("/api/push/check-reminders", { method: "POST" }).catch(
-        () => undefined
-      );
+      fetch("/api/push/check-reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId }),
+      }).catch(() => undefined);
     };
 
     ping();
@@ -29,7 +33,7 @@ export function ReminderPinger() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", ping);
     };
-  }, []);
+  }, [tripId]);
 
   return null;
 }
