@@ -62,7 +62,8 @@ function analyzeDay(dayEvents: TripEvent[], families: Family[]) {
 
 function CalendarContent() {
   const { prefix } = useTrip();
-  const days = tripDays();
+  const trip = useTrip();
+  const days = tripDays(trip);
   const today = todayIso();
   // Push notifications deep-link here with ?day=YYYY-MM-DD
   const requestedDay = useSearchParams().get("day");
@@ -89,7 +90,7 @@ function CalendarContent() {
   );
 
   const hasSplit = dayEvents.some((e) => flags.get(e.id)?.split);
-  const dayNumber = tripDayNumber(selectedDay);
+  const dayNumber = tripDayNumber(selectedDay, trip);
 
   return (
     <div className="space-y-4">

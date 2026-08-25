@@ -37,7 +37,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function DocumentsPage() {
-  const { ready, user, personal } = useFirebase();
+  const { ready, user, personal, epoch } = useFirebase();
   const { path: tripPath } = useTrip();
   const [tab, setTab] = useState<"shared" | "private">("shared");
   const [sharedDocs, setSharedDocs] = useState<TripDocument[] | null>(null);
@@ -63,7 +63,7 @@ export default function DocumentsPage() {
         ),
       () => setSharedDocs([])
     );
-  }, [ready, user]);
+  }, [ready, user, epoch]);
 
   // My documents (only meaningful with a personal identity)
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function DocumentsPage() {
         ),
       () => setMyDocs([])
     );
-  }, [ready, user, personal]);
+  }, [ready, user, personal, epoch]);
 
   async function handleGoogleSignIn() {
     setMessage("");

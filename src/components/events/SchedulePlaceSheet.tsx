@@ -31,7 +31,7 @@ export function SchedulePlaceSheet({
   const { prefix } = useTrip();
   const router = useRouter();
   const { families } = useFamilies();
-  const days = tripDays();
+  const days = tripDays(useTrip());
   const today = todayIso();
 
   const [day, setDay] = useState(days.includes(today) ? today : days[0]);

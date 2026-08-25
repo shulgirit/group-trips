@@ -8,7 +8,7 @@ import { useTrip } from "@/components/providers/TripProvider";
 import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
 
 export function useCollectionData<T extends { id: string }>(path: string) {
-  const { ready } = useFirebase();
+  const { ready, epoch } = useFirebase();
   const [data, setData] = useState<T[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -26,13 +26,14 @@ export function useCollectionData<T extends { id: string }>(path: string) {
       },
       () => setError(true)
     );
-  }, [ready, path]);
+    // epoch bumps after trip membership is provisioned — re-subscribe
+  }, [ready, path, epoch]);
 
   return { data, loading: data === null && !error, error };
 }
 
 export function useDocData<T>(path: string) {
-  const { ready } = useFirebase();
+  const { ready, epoch } = useFirebase();
   const [data, setData] = useState<T | null | undefined>(undefined);
   const [error, setError] = useState(false);
 
@@ -50,7 +51,8 @@ export function useDocData<T>(path: string) {
       },
       () => setError(true)
     );
-  }, [ready, path]);
+    // epoch bumps after trip membership is provisioned — re-subscribe
+  }, [ready, path, epoch]);
 
   return { data, loading: data === undefined && !error, error };
 }

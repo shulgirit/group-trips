@@ -15,7 +15,7 @@ function NewEventForm() {
   const { prefix } = useTrip();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const days = tripDays();
+  const days = tripDays(useTrip());
   const today = todayIso();
   const requestedDay = searchParams.get("day");
 

@@ -35,7 +35,7 @@ import {
 
 
 export default function AiPage() {
-  const { ready, user, personal, profile } = useFirebase();
+  const { ready, user, personal, profile, epoch } = useFirebase();
   const trip = useTrip();
   const { path: tripPath, prefix, id: tripId } = trip;
   const { families } = useFamilies();
@@ -147,7 +147,7 @@ export default function AiPage() {
         ),
       () => setSessions([])
     );
-  }, [ready, user, personal]);
+  }, [ready, user, personal, epoch]);
 
   const activeSession = useMemo(
     () => sessions?.find((s) => s.id === sessionId) ?? null,
