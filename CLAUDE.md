@@ -10,6 +10,20 @@ Sicily **Aug 15–24, 2026**. Production: https://sicily-together.vercel.app
 > must pass, think about data migrations (Firestore has live data), and
 > prefer additive changes. Never create test data without deleting it after.
 
+## Multi-trip (added 2026-08)
+
+The app now serves TWO trips from one deployment: **sicily** (root URLs,
+`trips/sicily-2026`) and **sardinia** (`/sardinia/*`, `trips/sardinia-2026`,
+5 adult friends celebrating 60, AI persona "הטייס" ✈️). All config lives in
+`src/lib/trips.ts` (client) + `src/lib/server/trip-server.ts` (personas,
+join codes — sardinia's is the `joinCode` field on its trip doc; sicily
+falls back to `TRIP_PASSWORD`). `TripProvider`/`useTrip()` supply the
+active trip; `src/lib/active-trip.ts` mirrors it for non-React code
+(db.ts, push-client). Every internal link must use `trip.prefix`.
+`src/app/sardinia/**` is a thin re-export tree — page logic stays in
+`src/app/(app)/**`. Firestore rules take the tripId wildcard
+(`isMember(tripId)`); one shared gate password + cookie covers both trips.
+
 ## Ship a change
 
 **`git push origin main` = production deploy.** GitHub Actions
