@@ -5,6 +5,8 @@ import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
+import { resolveHomeBase } from "@/lib/home-base";
+import { todayIso } from "@/lib/trip";
 import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
 
 export function useCollectionData<T extends { id: string }>(path: string) {
@@ -135,15 +137,9 @@ export function useFamilies() {
  */
 export function useHomeBase() {
   const { places, ...rest } = usePlaces();
-  const home = useMemo(() => {
-    if (!places) return null;
-    return (
-      places.find((p) => p.id === "villa") ??
-      places
-        .filter((p) => p.category === "accommodation")
-        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0] ??
-      null
-    );
-  }, [places]);
+  const home = useMemo(
+    () => (places ? resolveHomeBase(places, todayIso()) : null),
+    [places]
+  );
   return { home, ...rest };
 }

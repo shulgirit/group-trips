@@ -38,6 +38,10 @@ export interface Place {
   /** For restaurants: dishes people recommend */
   popularDishes?: string;
   favorite?: boolean;
+  /** Accommodation stay window (ISO dates) — drives the HOME button when
+   *  a trip has more than one hotel. Written by admin seeds only. */
+  stayFrom?: string;
+  stayTo?: string;
   sourceUrl?: string;
   createdAt?: number;
   createdByUid?: string;
