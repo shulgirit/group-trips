@@ -2,6 +2,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { GoHomeFab } from "@/components/layout/GoHomeFab";
 import { QuickAdd } from "@/components/layout/QuickAdd";
 import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
+import { IdentityPrompt } from "@/components/providers/IdentityPrompt";
 import { ReminderPinger } from "@/components/providers/ReminderPinger";
 import { TripProvider } from "@/components/providers/TripProvider";
 import { TourLauncher } from "@/components/tour/TourLauncher";
@@ -20,6 +21,7 @@ export function TripAppShell({
       <FirebaseProvider>
         <ReminderPinger />
         <TourLauncher />
+        <IdentityPrompt />
         <div className="min-h-dvh">
           <main className="mx-auto w-full max-w-lg px-4 pb-36 pt-4 md:max-w-xl">
             {children}
