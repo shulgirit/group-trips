@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
+import { resolveHomeBase } from "@/lib/home-base";
+import { todayIso } from "@/lib/trip";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
@@ -121,18 +123,11 @@ export default function MapPage() {
   const trip = useTrip();
   const { prefix } = trip;
   const { places, loading } = usePlaces();
-  // Home pin: the "villa" place, else the first accommodation added
-  const homeBaseId = useMemo(() => {
-    if (!places) return null;
-    return (
-      (
-        places.find((p) => p.id === "villa") ??
-        places
-          .filter((p) => p.category === "accommodation")
-          .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))[0]
-      )?.id ?? null
-    );
-  }, [places]);
+  // Home pin follows the current hotel (multi-hotel trips switch mid-trip)
+  const homeBaseId = useMemo(
+    () => (places ? (resolveHomeBase(places, todayIso())?.id ?? null) : null),
+    [places]
+  );
   const { events } = useEvents();
   const [filter, setFilter] = useState<FilterId>("scheduled");
   const [mapReady, setMapReady] = useState(false);
