@@ -181,7 +181,7 @@ const SARDINIA: TripConfig = {
   shortName: "סרדיניה",
   kicker: "SARDINIA 60",
   tagline: "חוגגים 60 בסרדיניה ✈️",
-  groupLine: "חמישה חברים מהטייסת · יום הולדת 60 · ים תיכון",
+  groupLine: "חמישה חברים אחים · יום הולדת 60 · ים תיכון",
   signature: "✈️ סרדיניה 2026 · חוגגים 60",
   emoji: "🎉",
   flag: "🇮🇹",
