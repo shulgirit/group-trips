@@ -14,10 +14,18 @@ export function GET() {
       background_color: "#fbf8f1",
       theme_color: "#fbf8f1",
       icons: [
-        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
         {
-          src: "/icons/icon-maskable-512.png",
+          src: "/icons/sardinia-icon-192.png",
+          sizes: "192x192",
+          type: "image/png",
+        },
+        {
+          src: "/icons/sardinia-icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+        },
+        {
+          src: "/icons/sardinia-icon-maskable-512.png",
           sizes: "512x512",
           type: "image/png",
           purpose: "maskable",
