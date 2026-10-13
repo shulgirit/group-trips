@@ -11,8 +11,17 @@ export interface CreatorDestination {
   region: string;
   country: string;
   timezone: string;
-  currency: "EUR" | "ILS" | "USD";
+  /** ISO 4217 local currency */
+  currency: string;
   coverImage: string | null;
+}
+
+/** One leg of the itinerary while editing (place may still be unpicked). */
+export interface CreatorStop {
+  id: string;
+  place: CreatorDestination | null;
+  startDate: string;
+  endDate: string;
 }
 
 export interface CreatorMember {
@@ -33,10 +42,9 @@ export interface CreatorState {
   status: "draft" | "active" | "archived";
   name: string;
   emoji: string;
-  destination: CreatorDestination | null;
-  startDate: string;
-  endDate: string;
-  /** "HH:mm" local departure time on startDate, optional */
+  /** Ordered itinerary — one entry for a single-destination trip */
+  stops: CreatorStop[];
+  /** "HH:mm" local departure time on the first day, optional */
   departureTime: string;
   groupKind: GroupKind;
   groupName: string;
@@ -53,7 +61,22 @@ export interface CreatorState {
   homeBase: TripInput["homeBase"];
 }
 
-export const DRAFT_KEY = "creator-draft-v1";
+export const DRAFT_KEY = "creator-draft-v2";
+
+/** First day of the trip (first stop's start). */
+export function tripStart(state: CreatorState): string {
+  return state.stops[0]?.startDate ?? "";
+}
+
+/** Last day of the trip (last stop's end). */
+export function tripEnd(state: CreatorState): string {
+  return state.stops[state.stops.length - 1]?.endDate ?? "";
+}
+
+/** The first picked destination — cover, AI preview, defaults. */
+export function primaryPlace(state: CreatorState): CreatorDestination | null {
+  return state.stops.find((s) => s.place)?.place ?? null;
+}
 
 export function shortId(prefix: string): string {
   const alphabet = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -72,9 +95,7 @@ export function initialState(displayName: string | null): CreatorState {
     status: "draft",
     name: "",
     emoji: "✈️",
-    destination: null,
-    startDate: "",
-    endDate: "",
+    stops: [{ id: shortId("s"), place: null, startDate: "", endDate: "" }],
     departureTime: "",
     groupKind: "families",
     groupName: "",
@@ -100,15 +121,16 @@ export function initialState(displayName: string | null): CreatorState {
 
 /** Departure as an ISO instant (device's offset — departures are from home). */
 function departureIso(state: CreatorState): string | null {
-  if (!state.departureTime || !state.startDate) return null;
-  const local = new Date(`${state.startDate}T${state.departureTime}:00`);
+  const startDate = tripStart(state);
+  if (!state.departureTime || !startDate) return null;
+  const local = new Date(`${startDate}T${state.departureTime}:00`);
   if (Number.isNaN(local.getTime())) return null;
   const offsetMin = -local.getTimezoneOffset();
   const sign = offsetMin >= 0 ? "+" : "-";
   const abs = Math.abs(offsetMin);
   const hh = String(Math.floor(abs / 60)).padStart(2, "0");
   const mm = String(abs % 60).padStart(2, "0");
-  return `${state.startDate}T${state.departureTime}:00${sign}${hh}:${mm}`;
+  return `${startDate}T${state.departureTime}:00${sign}${hh}:${mm}`;
 }
 
 function shortDate(iso: string) {
@@ -121,7 +143,6 @@ export function toTripInput(
   state: CreatorState,
   status: "draft" | "active"
 ): TripInput {
-  const destination = state.destination!;
   const families = state.families
     .map((family) => ({
       ...family,
@@ -140,22 +161,25 @@ export function toTripInput(
   return {
     name: state.name.trim(),
     emoji: state.emoji || "✈️",
-    destination: {
-      label: destination.label,
-      placeId: destination.placeId,
-      lat: destination.lat,
-      lng: destination.lng,
-      region: destination.region,
-      country: destination.country,
-    },
-    startDate: state.startDate,
-    endDate: state.endDate,
-    timezone: destination.timezone,
-    currency: destination.currency,
-    coverImage: destination.coverImage,
+    stops: state.stops
+      .filter((stop) => stop.place)
+      .map((stop) => ({
+        id: stop.id,
+        label: stop.place!.label,
+        ...(stop.place!.placeId ? { placeId: stop.place!.placeId } : {}),
+        lat: stop.place!.lat,
+        lng: stop.place!.lng,
+        region: stop.place!.region,
+        ...(stop.place!.country ? { country: stop.place!.country } : {}),
+        timezone: stop.place!.timezone,
+        currency: stop.place!.currency,
+        coverImage: stop.place!.coverImage,
+        startDate: stop.startDate,
+        endDate: stop.endDate,
+      })),
     departureAt,
     departureNote: departureAt
-      ? `✈️ ההמראה · ${shortDate(state.startDate)} · ${state.departureTime}`
+      ? `✈️ ההמראה · ${shortDate(tripStart(state))} · ${state.departureTime}`
       : "",
     homeBase: state.homeBase,
     groupKind: state.groupKind,
@@ -183,9 +207,19 @@ export function peopleCounts(state: CreatorState) {
 
 /** Steps 1–2 are enough to create the draft trip. */
 export function basicsValid(state: CreatorState): string | null {
-  if (!state.destination) return "בחרו יעד";
-  if (!state.startDate || !state.endDate) return "בחרו תאריכים";
-  if (state.endDate < state.startDate) return "תאריך החזרה לפני היציאה";
+  const multi = state.stops.length > 1;
+  for (const [index, stop] of state.stops.entries()) {
+    const which = multi ? ` (יעד ${index + 1})` : "";
+    if (!stop.place) return `בחרו יעד${which}`;
+    if (!stop.startDate || !stop.endDate) return `בחרו תאריכים${which}`;
+    if (stop.endDate < stop.startDate) return `תאריך הסיום לפני ההתחלה${which}`;
+    const previous = state.stops[index - 1];
+    if (previous && stop.startDate < previous.endDate) {
+      return `היעדים חופפים — יעד ${index + 1} מתחיל לפני שהקודם נגמר`;
+    }
+  }
+  const days = (Date.parse(tripEnd(state)) - Date.parse(tripStart(state))) / 86_400_000;
+  if (days > 120) return "טיול עד 120 יום";
   if (!state.name.trim()) return "תנו לטיול שם";
   return null;
 }

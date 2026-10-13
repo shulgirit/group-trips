@@ -7,6 +7,7 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { AboutUsSection } from "@/components/settings/AboutUsSection";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
 import { TripAdminSection } from "@/components/settings/TripAdminSection";
+import { SaveAccountCard } from "@/components/settings/SaveAccountCard";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { db, signInWithGoogle } from "@/lib/firebase/client";
 import { logoutEverywhere } from "@/lib/logout";
@@ -203,6 +204,8 @@ export default function SettingsPage() {
           </p>
         )}
       </section>
+
+      <SaveAccountCard />
 
       <TripAdminSection />
 

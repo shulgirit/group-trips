@@ -12,6 +12,7 @@ import { authorizeTrip } from "@/lib/server/auth";
 import { systemPromptFor } from "@/lib/server/trip-server";
 import { checkAiQuota, recordAiUsage } from "@/lib/server/usage";
 import type { TripConfig } from "@/lib/trips";
+import { stopForDay } from "@/lib/trip-doc";
 import { PLACE_CATEGORIES } from "@/types";
 
 export const maxDuration = 300;
@@ -130,6 +131,11 @@ const buildTools = (trip: TripConfig): OpenAI.Chat.ChatCompletionTool[] => [
             type: "string",
             enum: Object.keys(PLACE_CATEGORIES),
           },
+          region: {
+            type: "string",
+            description:
+              "באיזה יעד במסלול לחפש (שם לועזי, למשל 'Lyon' או 'Provence'). ברירת מחדל: היעד הנוכחי",
+          },
         },
         required: ["name", "category"],
       },
@@ -209,6 +215,11 @@ const buildTools = (trip: TripConfig): OpenAI.Chat.ChatCompletionTool[] => [
           minRating: {
             type: "number",
             description: "סינון לדירוג מינימלי, למשל 4.5",
+          },
+          region: {
+            type: "string",
+            description:
+              "באיזה יעד במסלול לחפש (שם לועזי, למשל 'Lyon' או 'Provence'). ברירת מחדל: היעד הנוכחי",
           },
         },
         required: ["query"],
@@ -366,7 +377,12 @@ async function buildTripContext(
   const now = tripNow(trip.timezone);
 
   const context = [
-    `עכשיו ב${trip.shortName}: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
+    `עכשיו ב${stopForDay(trip.stops, now.todayIso).label}: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
+    ...(trip.stops.length > 1
+      ? [
+          `מסלול: ${trip.stops.map((s) => `${s.label} (${s.region}) ${s.startDate}–${s.endDate}`).join(" ← ")}.`,
+        ]
+      : []),
     `תאריכי הטיול: ${trip.startDate} עד ${trip.endDate}.${trip.homeBase ? ` ${trip.legacy ? "הוילה" : "מקום הלינה"}: ${trip.homeBase.name}, ${trip.homeBase.address}.` : ""}`,
     ``,
     ...(aboutUs ? [`על החבורה (נכתב על ידי המשפחות):`, aboutUs, ``] : []),
@@ -481,8 +497,10 @@ async function executeTool(
         category: z.enum(
           Object.keys(PLACE_CATEGORIES) as [string, ...string[]]
         ),
+        region: z.string().max(80).optional(),
       })
       .parse(rawArgs);
+    const region = args.region?.trim() || trip.searchRegionHint;
 
     // Never duplicate — reuse an existing place with a matching name
     const existing = data.places.find((p) => samePlaceName(p.name, args.name));
@@ -497,7 +515,7 @@ async function executeTool(
 
     let placeData: Record<string, unknown>;
     if (args.url && /^https?:\/\//.test(args.url)) {
-      const draft = await importPlaceFromUrl(args.url, trip.searchRegionHint);
+      const draft = await importPlaceFromUrl(args.url, region);
       placeData = {
         name: args.name || draft.name,
         category: args.category,
@@ -514,10 +532,7 @@ async function executeTool(
         sourceUrl: args.url,
       };
     } else {
-      const geo = await geocodePlace(
-        args.query?.trim() || args.name,
-        trip.searchRegionHint
-      );
+      const geo = await geocodePlace(args.query?.trim() || args.name, region);
       if (!geo) {
         return {
           ok: false,
@@ -559,7 +574,11 @@ async function executeTool(
 
   if (name === "search_google_places") {
     const args = z
-      .object({ query: z.string().min(2), minRating: z.number().optional() })
+      .object({
+        query: z.string().min(2),
+        minRating: z.number().optional(),
+        region: z.string().max(80).optional(),
+      })
       .parse(rawArgs);
     const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
     if (!key) return { ok: false, error: "search unavailable" };
@@ -574,7 +593,7 @@ async function executeTool(
             "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.websiteUri,places.priceLevel",
         },
         body: JSON.stringify({
-          textQuery: `${args.query} ${trip.searchRegionHint}`,
+          textQuery: `${args.query} ${args.region?.trim() || trip.searchRegionHint}`,
           pageSize: 10,
         }),
       }

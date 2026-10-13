@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calcCombinedBalances, calcSettlement } from "@/lib/settlement";
 import type { Expense, Family } from "@/types";
 import { apiFetch } from "@/lib/firebase/client";
+import { currencyName, currencySymbol } from "@/lib/currency";
 
 function familyName(families: Family[], id: string): string {
   return families.find((f) => f.id === id)?.name.replace("משפחת ", "") ?? id;
@@ -11,6 +12,12 @@ function familyName(families: Family[], id: string): string {
 
 function formatIls(amount: number): string {
   return `₪${amount.toLocaleString("he-IL", { maximumFractionDigits: 0 })}`;
+}
+
+/** Sensible precision for "1 X = ? ₪" (₪0.0011 per VND, ₪4.02 per €). */
+function formatRate(rate: number): string {
+  if (rate >= 1) return rate.toFixed(2);
+  return rate.toPrecision(3);
 }
 
 /**
@@ -26,10 +33,15 @@ export function IlsSettlement({
   families: Family[];
 }) {
   const [fetchedRates, setFetchedRates] = useState<
-    { ilsPerEur: number; ilsPerUsd: number; updatedAt: number } | "error" | null
+    { ilsPer: Record<string, number>; updatedAt: number } | "error" | null
   >(null);
-  const [rateEurText, setRateEurText] = useState("");
-  const [rateUsdText, setRateUsdText] = useState("");
+  /** Per-currency rate text the user may override */
+  const [rateText, setRateText] = useState<Record<string, string>>({});
+
+  const foreign = useMemo(
+    () => [...new Set(expenses.map((e) => e.currency))].filter((c) => c !== "ILS"),
+    [expenses]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -44,12 +56,14 @@ export function IlsSettlement({
         const data = (await response.json()) as {
           ilsPerEur: number;
           ilsPerUsd: number;
+          ilsPer?: Record<string, number>;
           updatedAt: number;
         };
         if (cancelled) return;
-        setFetchedRates(data);
-        setRateEurText((current) => current || data.ilsPerEur.toFixed(2));
-        setRateUsdText((current) => current || data.ilsPerUsd.toFixed(2));
+        setFetchedRates({
+          ilsPer: data.ilsPer ?? { ILS: 1, EUR: data.ilsPerEur, USD: data.ilsPerUsd },
+          updatedAt: data.updatedAt,
+        });
       } catch {
         if (!cancelled) setFetchedRates("error");
       }
@@ -59,36 +73,23 @@ export function IlsSettlement({
     };
   }, []);
 
+  function rateFor(code: string): number {
+    const typed = rateText[code];
+    if (typed !== undefined) return Number(typed);
+    return fetchedRates && fetchedRates !== "error" ? (fetchedRates.ilsPer[code] ?? 0) : 0;
+  }
+
   const combined = useMemo(() => {
-    const hasEur = expenses.some((e) => e.currency === "EUR");
-    const hasUsd = expenses.some((e) => e.currency === "USD");
     // ILS-only account needs no conversion
-    if (!hasEur && !hasUsd) return null;
-    const eur = Number(rateEurText);
-    const usd = Number(rateUsdText);
-    const ready = (!hasEur || eur > 0) && (!hasUsd || usd > 0);
-    if (!ready) {
-      return {
-        hasEur,
-        hasUsd,
-        ready: false as const,
-        balances: [],
-        transfers: [],
-      };
-    }
-    const balances = calcCombinedBalances(expenses, families, {
-      ILS: 1,
-      ...(hasEur ? { EUR: eur } : {}),
-      ...(hasUsd ? { USD: usd } : {}),
-    });
-    return {
-      hasEur,
-      hasUsd,
-      ready: true as const,
-      balances,
-      transfers: calcSettlement(balances),
-    };
-  }, [expenses, families, rateEurText, rateUsdText]);
+    if (!foreign.length) return null;
+    const rates: Record<string, number> = { ILS: 1 };
+    for (const code of foreign) rates[code] = rateFor(code);
+    const ready = foreign.every((code) => rates[code] > 0);
+    if (!ready) return { ready: false as const, balances: [], transfers: [] };
+    const balances = calcCombinedBalances(expenses, families, rates);
+    return { ready: true as const, balances, transfers: calcSettlement(balances) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, families, foreign, rateText, fetchedRates]);
 
   if (!combined) return null;
 
@@ -98,34 +99,25 @@ export function IlsSettlement({
         🇮🇱 סגירת חשבון בשקלים
       </p>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
-        {combined.hasEur && (
-          <label className="flex items-center gap-1.5">
-            <span>€1 =</span>
-            <input
-              dir="ltr"
-              inputMode="decimal"
-              value={rateEurText}
-              onChange={(e) => setRateEurText(e.target.value)}
-              aria-label="שער אירו לשקל"
-              className="w-16 rounded-lg bg-white/15 px-2 py-1 text-center tabular-nums text-white outline-none focus:bg-white/25"
-            />
-            <span>₪</span>
-          </label>
-        )}
-        {combined.hasUsd && (
-          <label className="flex items-center gap-1.5">
-            <span>$1 =</span>
-            <input
-              dir="ltr"
-              inputMode="decimal"
-              value={rateUsdText}
-              onChange={(e) => setRateUsdText(e.target.value)}
-              aria-label="שער דולר לשקל"
-              className="w-16 rounded-lg bg-white/15 px-2 py-1 text-center tabular-nums text-white outline-none focus:bg-white/25"
-            />
-            <span>₪</span>
-          </label>
-        )}
+        {foreign.map((code) => {
+          const current = rateFor(code);
+          return (
+            <label key={code} className="flex items-center gap-1.5">
+              <span dir="ltr">{currencySymbol(code)}1 =</span>
+              <input
+                dir="ltr"
+                inputMode="decimal"
+                value={rateText[code] ?? (current > 0 ? formatRate(current) : "")}
+                onChange={(e) =>
+                  setRateText((all) => ({ ...all, [code]: e.target.value }))
+                }
+                aria-label={`שער ${currencyName(code)} לשקל`}
+                className="w-20 rounded-lg bg-white/15 px-2 py-1 text-center tabular-nums text-white outline-none focus:bg-white/25"
+              />
+              <span>₪</span>
+            </label>
+          );
+        })}
       </div>
       <p className="mb-2 text-xs text-sea-100">
         {fetchedRates === "error"

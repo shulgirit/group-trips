@@ -25,6 +25,23 @@ export interface TripDestination {
   country?: string;
 }
 
+/** One leg of a (possibly multi-country) trip. */
+export interface TripStop {
+  id: string;
+  label: string;
+  placeId?: string;
+  lat: number;
+  lng: number;
+  region: string;
+  country?: string;
+  timezone: string;
+  /** ISO 4217 local currency */
+  currency: string;
+  coverImage: string | null;
+  startDate: string;
+  endDate: string;
+}
+
 export interface TripHomeBase {
   name: string;
   address: string;
@@ -47,12 +64,16 @@ export interface TripAi {
 export interface TripDoc {
   name: string;
   emoji: string;
+  /** First stop — kept for every single-destination reader */
   destination: TripDestination;
+  /** Ordered itinerary; absent on trips created before multi-stop */
+  stops?: TripStop[];
   startDate: string;
   endDate: string;
   /** IANA zone of the destination, e.g. "Europe/Rome" */
   timezone: string;
-  currency: "EUR" | "ILS" | "USD";
+  /** ISO 4217 — the first stop's currency */
+  currency: string;
   /** https cover photo (Places photo) or null for a designed hero */
   coverImage: string | null;
   /** Outbound departure, ISO with offset — drives the home countdown */
@@ -83,6 +104,8 @@ export interface TripMember {
   familyId: string | null;
   memberId: string | null;
   joinedAt: number;
+  /** Joined without an account (anonymous identity on one device) */
+  guest?: boolean;
 }
 
 export interface TripInvite {
@@ -206,6 +229,62 @@ export const AI_RULES: { id: string; label: string; rule: string }[] = [
   },
 ];
 
+/** A trip's itinerary — stored stops, or the single destination. */
+export function stopsOf(trip: TripDoc): TripStop[] {
+  if (trip.stops?.length) return trip.stops;
+  return [
+    {
+      id: "main",
+      label: trip.destination.label,
+      placeId: trip.destination.placeId,
+      lat: trip.destination.lat,
+      lng: trip.destination.lng,
+      region: trip.destination.region,
+      country: trip.destination.country,
+      timezone: trip.timezone,
+      currency: trip.currency,
+      coverImage: trip.coverImage,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+    },
+  ];
+}
+
+/** The stop covering a day; before/after the trip → first/last stop. */
+export function stopForDay<T extends { startDate: string; endDate: string }>(
+  stops: T[],
+  dayIso: string
+): T {
+  // On a shared transit day the later stop wins (you sleep there)
+  const covering = stops.filter((s) => s.startDate <= dayIso && dayIso <= s.endDate);
+  if (covering.length) return covering[covering.length - 1];
+  if (dayIso < stops[0].startDate) return stops[0];
+  const past = stops.filter((s) => s.endDate < dayIso);
+  return past[past.length - 1] ?? stops[stops.length - 1];
+}
+
+/** 🇮🇹 from "IT". */
+export function flagEmoji(country: string | undefined): string {
+  if (!country || !/^[A-Za-z]{2}$/.test(country)) return "📍";
+  return String.fromCodePoint(
+    ...[...country.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)
+  );
+}
+
+/** "איטליה · צרפת" or "איטליה +2" */
+export function itineraryName(stops: { label: string }[]): string {
+  const labels = stops.map((s) => s.label).filter((label, i, all) => all.indexOf(label) === i);
+  if (labels.length <= 2) return labels.join(" · ");
+  return `${labels[0]} +${labels.length - 1}`;
+}
+
+function localToday(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 /** The persona paragraph for a trip (shared rules are appended server-side). */
 export function composePersona(trip: TripDoc): string {
   const ai = trip.ai;
@@ -213,12 +292,24 @@ export function composePersona(trip: TripDoc): string {
   const preset =
     ai.preset !== "custom" ? AI_PRESETS[ai.preset] : null;
   const group = GROUP_KINDS[trip.groupKind];
+  const stops = stopsOf(trip);
+  const where = itineraryName(stops);
   const lines = [
-    `אתה ״${ai.name}״ ${ai.emoji} — העוזר האישי של ${trip.groupName || "החבורה"}: ${group.aiDescription} בטיול ל${trip.destination.label} (${trip.startDate} עד ${trip.endDate}).`,
+    `אתה ״${ai.name}״ ${ai.emoji} — העוזר האישי של ${trip.groupName || "החבורה"}: ${group.aiDescription} בטיול ל${where} (${trip.startDate} עד ${trip.endDate}).`,
+    ...(stops.length > 1
+      ? [
+          "",
+          "מסלול הטיול (לפי הסדר):",
+          ...stops.map(
+            (s, i) => `${i + 1}. ${s.label}${s.region && s.region !== s.label ? ` (${s.region})` : ""}: ${s.startDate} עד ${s.endDate}, מטבע ${s.currency}`
+          ),
+          "בכל המלצה התאם ליעד של אותו יום. בחיפוש מקומות ציין region של היעד הרלוונטי.",
+        ]
+      : []),
     "",
     "סגנון והתאמה לקבוצה:",
     `- ${preset?.persona ?? "דבר בטון חם, אישי ושנון."}`,
-    `- התמחה ב${trip.destination.label}: אטרקציות, אוכל, נופים, טיפים מקומיים ולוגיסטיקה.`,
+    `- התמחה ב${where}: אטרקציות, אוכל, נופים, טיפים מקומיים ולוגיסטיקה.`,
   ];
   for (const id of ai.rules) {
     const rule = AI_RULES.find((r) => r.id === id);
@@ -293,7 +384,9 @@ export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
   const ai = trip.ai;
   const aiTitle = `${ai.emoji} ${ai.name}`;
   const groupName = trip.groupName || "החבורה";
-  const place = trip.destination.label;
+  const stops = stopsOf(trip);
+  const current = stopForDay(stops, localToday());
+  const place = itineraryName(stops);
   return {
     key: "custom",
     id,
@@ -308,10 +401,10 @@ export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
     signature: `${trip.emoji} ${trip.name} · ${groupName}`,
     emoji: trip.emoji,
     flag: trip.emoji,
-    dayLabelSuffix: `${place} ${trip.emoji}`,
+    dayLabelSuffix: `${current.label} ${flagEmoji(current.country)}`,
     heroTitle: `${place} מחכה לנו ${trip.emoji}`,
     heroImage: trip.coverImage,
-    heroArt: { big: "", icon: trip.emoji },
+    heroArt: null,
     countdownTarget:
       trip.departureAt || `${trip.startDate}T08:00:00`,
     departureNote:
@@ -319,10 +412,24 @@ export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
       `✈️ יוצאים · ${shortDate(trip.startDate)} – ${shortDate(trip.endDate)}`,
     startDate: trip.startDate,
     endDate: trip.endDate,
-    timezone: trip.timezone || "UTC",
-    currency: trip.currency || "EUR",
-    mapCenter: { lat: trip.destination.lat, lng: trip.destination.lng },
-    searchRegionHint: trip.destination.region || place,
+    timezone: current.timezone || trip.timezone || "UTC",
+    currency: current.currency || trip.currency || "EUR",
+    mapCenter: {
+      lat: stops.reduce((sum, s) => sum + s.lat, 0) / stops.length,
+      lng: stops.reduce((sum, s) => sum + s.lng, 0) / stops.length,
+    },
+    searchRegionHint: current.region || current.label,
+    stops: stops.map((s) => ({
+      label: s.label,
+      region: s.region || s.label,
+      timezone: s.timezone,
+      currency: s.currency,
+      startDate: s.startDate,
+      endDate: s.endDate,
+      lat: s.lat,
+      lng: s.lng,
+      flag: flagEmoji(s.country),
+    })),
     homeBase: trip.homeBase
       ? {
           navAria: `נווט הביתה — ${trip.homeBase.name}`,

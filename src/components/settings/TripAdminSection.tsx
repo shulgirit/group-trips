@@ -146,6 +146,11 @@ export function TripAdminSection() {
                       {ROLE_LABEL[member.role]}
                     </span>
                   )}
+                  {member.guest && (
+                    <span className="ms-2 rounded-full bg-cream-100 px-2 py-0.5 text-xs text-ink-500">
+                      אורח
+                    </span>
+                  )}
                 </span>
                 {member.role !== "owner" && member.id !== user.uid && (
                   <button

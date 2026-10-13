@@ -8,15 +8,25 @@ import type { TripInput, FamilyInput } from "@/lib/trip-schemas";
 export function tripFieldsFromInput(
   input: TripInput
 ): Omit<TripDoc, "ownerUid" | "plan" | "createdAt" | "updatedAt" | "status"> {
+  const stops = input.stops;
+  const first = stops[0];
   return {
     name: input.name,
     emoji: input.emoji,
-    destination: input.destination,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    timezone: input.timezone,
-    currency: input.currency,
-    coverImage: input.coverImage,
+    stops,
+    destination: {
+      label: first.label,
+      ...(first.placeId ? { placeId: first.placeId } : {}),
+      lat: first.lat,
+      lng: first.lng,
+      region: first.region,
+      ...(first.country ? { country: first.country } : {}),
+    },
+    startDate: first.startDate,
+    endDate: stops[stops.length - 1].endDate,
+    timezone: first.timezone,
+    currency: first.currency,
+    coverImage: first.coverImage,
     departureAt: input.departureAt ?? null,
     departureNote: input.departureNote ?? "",
     homeBase: input.homeBase,

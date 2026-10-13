@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
-import { tripPhase, type TripDoc, type TripStatus } from "@/lib/trip-doc";
+import {
+  itineraryName,
+  stopsOf,
+  tripPhase,
+  type TripDoc,
+  type TripStatus,
+} from "@/lib/trip-doc";
 import { TRIPS } from "@/lib/trips";
 import { todayIso } from "@/lib/trip";
 
@@ -73,7 +79,7 @@ export function useMyTrips(uid: string | null) {
                     href: `/t/${id}`,
                     name: data.name,
                     emoji: data.emoji,
-                    destination: data.destination.label,
+                    destination: itineraryName(stopsOf(data)),
                     startDate: data.startDate,
                     endDate: data.endDate,
                     coverImage: data.coverImage,

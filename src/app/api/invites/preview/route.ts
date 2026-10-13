@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { lookupInvite } from "@/lib/server/invites";
-import type { InvitePreview } from "@/lib/trip-doc";
+import { itineraryName, stopsOf, type InvitePreview } from "@/lib/trip-doc";
 
 /**
  * Public: what the invite landing page shows before sign-in. Holding the
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     tripId: invite.tripId,
     name: trip.name,
     emoji: trip.emoji,
-    destination: trip.destination.label,
+    destination: itineraryName(stopsOf(trip)),
     startDate: trip.startDate,
     endDate: trip.endDate,
     coverImage: trip.coverImage,

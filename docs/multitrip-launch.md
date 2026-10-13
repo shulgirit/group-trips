@@ -18,6 +18,8 @@ password/cookie model untouched until they are switched over.
    - Google Cloud: enable the **Time Zone API** on the server Maps key
      (destination time zone; falls back to a country table without it).
    - Optional `NEXT_PUBLIC_APPLE_SIGN_IN=1` once Apple sign-in is configured.
+   - Firebase console → Authentication → Sign-in method → enable
+     **Anonymous** (guest join without an account, kids' phones).
 4. **Migration (prep only)**: `migrate-multitrip.mjs` (dry run) →
    `migrate-multitrip-apply.mjs`. Writes `members/*`, root `users/*.tripIds`
    and storage claims for legacy Google users — invisible until a legacy

@@ -18,6 +18,7 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "trips/t1/members/A"), { role: "owner" });
   await setDoc(doc(db, "trips/t1/members/M"), { role: "member" });
   await setDoc(doc(db, "trips/t1/members/K"), { role: "kid" });
+  await setDoc(doc(db, "trips/t1/members/G2"), { role: "member", guest: true });
   await setDoc(doc(db, "trips/t1/places/p1"), { name: "x" });
   await setDoc(doc(db, "trips/t1/places/p2"), { name: "y" });
   await setDoc(doc(db, "trips/t1/events/e1"), { title: "x" });
@@ -62,6 +63,12 @@ await check("cannot forge tripIds", assertFails(updateDoc(doc(M, "users/M"), { t
 await check("cannot read others' root profile", assertFails(getDoc(doc(X, "users/M"))));
 await check("member shares own location", assertSucceeds(setDoc(doc(M, "trips/t1/locations/M"), { lat: 1 })));
 await check("member cannot write others' location", assertFails(setDoc(doc(M, "trips/t1/locations/A"), { lat: 1 })));
+const guest = as("G2", "anonymous").firestore();
+await check("guest reads own trip", assertSucceeds(getDoc(doc(guest, "trips/t1"))));
+await check("guest writes event", assertSucceeds(setDoc(doc(guest, "trips/t1/events/eg"), { title: "g" })));
+await check("guest cannot read other trip", assertFails(getDoc(doc(guest, "trips/t2"))));
+await check("guest cannot promote self", assertFails(setDoc(doc(guest, "trips/t1/members/G2"), { role: "owner" })));
+await check("anonymous non-member blocked", assertFails(getDoc(doc(as("ANON", "anonymous").firestore(), "trips/t1"))));
 await check("member cannot create usage", assertFails(setDoc(doc(M, "trips/t1/usage/2026-10"), { aiCalls: 0 })));
 
 const sM = as("M", "google.com", { t: { t1: 1 } }).storage();

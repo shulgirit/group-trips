@@ -8,6 +8,26 @@ const EURO = new Set([
   "SM", "VA",
 ]);
 
+/** Local currency per country (ISO 4217) — popular destinations. */
+const COUNTRY_CURRENCY: Record<string, string> = {
+  IL: "ILS", US: "USD", GB: "GBP", CH: "CHF", NO: "NOK", SE: "SEK",
+  DK: "DKK", IS: "ISK", CZ: "CZK", HU: "HUF", PL: "PLN", RO: "RON",
+  BG: "BGN", RS: "RSD", AL: "ALL", MK: "MKD", BA: "BAM", GE: "GEL",
+  AM: "AMD", AZ: "AZN", TR: "TRY", AE: "AED", JO: "JOD", EG: "EGP",
+  MA: "MAD", TH: "THB", VN: "VND", KH: "KHR", LA: "LAK", MM: "MMK",
+  ID: "IDR", MY: "MYR", SG: "SGD", PH: "PHP", JP: "JPY", KR: "KRW",
+  CN: "CNY", HK: "HKD", TW: "TWD", IN: "INR", LK: "LKR", NP: "NPR",
+  MV: "MVR", AU: "AUD", NZ: "NZD", CA: "CAD", MX: "MXN", BR: "BRL",
+  AR: "ARS", CL: "CLP", PE: "PEN", CO: "COP", CR: "CRC", ZA: "ZAR",
+  KE: "KES", TZ: "TZS", SC: "SCR", MU: "MUR", UA: "UAH",
+  UZ: "UZS", KZ: "KZT", CU: "CUP", DO: "DOP",
+};
+
+export function currencyFor(country: string): string {
+  if (EURO.has(country)) return "EUR";
+  return COUNTRY_CURRENCY[country] ?? "USD";
+}
+
 /** Fallback zones when the Time Zone API is unavailable. */
 const COUNTRY_TZ: Record<string, string> = {
   IT: "Europe/Rome", FR: "Europe/Paris", ES: "Europe/Madrid", PT: "Europe/Lisbon",
@@ -19,13 +39,12 @@ const COUNTRY_TZ: Record<string, string> = {
   AE: "Asia/Dubai", TH: "Asia/Bangkok", JP: "Asia/Tokyo", MT: "Europe/Malta",
   SI: "Europe/Ljubljana", NO: "Europe/Oslo", SE: "Europe/Stockholm",
   DK: "Europe/Copenhagen", FI: "Europe/Helsinki", IS: "Atlantic/Reykjavik",
+  VN: "Asia/Ho_Chi_Minh", KH: "Asia/Phnom_Penh", LA: "Asia/Vientiane",
+  SG: "Asia/Singapore", MY: "Asia/Kuala_Lumpur", IN: "Asia/Kolkata",
+  JO: "Asia/Amman", EG: "Africa/Cairo", MA: "Africa/Casablanca",
+  US: "America/New_York", MX: "America/Mexico_City", AL: "Europe/Tirane",
 };
 
-export function currencyFor(country: string): "EUR" | "ILS" | "USD" {
-  if (EURO.has(country)) return "EUR";
-  if (country === "IL") return "ILS";
-  return "USD";
-}
 
 function key(): string {
   const value = process.env.GOOGLE_MAPS_SERVER_API_KEY;
@@ -90,7 +109,7 @@ export interface ResolvedDestination {
   region: string;
   country: string;
   timezone: string;
-  currency: "EUR" | "ILS" | "USD";
+  currency: string;
   coverImage: string | null;
 }
 

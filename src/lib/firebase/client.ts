@@ -11,6 +11,8 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithCredential,
+  linkWithPopup,
+  linkWithCredential,
   onAuthStateChanged,
   type User,
 } from "firebase/auth";
@@ -82,6 +84,17 @@ if (USE_EMULATORS && typeof window !== "undefined") {
       JSON.stringify({ sub: email, email, name, email_verified: true })
     );
     return (await signInWithCredential(auth(), credential)).user.uid;
+  };
+  (window as unknown as Record<string, unknown>).__e2eLink = async (
+    name: string,
+    email: string
+  ) => {
+    const credential = GoogleAuthProvider.credential(
+      JSON.stringify({ sub: email, email, name, email_verified: true })
+    );
+    const user = (await linkWithCredential(auth().currentUser!, credential)).user;
+    await user.getIdToken(true);
+    return user.uid;
   };
 }
 
@@ -174,7 +187,36 @@ export async function signInWithApple(): Promise<User> {
   return signInWithProvider(provider);
 }
 
-/** Kid devices: an anonymous identity, bound to a trip by an invite. */
+/**
+ * Guest → real account: attaches Google/Apple to the SAME uid, so every
+ * membership, profile and chat carries over.
+ */
+export async function linkGuestAccount(kind: "google" | "apple"): Promise<User> {
+  const current = auth().currentUser;
+  if (!current) throw new Error("not_signed_in");
+  const native = nativePlugin<NativeAuthPlugin>("FirebaseAuthentication");
+  if (native) {
+    if (kind === "google") {
+      const result = await native.signInWithGoogle({ skipNativeAuth: true });
+      const credential = GoogleAuthProvider.credential(
+        result.credential?.idToken ?? null,
+        result.credential?.accessToken ?? null
+      );
+      return (await linkWithCredential(current, credential)).user;
+    }
+    const result = await native.signInWithApple({ skipNativeAuth: true });
+    const credential = new OAuthProvider("apple.com").credential({
+      idToken: result.credential?.idToken ?? "",
+      rawNonce: result.credential?.nonce,
+    });
+    return (await linkWithCredential(current, credential)).user;
+  }
+  const provider =
+    kind === "google" ? new GoogleAuthProvider() : new OAuthProvider("apple.com");
+  return (await linkWithPopup(current, provider)).user;
+}
+
+/** Kid devices / guests: an anonymous identity, bound to a trip by an invite. */
 export async function signInAsGuest(): Promise<User> {
   const current = auth().currentUser;
   if (current) return current;

@@ -11,7 +11,7 @@ import { InviteLinks } from "@/components/product/InviteLinks";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch, auth, db } from "@/lib/firebase/client";
 import { useMyTrips } from "@/lib/my-trips";
-import type { TripDoc } from "@/lib/trip-doc";
+import { flagEmoji, stopsOf, type TripDoc } from "@/lib/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 import { BookingImporter } from "./BookingImporter";
 import { StepAi } from "./StepAi";
@@ -23,7 +23,11 @@ import {
   groupValid,
   initialState,
   peopleCounts,
+  primaryPlace,
+  shortId,
   toTripInput,
+  tripEnd,
+  tripStart,
   type CreatorState,
 } from "./state";
 
@@ -69,19 +73,22 @@ async function loadTripState(tripId: string): Promise<CreatorState | null> {
     status: data.status,
     name: data.name,
     emoji: data.emoji,
-    destination: {
-      label: data.destination.label,
-      placeId: data.destination.placeId ?? "",
-      lat: data.destination.lat,
-      lng: data.destination.lng,
-      region: data.destination.region,
-      country: data.destination.country ?? "",
-      timezone: data.timezone,
-      currency: data.currency,
-      coverImage: data.coverImage,
-    },
-    startDate: data.startDate,
-    endDate: data.endDate,
+    stops: stopsOf(data).map((stop) => ({
+      id: /^[a-z0-9-]{2,40}$/.test(stop.id) ? stop.id : shortId("s"),
+      place: {
+        label: stop.label,
+        placeId: stop.placeId ?? "",
+        lat: stop.lat,
+        lng: stop.lng,
+        region: stop.region,
+        country: stop.country ?? "",
+        timezone: stop.timezone,
+        currency: stop.currency,
+        coverImage: stop.coverImage,
+      },
+      startDate: stop.startDate,
+      endDate: stop.endDate,
+    })),
     departureTime,
     groupKind: data.groupKind,
     groupName: data.groupName,
@@ -382,9 +389,9 @@ export function CreatorWizard() {
             </header>
             <div className="card overflow-hidden">
               <div className="relative h-36 bg-gradient-to-br from-sea-900 to-sea-500">
-                {state.destination?.coverImage && (
+                {primaryPlace(state)?.coverImage && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={state.destination.coverImage} alt="" className="h-full w-full object-cover" />
+                  <img src={primaryPlace(state)!.coverImage!} alt="" className="h-full w-full object-cover" />
                 )}
                 <div className="hero-overlay absolute inset-0" />
                 <p className="absolute inset-x-4 bottom-3 font-display text-2xl font-bold text-cream-50">
@@ -393,8 +400,14 @@ export function CreatorWizard() {
               </div>
               <dl className="divide-y divide-cream-200/70 text-sm">
                 {[
-                  ["📍 יעד", state.destination?.label ?? ""],
-                  ["📅 תאריכים", `${state.startDate} → ${state.endDate}`],
+                  [
+                    state.stops.length > 1 ? "📍 מסלול" : "📍 יעד",
+                    state.stops
+                      .map((s) => (s.place ? `${flagEmoji(s.place.country)} ${s.place.label}` : ""))
+                      .filter(Boolean)
+                      .join(" ← "),
+                  ],
+                  ["📅 תאריכים", `${tripStart(state)} → ${tripEnd(state)}`],
                   ["👥 משתתפים", `${people} ב-${state.families.length} ${state.groupKind === "families" ? "משפחות" : "קבוצות"}`],
                   ["✨ עוזר AI", `${state.ai.emoji} ${state.ai.name}`],
                   ["🏡 לינה", state.homeBase?.name ?? "עוד לא הוגדר"],

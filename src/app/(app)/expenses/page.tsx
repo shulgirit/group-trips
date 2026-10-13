@@ -20,19 +20,20 @@ import {
   type SplitState,
 } from "@/components/expenses/SplitEditor";
 import {
-  CURRENCIES,
-  CURRENCY_LABEL,
-  CURRENCY_PAREN,
-  CURRENCY_SYMBOL,
+  currencyLabel,
+  currencyParen,
+  currencySymbol,
+  tripCurrencies,
   type Currency,
 } from "@/lib/currency";
+import { useTrip } from "@/components/providers/TripProvider";
 
 function familyName(families: Family[], id: string): string {
   return families.find((f) => f.id === id)?.name.replace("משפחת ", "") ?? id;
 }
 
 function formatAmount(amount: number, currency: Currency): string {
-  return `${CURRENCY_SYMBOL[currency]}${amount.toLocaleString("he-IL", {
+  return `${currencySymbol(currency)}${amount.toLocaleString("he-IL", {
     maximumFractionDigits: 0,
   })}`;
 }
@@ -50,7 +51,11 @@ function AddExpenseSheet({
   const [payerFamilyId, setPayerFamilyId] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<Currency>("EUR");
+  const trip = useTrip();
+  const currencies = tripCurrencies(trip);
+  const [currency, setCurrency] = useState<Currency>(
+    trip.legacy ? "EUR" : trip.currency
+  );
   const [date, setDate] = useState(todayIso());
   const [split, setSplit] = useState<SplitState>(DEFAULT_SPLIT);
   const [saving, setSaving] = useState(false);
@@ -154,17 +159,18 @@ function AddExpenseSheet({
             <span className="mb-2 block text-sm font-medium text-ink-700">
               מטבע
             </span>
-            <div className="flex gap-1 rounded-2xl bg-cream-100 p-1">
-              {CURRENCIES.map((c) => (
+            <div className="no-scrollbar flex max-w-[11rem] gap-1 overflow-x-auto rounded-2xl bg-cream-100 p-1">
+              {currencies.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setCurrency(c)}
-                  className={`rounded-xl px-3 py-2 text-lg font-semibold transition ${
+                  title={c}
+                  className={`shrink-0 rounded-xl px-3 py-2 text-lg font-semibold transition ${
                     currency === c ? "bg-white shadow-sm" : "text-ink-500"
                   }`}
                 >
-                  {CURRENCY_SYMBOL[c]}
+                  {currencySymbol(c)}
                 </button>
               ))}
             </div>
@@ -298,7 +304,13 @@ function ExpensesContent() {
   // Full split + settlement for EACH currency that has expenses
   const summaries = useMemo(() => {
     if (!expenses || !families) return [];
-    return CURRENCIES.map((currency) => {
+    // Every currency that has expenses, most used first
+    const used = [...new Set(expenses.map((e) => e.currency))].sort(
+      (a, b) =>
+        expenses.filter((e) => e.currency === b).length -
+        expenses.filter((e) => e.currency === a).length
+    );
+    return used.map((currency) => {
       const list = expenses.filter((e) => e.currency === currency);
       if (!list.length) return null;
       const balances = calcBalances(expenses, families, currency);
@@ -388,7 +400,7 @@ function ExpensesContent() {
                 <div key={summary.currency} className="mt-4">
                   {summaries.length > 1 && (
                     <p className="mb-1.5 text-sm font-bold text-lemon-200">
-                      {CURRENCY_LABEL[summary.currency]}
+                      {currencyLabel(summary.currency)}
                     </p>
                   )}
                   <div className="space-y-1.5">
@@ -422,7 +434,7 @@ function ExpensesContent() {
                       <p className="mb-2 text-sm font-semibold text-lemon-200">
                         ✓ כדי לסגור חשבון{" "}
                         {summaries.length > 1
-                          ? CURRENCY_PAREN[summary.currency]
+                          ? currencyParen(summary.currency)
                           : ""}
                       </p>
                       {summary.transfers.map((transfer, i) => (

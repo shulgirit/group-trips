@@ -13,6 +13,27 @@ export const DestinationSchema = z.object({
   country: z.string().trim().max(80).optional(),
 });
 
+const CurrencyCode = z.string().regex(/^[A-Z]{3}$/);
+
+export const StopSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]{2,40}$/),
+    label: z.string().trim().min(1).max(80),
+    placeId: z.string().max(300).optional(),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    region: z.string().trim().max(80),
+    country: z.string().trim().max(80).optional(),
+    timezone: z.string().max(60),
+    currency: CurrencyCode,
+    coverImage: z.string().url().nullable(),
+    startDate: IsoDate,
+    endDate: IsoDate,
+  })
+  .refine((stop) => stop.endDate >= stop.startDate, {
+    message: "stop_end_before_start",
+  });
+
 export const FamilyInputSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]{2,40}$/),
   name: z.string().trim().min(1).max(40),
@@ -48,12 +69,8 @@ export const TripInputSchema = z
   .object({
     name: z.string().trim().min(1).max(60),
     emoji: z.string().trim().min(1).max(16),
-    destination: DestinationSchema,
-    startDate: IsoDate,
-    endDate: IsoDate,
-    timezone: z.string().max(60),
-    currency: z.enum(["EUR", "ILS", "USD"]),
-    coverImage: z.string().url().nullable(),
+    /** Ordered itinerary — the server derives destination/dates from it */
+    stops: z.array(StopSchema).min(1).max(12),
     departureAt: z.string().max(40).nullable().optional(),
     departureNote: z.string().max(120).optional(),
     homeBase: HomeBaseSchema.nullable(),
@@ -69,20 +86,23 @@ export const TripInputSchema = z
       .optional(),
     status: z.enum(["draft", "active"]),
   })
-  .refine((trip) => trip.endDate >= trip.startDate, {
-    message: "end_before_start",
-    path: ["endDate"],
-  })
+  .refine(
+    (trip) =>
+      // In order; consecutive stops may share a transit day
+      trip.stops.every((stop, i) => i === 0 || stop.startDate >= trip.stops[i - 1].endDate),
+    { message: "stops_out_of_order", path: ["stops"] }
+  )
   .refine(
     (trip) => {
-      const days =
-        (Date.parse(trip.endDate) - Date.parse(trip.startDate)) / 86_400_000;
-      return days <= 60;
+      const first = trip.stops[0].startDate;
+      const last = trip.stops[trip.stops.length - 1].endDate;
+      return (Date.parse(last) - Date.parse(first)) / 86_400_000 <= 120;
     },
-    { message: "trip_too_long", path: ["endDate"] }
+    { message: "trip_too_long", path: ["stops"] }
   );
 
 export type TripInput = z.infer<typeof TripInputSchema>;
+export type StopInput = z.infer<typeof StopSchema>;
 export type FamilyInput = z.infer<typeof FamilyInputSchema>;
 
 export const InviteCreateSchema = z.object({

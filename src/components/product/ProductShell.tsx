@@ -43,7 +43,7 @@ export function ProductShell({
             </span>
             {BRAND.name}
           </Link>
-          {personal && user && (
+          {user && (personal || user.isAnonymous) && (
             <div className="relative">
               <button
                 type="button"
@@ -55,13 +55,13 @@ export function ProductShell({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={user.photoURL} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  (user.displayName ?? "?").slice(0, 1)
+                  (user.displayName || (user.isAnonymous ? "👋" : "?")).slice(0, 2)
                 )}
               </button>
               {menuOpen && (
                 <div className="card absolute end-0 top-11 w-56 overflow-hidden p-1">
                   <p className="truncate px-3 py-2 text-sm text-ink-500">
-                    {user.displayName || user.email}
+                    {user.displayName || user.email || "אורח (בלי חשבון)"}
                   </p>
                   <Link
                     href="/account"

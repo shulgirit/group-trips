@@ -45,6 +45,8 @@ export async function addMember(
     photoURL?: string;
     familyId?: string | null;
     memberId?: string | null;
+    /** No account (anonymous) — access lives on one device until upgraded */
+    guest?: boolean;
   }
 ): Promise<void> {
   const db = adminDb();
@@ -68,6 +70,7 @@ export async function addMember(
     familyId: input.familyId ?? previous?.familyId ?? null,
     memberId: input.memberId ?? previous?.memberId ?? null,
     joinedAt: previous?.joinedAt ?? now,
+    ...(input.guest ? { guest: true } : {}),
   };
 
   const batch = db.batch();

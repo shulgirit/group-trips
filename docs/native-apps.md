@@ -14,6 +14,22 @@ native packages.
 | Push | `@capacitor-firebase/messaging` (FCM/APNs, `kind: "fcm"` subscriptions) | web-push (VAPID) |
 | Invite links open the app | `@capacitor/app` `appUrlOpen` + universal/app links | — |
 
+## Coming from Expo? The equivalents
+
+| Expo | Here (Capacitor) |
+| --- | --- |
+| Expo Go / dev client | open the live site, or the store build (it loads production) |
+| EAS Build | **Codemagic** (`codemagic.yaml`) — cloud Mac + Linux builders |
+| EAS Submit | Codemagic publishing → TestFlight / Play internal track |
+| EAS Update (OTA) | automatic — every `git push main` reaches the apps instantly |
+| `app.json` | `capacitor.config.ts` + `ios/` + `android/` |
+| expo-location | `@capacitor/geolocation` |
+| expo-notifications | `@capacitor-firebase/messaging` |
+| expo-auth-session | `@capacitor-firebase/authentication` |
+
+A new store build is only needed when native things change (plugins,
+permissions, icon, app name). Web/feature changes never need one.
+
 ## One-time setup (Omer)
 
 1. **Accounts**: Apple Developer Program ($99/yr), Google Play Console ($25).
@@ -37,7 +53,36 @@ native packages.
 5. **Xcode capabilities**: Push Notifications, Background Modes → Remote
    notifications, Sign in with Apple, Associated Domains.
 
-## Build
+## Cloud builds (no Mac needed) — Codemagic
+
+1. Sign up at codemagic.io with GitHub and add the `group-trips` repo
+   (free tier: 500 build-minutes/month — plenty).
+2. **App Store Connect → Users and Access → Integrations → App Store Connect
+   API** → generate a key (role *App Manager*). In Codemagic: Team settings →
+   Integrations → App Store Connect → add it, name it **`ASC`**.
+3. In App Store Connect create the app record (bundle id
+   `app.together.trips`, primary language Hebrew).
+4. Codemagic → Code signing identities:
+   - iOS: "Fetch certificate/profile" (Codemagic creates them via the API key).
+   - Android: generate an upload keystore (Codemagic can create one) with
+     reference name **`together_upload`**. Keep a backup of it.
+5. Google Play Console: create the app; Setup → API access → create a
+   service account with *Release manager* rights; download its JSON.
+6. Codemagic → Environment variables:
+   - group `firebase`: `GOOGLE_SERVICE_INFO_PLIST` and `GOOGLE_SERVICES_JSON`
+     = `base64` of the two Firebase config files.
+   - group `google_play`: `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` = the JSON.
+7. Build: push a tag `git tag app-v1.0.0 && git push origin app-v1.0.0`
+   (or press "Start new build"). iOS lands in **TestFlight**, Android in
+   the Play **internal testing** track. Install on your phones, test.
+8. When happy: in App Store Connect / Play Console fill the listing
+   (Hebrew texts, screenshots, privacy answers), attach the build and
+   submit for review. Apple review is usually 1–3 days; Google 1–7 for a
+   new developer account (Google also requires 12 testers × 14 days of
+   closed testing for brand-new *personal* developer accounts — an
+   organization account skips that).
+
+## Build locally (optional, needs a Mac for iOS)
 
 ```bash
 npm ci

@@ -27,7 +27,8 @@ export async function POST(request: Request) {
   const provider = user.firebase?.sign_in_provider;
   const anonymous = provider === "anonymous";
   // Anonymous identities are only for kids' devices
-  if (anonymous && invite.role !== "kid") {
+  // Guests (no account) join as members; organizer links need a real account
+  if (anonymous && invite.role === "admin") {
     return NextResponse.json({ error: "sign_in_required" }, { status: 403 });
   }
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
   }
 
   await addMember(tripId, user.uid, {
+    guest: anonymous,
     // A parent opening a kid-device link on their own account stays an adult
     role: invite.role === "kid" && !anonymous ? "member" : invite.role,
     displayName: memberName || user.name || (anonymous ? "אורח" : ""),

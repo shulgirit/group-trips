@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { apiFetch } from "@/lib/firebase/client";
 import { AI_PRESETS, AI_RULES, type AiPreset } from "@/lib/trip-doc";
-import { peopleCounts, type CreatorState } from "./state";
+import { peopleCounts, primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
 
 const PRESET_ORDER: Exclude<AiPreset, "custom">[] = ["butler", "pilot", "buddy", "guide"];
 
@@ -47,7 +47,8 @@ export function StepAi({
   }
 
   async function ask(text: string) {
-    if (!text.trim() || asking || !state.destination) return;
+    const place = primaryPlace(state);
+    if (!text.trim() || asking || !place) return;
     setAsking(true);
     const { people, kids } = peopleCounts(state);
     try {
@@ -56,9 +57,12 @@ export function StepAi({
         body: JSON.stringify({
           action: "preview",
           draft: {
-            destination: state.destination.label,
-            startDate: state.startDate,
-            endDate: state.endDate,
+            destination: state.stops
+              .map((stop) => stop.place?.label)
+              .filter(Boolean)
+              .join(" ← "),
+            startDate: tripStart(state),
+            endDate: tripEnd(state),
             groupKind: state.groupKind,
             groupName: state.groupName,
             aboutUs: state.aboutUs,

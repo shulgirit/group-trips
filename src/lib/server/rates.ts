@@ -5,6 +5,8 @@ export interface ExchangeRates {
   ilsPerEur: number;
   /** ILS per 1 USD */
   ilsPerUsd: number;
+  /** ILS per 1 unit of every currency upstream knows (ILS: 1) */
+  ilsPer: Record<string, number>;
   /** Upstream's last-update time, epoch ms */
   updatedAt: number;
 }
@@ -36,9 +38,15 @@ export async function fetchExchangeRates(): Promise<ExchangeRates | null> {
     if (payload.result !== "success" || !ils || !usd || ils <= 0 || usd <= 0) {
       return null;
     }
+    // rates are "units per 1 EUR" → ILS per unit = ils / rate
+    const ilsPer: Record<string, number> = { ILS: 1 };
+    for (const [code, rate] of Object.entries(payload.rates ?? {})) {
+      if (typeof rate === "number" && rate > 0) ilsPer[code] = ils / rate;
+    }
     const data: ExchangeRates = {
       ilsPerEur: ils,
       ilsPerUsd: ils / usd,
+      ilsPer,
       updatedAt: (payload.time_last_update_unix ?? 0) * 1000 || Date.now(),
     };
     cached = { data, fetchedAt: Date.now() };

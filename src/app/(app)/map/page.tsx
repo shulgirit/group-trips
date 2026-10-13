@@ -268,6 +268,56 @@ export default function MapPage() {
     return () => observer.disconnect();
   }, [mapReady, renderMarkers]);
 
+  // Multi-country itinerary: numbered stop pins + a dashed route line
+  const stopsRef = useRef<any[]>([]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !window.google?.maps || trip.stops.length < 2) return;
+    stopsRef.current.forEach((overlay) => overlay.setMap(null));
+    const path = trip.stops.map((stop) => ({ lat: stop.lat, lng: stop.lng }));
+    stopsRef.current = [
+      new window.google.maps.Polyline({
+        map,
+        path,
+        geodesic: true,
+        strokeOpacity: 0,
+        icons: [
+          {
+            icon: { path: "M 0,-1 0,1", strokeOpacity: 0.7, strokeColor: "#0f4f6b", scale: 3 },
+            offset: "0",
+            repeat: "14px",
+          },
+        ],
+        clickable: false,
+      }),
+      ...trip.stops.map(
+        (stop, index) =>
+          new window.google.maps.Marker({
+            map,
+            position: { lat: stop.lat, lng: stop.lng },
+            zIndex: 500,
+            title: `${index + 1}. ${stop.label}`,
+            label: { text: String(index + 1), color: "#ffffff", fontWeight: "700", fontSize: "12px" },
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 11,
+              fillColor: "#0b2e40",
+              fillOpacity: 0.9,
+              strokeColor: "#fbf8f1",
+              strokeWeight: 2,
+            },
+          })
+      ),
+    ];
+    // No places yet — show the whole route
+    if (!mappablePlaces.length) {
+      const bounds = new window.google.maps.LatLngBounds();
+      path.forEach((point) => bounds.extend(point));
+      boundsRef.current = bounds;
+      map.fitBounds(bounds, 60);
+    }
+  }, [mapReady, trip.stops, mappablePlaces.length]);
+
   // My live blue dot + accuracy halo
   useEffect(() => {
     const map = mapRef.current;

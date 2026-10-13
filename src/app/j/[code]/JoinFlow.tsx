@@ -55,14 +55,16 @@ export function JoinFlow({ code }: { code: string }) {
   }, [code]);
 
   const isKidInvite = preview?.role === "kid";
-  const canPick = isKidInvite || personal;
+  const [asGuest, setAsGuest] = useState(false);
+  // Anyone already signed in (account or a guest identity) picks a name next
+  const canPick = isKidInvite || personal || asGuest || Boolean(user?.isAnonymous);
 
   async function join(memberFamilyId: string | null, memberId: string | null) {
     if (!preview || joining) return;
     setJoining(true);
     setError("");
     try {
-      if (isKidInvite && !auth().currentUser) await signInAsGuest();
+      if ((isKidInvite || asGuest) && !auth().currentUser) await signInAsGuest();
       const response = await apiFetch("/api/invites/redeem", {
         method: "POST",
         body: JSON.stringify({ code, familyId: memberFamilyId, memberId }),
@@ -115,7 +117,9 @@ export function JoinFlow({ code }: { code: string }) {
   const families = familyId
     ? preview.families.filter((f) => f.id === familyId)
     : preview.families;
-  const kidsOnly = isKidInvite;
+  // Kid links show the kids — unless the organizer didn't mark anyone as a kid
+  const kidsOnly =
+    isKidInvite && preview.families.some((f) => f.members.some((m) => m.kid));
 
   return (
     <ProductShell>
@@ -161,6 +165,22 @@ export function JoinFlow({ code }: { code: string }) {
               חשבון אחד לכל הטיולים — בלי סיסמאות
             </p>
             <SignInPanel />
+            <div className="flex items-center gap-3 text-xs text-ink-300">
+              <span className="h-px flex-1 bg-cream-200" />
+              או
+              <span className="h-px flex-1 bg-cream-200" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setAsGuest(true)}
+              className="btn-soft w-full py-3.5 text-base"
+            >
+              המשך בלי חשבון 👋
+            </button>
+            <p className="text-xs leading-relaxed text-ink-500">
+              בלי Gmail? אין בעיה — בוחרים שם ונכנסים. הגישה נשמרת בטלפון הזה,
+              ואפשר לחבר חשבון בהמשך מתוך ההגדרות.
+            </p>
           </section>
         ) : (
           <section className="space-y-3">
@@ -213,6 +233,11 @@ export function JoinFlow({ code }: { code: string }) {
             {user && personal && (
               <p className="text-center text-xs text-ink-500">
                 מחוברים כ-{user.displayName || user.email}
+              </p>
+            )}
+            {!personal && !isKidInvite && (
+              <p className="text-center text-xs text-ink-500">
+                נכנסים כאורח — הגישה נשמרת בטלפון הזה
               </p>
             )}
           </section>

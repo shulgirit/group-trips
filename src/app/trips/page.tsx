@@ -12,7 +12,8 @@ import { useAuthUser } from "@/lib/use-auth-user";
 
 export default function MyTripsPage() {
   const { user, personal, loading: authLoading } = useAuthUser();
-  const { trips, loading } = useMyTrips(personal ? user!.uid : null);
+  const guest = Boolean(user?.isAnonymous);
+  const { trips, loading } = useMyTrips(personal || guest ? user!.uid : null);
   const today = todayIso();
 
   if (authLoading) {
@@ -23,7 +24,7 @@ export default function MyTripsPage() {
     );
   }
 
-  if (!personal) {
+  if (!personal && !guest) {
     return (
       <ProductShell>
         <div className="card mx-auto max-w-sm px-6 py-8 text-center">
@@ -59,6 +60,12 @@ export default function MyTripsPage() {
           <p className="mt-1 text-ink-500">לאן נוסעים הפעם?</p>
         </header>
 
+        {guest ? (
+          <p className="card px-5 py-4 text-sm leading-relaxed text-ink-500">
+            נכנסתם כאורח. כדי לפתוח טיול משלכם — התנתקו והתחברו עם Google או
+            Apple, או שמרו את החשבון מתוך הגדרות הטיול.
+          </p>
+        ) : (
         <Link
           href="/new"
           className="card flex items-center gap-4 border-dashed border-sea-200 bg-sea-100/40 px-5 py-5 transition active:scale-[0.99]"
@@ -75,6 +82,7 @@ export default function MyTripsPage() {
             </span>
           </span>
         </Link>
+        )}
 
         {loading ? (
           <ListSkeleton />

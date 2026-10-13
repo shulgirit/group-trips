@@ -1,7 +1,7 @@
 "use client";
 
 import type { Family } from "@/types";
-import { CURRENCY_SYMBOL, type Currency } from "@/lib/currency";
+import { currencySymbol, type Currency } from "@/lib/currency";
 import { activeTrip } from "@/lib/active-trip";
 import { useTrip } from "@/components/providers/TripProvider";
 
@@ -221,7 +221,7 @@ export function SplitEditor({
                   {" "}
                   · ≈{" "}
                   <span dir="ltr" className="tabular-nums">
-                    {CURRENCY_SYMBOL[currency]}
+                    {currencySymbol(currency)}
                     {(amount / total).toLocaleString("he-IL", {
                       maximumFractionDigits: 1,
                     })}

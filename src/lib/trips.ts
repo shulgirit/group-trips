@@ -52,6 +52,19 @@ export interface TripGroupConfig {
   pickNamePrompt: string;
 }
 
+export interface TripStopConfig {
+  label: string;
+  /** Latin word appended to Places/Waze searches */
+  region: string;
+  timezone: string;
+  currency: string;
+  startDate: string;
+  endDate: string;
+  lat: number;
+  lng: number;
+  flag: string;
+}
+
 export interface TripConfig {
   /** "custom" = a self-serve trip built from its Firestore doc */
   key: TripKey | "custom";
@@ -87,7 +100,10 @@ export interface TripConfig {
   endDate: string;
   /** IANA time zone of the destination */
   timezone: string;
-  currency: "EUR" | "ILS" | "USD";
+  /** ISO 4217 — the current stop's local currency */
+  currency: string;
+  /** Itinerary, in order (single entry for one-destination trips) */
+  stops: TripStopConfig[];
   mapCenter: { lat: number; lng: number };
   /** Region word appended to Places/Waze searches */
   searchRegionHint: string;
@@ -132,6 +148,19 @@ const SICILY: TripConfig = {
   endDate: "2026-08-24",
   timezone: "Europe/Rome",
   currency: "EUR",
+  stops: [
+    {
+      label: "סיציליה",
+      region: "Sicily",
+      timezone: "Europe/Rome",
+      currency: "EUR",
+      startDate: "2026-08-15",
+      endDate: "2026-08-24",
+      lat: 37.55,
+      lng: 14.25,
+      flag: "🇮🇹",
+    },
+  ],
   mapCenter: { lat: 37.55, lng: 14.25 },
   searchRegionHint: "Sicily",
   homeBase: {
@@ -214,6 +243,19 @@ const SARDINIA: TripConfig = {
   endDate: "2026-09-10",
   timezone: "Europe/Rome",
   currency: "EUR",
+  stops: [
+    {
+      label: "סרדיניה",
+      region: "Sardinia",
+      timezone: "Europe/Rome",
+      currency: "EUR",
+      startDate: "2026-09-03",
+      endDate: "2026-09-10",
+      lat: 40.05,
+      lng: 9.05,
+      flag: "🇮🇹",
+    },
+  ],
   mapCenter: { lat: 40.05, lng: 9.05 },
   searchRegionHint: "Sardinia",
   homeBase: null,

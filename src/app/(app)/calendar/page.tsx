@@ -22,6 +22,7 @@ import { participantsIntersect, participantsLabel } from "@/lib/participants";
 import { formatDayLabel, todayIso, tripDayNumber, tripDays } from "@/lib/trip";
 import { PLACE_CATEGORIES, type Family, type TripEvent } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { stopForDay } from "@/lib/trip-doc";
 
 const DEFAULT_DURATION_MIN = 90;
 
@@ -91,6 +92,8 @@ function CalendarContent() {
 
   const hasSplit = dayEvents.some((e) => flags.get(e.id)?.split);
   const dayNumber = tripDayNumber(selectedDay, trip);
+  const multiStop = trip.stops.length > 1;
+  const selectedStop = stopForDay(trip.stops, selectedDay);
 
   return (
     <div className="space-y-4">
@@ -125,7 +128,9 @@ function CalendarContent() {
                     : "bg-white text-ink-500 border border-cream-200"
               }`}
             >
-              <span className="text-[11px] opacity-75">יום {index + 1}</span>
+              <span className="text-[11px] opacity-75">
+                {multiStop ? `${stopForDay(trip.stops, day).flag} ` : ""}יום {index + 1}
+              </span>
               <span dir="ltr" className="text-sm font-bold tabular-nums">
                 {formatDayLabel(day).split("· ")[1]}
               </span>
@@ -138,6 +143,7 @@ function CalendarContent() {
         <p className="text-sm text-ink-500">
           {formatDayLabel(selectedDay)}
           {dayNumber ? ` · יום ${dayNumber} מתוך ${days.length}` : ""}
+          {multiStop ? ` · ${selectedStop.flag} ${selectedStop.label}` : ""}
           {selectedDay === today ? " · היום 🌞" : ""}
         </p>
         {hasSplit && (
