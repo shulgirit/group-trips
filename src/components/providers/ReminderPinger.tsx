@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { registerServiceWorker } from "@/lib/push-client";
 import { useTrip } from "@/components/providers/TripProvider";
+import { apiFetch } from "@/lib/firebase/client";
 
 const PING_INTERVAL_MS = 5 * 60_000;
 
@@ -19,7 +20,7 @@ export function ReminderPinger() {
 
     const ping = () => {
       if (document.visibilityState !== "visible") return;
-      fetch("/api/push/check-reminders", {
+      apiFetch("/api/push/check-reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tripId }),

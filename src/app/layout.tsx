@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { heebo } from "@/lib/fonts";
 import "./globals.css";
+import { NativeBridge } from "@/components/native/NativeBridge";
 
 export const metadata: Metadata = {
   title: {
@@ -29,7 +30,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="he" dir="rtl" className={heebo.variable}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <NativeBridge />
+        {children}
+      </body>
     </html>
   );
 }

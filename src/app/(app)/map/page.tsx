@@ -6,6 +6,8 @@ import Link from "next/link";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   BedDouble,
+  LocateFixed,
+  Radio,
   Binoculars,
   FerrisWheel,
   Home,
@@ -26,6 +28,18 @@ import { todayIso } from "@/lib/trip";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { BottomSheet } from "@/components/ui/BottomSheet";
+import { useFamilies } from "@/lib/hooks";
+import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
+import { SHARE_DURATIONS, useSharedLocations } from "@/lib/shared-location";
+
+const FAMILY_HEX: Record<string, string> = {
+  sea: "#1e81a3",
+  terra: "#bf653c",
+  lemon: "#dfae38",
+  olive: "#757d4d",
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
@@ -114,7 +128,7 @@ function loadGoogleMaps(onReady: () => void): void {
   window.__initTripMap = onReady;
   const script = document.createElement("script");
   script.id = "gmaps-script";
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&callback=__initTripMap&language=he&region=IT`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&callback=__initTripMap&language=he`;
   script.async = true;
   document.head.appendChild(script);
 }
@@ -133,6 +147,15 @@ export default function MapPage() {
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [selected, setSelected] = useState<Place | null>(null);
+  const { personal } = useFirebase();
+  const { families } = useFamilies();
+  const { fix, status: locationStatus, start: startLocation } = useMyLocation();
+  const shared = useSharedLocations(fix);
+  const [shareOpen, setShareOpen] = useState(false);
+  const followRef = useRef(false);
+  const meMarkerRef = useRef<any>(null);
+  const meCircleRef = useRef<any>(null);
+  const othersRef = useRef<any[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -245,6 +268,94 @@ export default function MapPage() {
     return () => observer.disconnect();
   }, [mapReady, renderMarkers]);
 
+  // My live blue dot + accuracy halo
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !fix || !window.google?.maps) return;
+    const position = { lat: fix.lat, lng: fix.lng };
+    if (!meMarkerRef.current) {
+      meMarkerRef.current = new window.google.maps.Marker({
+        map,
+        position,
+        zIndex: 2000,
+        title: "אני",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#1a73e8",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+      meCircleRef.current = new window.google.maps.Circle({
+        map,
+        center: position,
+        radius: fix.accuracy,
+        fillColor: "#1a73e8",
+        fillOpacity: 0.12,
+        strokeOpacity: 0,
+        clickable: false,
+      });
+    } else {
+      meMarkerRef.current.setPosition(position);
+      meCircleRef.current?.setCenter(position);
+      meCircleRef.current?.setRadius(fix.accuracy);
+    }
+    if (followRef.current) {
+      followRef.current = false;
+      map.panTo(position);
+      if (map.getZoom() < 14) map.setZoom(15);
+    }
+  }, [mapReady, fix]);
+
+  // Group members sharing their location
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !window.google?.maps) return;
+    othersRef.current.forEach((marker) => marker.setMap(null));
+    othersRef.current = shared.others.map((other) => {
+      const color =
+        FAMILY_HEX[families?.find((f) => f.id === other.familyId)?.color ?? ""] ?? "#14627f";
+      const minutes = Math.max(0, Math.round((Date.now() - other.updatedAt) / 60_000));
+      return new window.google.maps.Marker({
+        map,
+        position: { lat: other.lat, lng: other.lng },
+        zIndex: 1500,
+        title: `${other.name} · לפני ${minutes} דק׳`,
+        label: {
+          text: (other.name || "?").slice(0, 1),
+          color: "#ffffff",
+          fontWeight: "700",
+          fontSize: "13px",
+        },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 13,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+      });
+    });
+  }, [mapReady, shared.others, families]);
+
+  function locateMe() {
+    followRef.current = true;
+    if (fix && mapRef.current) {
+      followRef.current = false;
+      mapRef.current.panTo({ lat: fix.lat, lng: fix.lng });
+      if (mapRef.current.getZoom() < 14) mapRef.current.setZoom(15);
+    }
+    if (locationStatus !== "on") startLocation();
+  }
+
+  const selectedDistance =
+    selected && fix && typeof selected.lat === "number" && typeof selected.lng === "number"
+      ? formatDistance(distanceMeters(fix, { lat: selected.lat, lng: selected.lng }))
+      : null;
+
   const selectedCategory = selected
     ? (PLACE_CATEGORIES[selected.category] ?? PLACE_CATEGORIES.other)
     : null;
@@ -252,7 +363,7 @@ export default function MapPage() {
   return (
     <div className="space-y-3">
       <div>
-        <p className="kicker text-terra-500">האי שלנו</p>
+        <p className="kicker text-terra-500">{trip.legacy ? "האי שלנו" : trip.shortName}</p>
         <h1 className="font-display text-3xl font-bold text-ink-900">מפה</h1>
       </div>
 
@@ -289,6 +400,44 @@ export default function MapPage() {
             <div className="absolute inset-0 flex items-center justify-center text-ink-500">
               טוען מפה…
             </div>
+          )}
+
+          {/* Location controls */}
+          {mapReady && (
+            <div className="absolute end-3 top-3 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={locateMe}
+                aria-label="המיקום שלי"
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-[var(--shadow-float)] transition active:scale-95 ${
+                  locationStatus === "on" ? "text-[#1a73e8]" : "text-ink-700"
+                }`}
+              >
+                <LocateFixed className={`h-5 w-5 ${locationStatus === "asking" ? "animate-pulse" : ""}`} />
+              </button>
+              {personal && (
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(true)}
+                  aria-label="שיתוף מיקום עם החבורה"
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-[var(--shadow-float)] transition active:scale-95 ${
+                    shared.sharing ? "bg-terra-500 text-cream-50" : "bg-white text-ink-700"
+                  }`}
+                >
+                  <Radio className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          )}
+          {locationStatus === "denied" && (
+            <p className="card absolute inset-x-3 top-3 me-16 px-3 py-2 text-xs text-ink-700">
+              אין הרשאת מיקום — אפשרו אותה בהגדרות הדפדפן/הטלפון
+            </p>
+          )}
+          {shared.others.length > 0 && !selected && (
+            <p className="absolute bottom-3 start-3 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-700 shadow">
+              📡 {shared.others.map((o) => o.name.split(" ")[0]).join(", ")} משתפים מיקום
+            </p>
           )}
 
           {/* Marker bottom sheet */}
@@ -328,6 +477,7 @@ export default function MapPage() {
                     {selectedCategory?.label}
                     {selected.area ? ` · ${selected.area}` : ""}
                     {scheduledIds.has(selected.id) ? " · 📅 בלוח" : ""}
+                    {selectedDistance ? ` · ${selectedDistance} ממך` : ""}
                   </p>
                   <div className="mt-2 flex gap-2">
                     <a
@@ -360,6 +510,63 @@ export default function MapPage() {
           )}
         </div>
       )}
+
+      <BottomSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="📡 שיתוף מיקום עם החבורה"
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-ink-500">
+            החבורה תראה אתכם על המפה — רק לזמן שתבחרו, ורק כשהאפליקציה פתוחה.
+            אפשר להפסיק בכל רגע.
+          </p>
+          {shared.sharing ? (
+            <>
+              <p className="rounded-2xl bg-terra-100 px-4 py-3 text-sm font-medium text-terra-600">
+                משתפים עד{" "}
+                {new Date(shared.expiresAt!).toLocaleTimeString("he-IL", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+              <button
+                type="button"
+                onClick={() => shared.stopSharing().then(() => setShareOpen(false))}
+                className="btn-outline w-full py-3"
+              >
+                הפסקת שיתוף
+              </button>
+            </>
+          ) : !fix ? (
+            <button
+              type="button"
+              onClick={() => {
+                followRef.current = true;
+                startLocation();
+              }}
+              className="btn-primary w-full py-3"
+            >
+              {locationStatus === "asking" ? "מאתרים…" : "הפעלת מיקום"}
+            </button>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {SHARE_DURATIONS.map((duration) => (
+                <button
+                  key={duration.id}
+                  type="button"
+                  onClick={() =>
+                    shared.startSharing(duration.id, fix).then(() => setShareOpen(false))
+                  }
+                  className="btn-soft py-3 text-sm"
+                >
+                  {duration.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </BottomSheet>
 
       {!loading && missingCoordsCount > 0 && (
         <p className="text-sm text-ink-500">

@@ -24,9 +24,12 @@ const CATEGORY_TONES: Record<PlaceCategory, string> = {
 export function PlaceCard({
   place,
   scheduled,
+  distanceLabel,
 }: {
   place: Place;
   scheduled: boolean;
+  /** "1.2 ק״מ" when sorting by distance from the user */
+  distanceLabel?: string | null;
 }) {
   const { prefix } = useTrip();
   const category = PLACE_CATEGORIES[place.category] ?? PLACE_CATEGORIES.other;
@@ -78,6 +81,9 @@ export function PlaceCard({
       </div>
       <div className="flex items-center justify-between px-4 py-2.5">
         <p className="truncate text-sm text-ink-500">
+          {distanceLabel ? (
+            <span className="font-semibold text-sea-700">📍 {distanceLabel} · </span>
+          ) : null}
           {place.area || category.label}
         </p>
         {scheduled ? (

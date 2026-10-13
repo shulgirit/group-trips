@@ -1,13 +1,10 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { requireAnyAccess } from "@/lib/server/auth";
 import { fetchExchangeRates } from "@/lib/server/rates";
 
-export async function GET() {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+export async function GET(request: Request) {
+  const access = await requireAnyAccess(request);
+  if (access !== true) return access;
 
   const rates = await fetchExchangeRates();
   if (!rates) {

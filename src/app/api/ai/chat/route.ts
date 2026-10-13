@@ -1,16 +1,16 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@/lib/nav";
 import { samePlaceName } from "@/lib/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
 import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
-import { resolveTrip, systemPromptFor } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
+import { systemPromptFor } from "@/lib/server/trip-server";
+import { checkAiQuota, recordAiUsage } from "@/lib/server/usage";
 import type { TripConfig } from "@/lib/trips";
 import { PLACE_CATEGORIES } from "@/types";
 
@@ -268,10 +268,10 @@ const buildTools = (trip: TripConfig): OpenAI.Chat.ChatCompletionTool[] => [
 
 /* ---------- trip context ---------- */
 
-function sicilyNow(): { iso: string; pretty: string; todayIso: string; tomorrowIso: string } {
+function tripNow(timeZone: string): { iso: string; pretty: string; todayIso: string; tomorrowIso: string } {
   const now = new Date();
   const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Rome",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -363,14 +363,14 @@ async function buildTripContext(
     return `- ${p.question}${p.closed ? " [סגור]" : ""}: ${options || "(בלי אפשרויות עדיין)"}`;
   });
 
-  const now = sicilyNow();
+  const now = tripNow(trip.timezone);
 
   const context = [
     `עכשיו ב${trip.shortName}: ${now.iso}. היום = ${now.todayIso}, מחר = ${now.tomorrowIso}.`,
-    `תאריכי הטיול: ${trip.startDate} עד ${trip.endDate}.${trip.homeBase ? ` הוילה: ${trip.homeBase.name}, ${trip.homeBase.address}.` : ""}`,
+    `תאריכי הטיול: ${trip.startDate} עד ${trip.endDate}.${trip.homeBase ? ` ${trip.legacy ? "הוילה" : "מקום הלינה"}: ${trip.homeBase.name}, ${trip.homeBase.address}.` : ""}`,
     ``,
     ...(aboutUs ? [`על החבורה (נכתב על ידי המשפחות):`, aboutUs, ``] : []),
-    trip.key === "sicily" ? `המשפחות:` : `החברים:`,
+    trip.key === "sicily" ? `המשפחות:` : trip.key === "sardinia" ? `החברים:` : `${trip.group.unitLabel}:`,
     ...families.map(
       (f) => `- ${f.name}: ${f.members.map((m) => m.name).join(", ")}`
     ),
@@ -469,7 +469,7 @@ async function executeTool(
 ): Promise<Record<string, unknown>> {
   const tripRef = adminDb().collection("trips").doc(trip.id);
   // "🦻✨ המשרת של החבורה" for sicily — byte-identical to the original
-  const aiName = trip.key === "sicily" ? "המשרת של החבורה" : "הטייס";
+  const aiName = trip.aiName;
   const aiSigner = `${trip.ai.emoji} ${aiName}`;
 
   if (name === "add_place") {
@@ -747,14 +747,6 @@ async function executeTool(
 /* ---------- handler ---------- */
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "not_configured" }, { status: 500 });
-  }
-
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -762,14 +754,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const trip = resolveTrip(body.tripId);
+  const access = await authorizeTrip(request, body.tripId);
+  if (access instanceof NextResponse) return access;
+  const { trip, doc } = access;
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({ error: "not_configured" }, { status: 500 });
+  }
+
+  const quota = await checkAiQuota(trip, doc);
+  if (!quota.ok) {
+    return NextResponse.json(
+      {
+        error: "quota_exceeded",
+        reply: `הגעתם למכסת השיחות החודשית של הטיול (${quota.limit}). היא תתחדש בתחילת החודש הבא 🙏`,
+      },
+      { status: 429 }
+    );
+  }
+  recordAiUsage(trip).catch(() => undefined);
 
   try {
     const { context, data } = await buildTripContext(trip);
     const openai = new OpenAI();
 
     const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPromptFor(trip) },
+      { role: "system", content: systemPromptFor(trip, doc) },
       { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
       ...(body.speaker
         ? [

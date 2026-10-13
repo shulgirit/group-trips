@@ -1,8 +1,6 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
 import { ImportError, importPlaceFromUrl } from "@/lib/server/import-place";
 
 export const maxDuration = 120;
@@ -13,11 +11,6 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   let url: string;
   let tripId: string | undefined;
   try {
@@ -26,11 +19,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const access = await authorizeTrip(request, tripId);
+  if (access instanceof NextResponse) return access;
+  const trip = access.trip;
+
   try {
-    const draft = await importPlaceFromUrl(
-      url,
-      resolveTrip(tripId).searchRegionHint
-    );
+    const draft = await importPlaceFromUrl(url, trip.searchRegionHint);
     return NextResponse.json({ draft });
   } catch (error) {
     const reason = error instanceof ImportError ? error.reason : "extract_failed";

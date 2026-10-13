@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { enrichSavedPlace } from "@/lib/server/enrich";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
 
 export const maxDuration = 120;
 
@@ -18,11 +16,6 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   let placeId: string;
   let url: string | undefined;
   let tripId: string | undefined;
@@ -32,8 +25,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const access = await authorizeTrip(request, tripId);
+  if (access instanceof NextResponse) return access;
+  const trip = access.trip;
+
   try {
-    const result = await enrichSavedPlace(resolveTrip(tripId), placeId, url);
+    const result = await enrichSavedPlace(trip, placeId, url);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[import/enrich]", error);

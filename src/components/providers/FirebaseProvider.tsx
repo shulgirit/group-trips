@@ -14,6 +14,7 @@ import {
   db,
   ensureFirebaseSignIn,
   isPersonalUser,
+  waitForAuth,
 } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import type { UserProfile } from "@/types";
@@ -51,9 +52,15 @@ export function FirebaseProvider({
   const [epoch, setEpoch] = useState(0);
   const provisionedTripsRef = useRef<Set<string>>(new Set());
 
+  const trip = useTrip();
+  const tripPath = trip.path;
+  const legacy = trip.legacy;
+
   useEffect(() => {
     let cancelled = false;
-    ensureFirebaseSignIn()
+    // Self-serve trips never fall back to the shared legacy identity —
+    // the route gate (TripGate) only mounts us once a real user exists.
+    (legacy ? ensureFirebaseSignIn() : waitForAuth())
       .then(() => {
         if (!cancelled) setReady(true);
       })
@@ -63,7 +70,7 @@ export function FirebaseProvider({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [legacy]);
 
   useEffect(() => {
     if (!ready) return;
@@ -72,15 +79,12 @@ export function FirebaseProvider({
       if (nextUser) {
         // Pick up freshly-set membership claims without waiting an hour
         nextUser.getIdToken(true).catch(() => undefined);
-      } else {
+      } else if (legacy) {
         // Signed out of the personal identity — fall back to the shared one
         ensureFirebaseSignIn().catch(() => setError(true));
       }
     });
-  }, [ready]);
-
-  const trip = useTrip();
-  const tripPath = trip.path;
+  }, [ready, legacy]);
 
   useEffect(() => {
     if (!ready || !user) {
@@ -114,7 +118,8 @@ export function FirebaseProvider({
   // server creates the users doc, which unlocks the Firestore rules.
   useEffect(() => {
     if (!ready || !user || !profileResolved || profile) return;
-    if (!isPersonalUser(user)) return;
+    // Only legacy trips auto-enroll; self-serve trips join via invites
+    if (!legacy || !isPersonalUser(user)) return;
     if (provisionedTripsRef.current.has(trip.id)) return;
     provisionedTripsRef.current.add(trip.id);
     let cancelled = false;
@@ -139,7 +144,7 @@ export function FirebaseProvider({
     return () => {
       cancelled = true;
     };
-  }, [ready, user, profile, profileResolved, trip.id]);
+  }, [ready, user, profile, profileResolved, trip.id, legacy]);
 
   // Personal = Google account OR a registered name-based identity (kids).
   // The legacy shared trip identity has no profile doc, so it stays shared.

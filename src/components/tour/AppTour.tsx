@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { activeTrip } from "@/lib/active-trip";
+import type { TripConfig } from "@/lib/trips";
 import { useTrip } from "@/components/providers/TripProvider";
 
 interface TourStep {
@@ -210,6 +211,25 @@ const SARDINIA_STEPS: TourStep[] = [
   },
 ];
 
+/** Self-serve trips: Sardinia's generic flow with the trip's own AI. */
+function genericSteps(trip: TripConfig): TourStep[] {
+  return SARDINIA_STEPS.map((step) =>
+    step.title === "הטייס ✨"
+      ? {
+          ...step,
+          emoji: trip.ai.emoji,
+          title: `${trip.aiName} ✨`,
+          chips: [
+            "״תמליץ על אטרקציה שווה ליד הבית״",
+            "״תוסיף למחר ב-19:00 ארוחת ערב טובה״",
+            "״תעשה סקר — ים או טיול מחר?״",
+            "״מה הלו״ז של מחר?״",
+          ],
+        }
+      : step
+  );
+}
+
 export function markTourSeen() {
   try {
     localStorage.setItem(activeTrip().tourKey, "1");
@@ -234,7 +254,12 @@ export function AppTour({
   onClose: () => void;
 }) {
   const trip = useTrip();
-  const steps = trip.key === "sicily" ? SICILY_STEPS : SARDINIA_STEPS;
+  const steps =
+    trip.key === "sicily"
+      ? SICILY_STEPS
+      : trip.key === "sardinia"
+        ? SARDINIA_STEPS
+        : genericSteps(trip);
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {

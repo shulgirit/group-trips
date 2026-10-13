@@ -6,14 +6,17 @@ import { DEFAULT_TRIP, TRIPS, type TripConfig, type TripKey } from "@/lib/trips"
 
 const TripContext = createContext<TripConfig>(DEFAULT_TRIP);
 
+/** Supplies the active trip — a legacy key, or a config built from a trip doc. */
 export function TripProvider({
   tripKey,
+  config,
   children,
 }: {
-  tripKey: TripKey;
+  tripKey?: TripKey;
+  config?: TripConfig;
   children: React.ReactNode;
 }) {
-  const trip = TRIPS[tripKey];
+  const trip = config ?? TRIPS[tripKey ?? "sicily"];
   // Also set during render so the global is right before first paint
   setActiveTrip(trip);
   useEffect(() => {

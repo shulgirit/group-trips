@@ -32,6 +32,8 @@ export interface TripAiConfig {
 export interface TripGroupConfig {
   /** "משפחות" | "חברים" — generic unit word */
   unitLabel: string;
+  /** Emoji for the group row on the עוד page */
+  groupEmoji: string;
   /** Families page h1 */
   pageTitle: string;
   /** Families-page summary suffix, e.g. " · וילה אחת 🏡" */
@@ -51,12 +53,15 @@ export interface TripGroupConfig {
 }
 
 export interface TripConfig {
-  key: TripKey;
+  /** "custom" = a self-serve trip built from its Firestore doc */
+  key: TripKey | "custom";
   id: string;
   /** Firestore root: trips/<id> */
   path: string;
   /** URL prefix — "" for sicily, "/sardinia" for sardinia */
   prefix: string;
+  /** Legacy trips keep the shared-password access model until migrated */
+  legacy: boolean;
   name: string;
   shortName: string;
   /** Latin kicker over heroes */
@@ -74,10 +79,15 @@ export interface TripConfig {
   heroTitle: string;
   /** null → designed CSS hero (no photo) */
   heroImage: string | null;
+  /** Designed hero when there is no photo: a big glyph + small icon */
+  heroArt: { big: string; icon: string } | null;
   countdownTarget: string;
   departureNote: string;
   startDate: string;
   endDate: string;
+  /** IANA time zone of the destination */
+  timezone: string;
+  currency: "EUR" | "ILS" | "USD";
   mapCenter: { lat: number; lng: number };
   /** Region word appended to Places/Waze searches */
   searchRegionHint: string;
@@ -92,6 +102,8 @@ export interface TripConfig {
   /** Push confirmation / SW fallback title */
   pushTitle: string;
   tourKey: string;
+  /** Short AI name used inside chat replies */
+  aiName: string;
   ai: TripAiConfig;
   group: TripGroupConfig;
 }
@@ -101,6 +113,7 @@ const SICILY: TripConfig = {
   id: "sicily-2026",
   path: "trips/sicily-2026",
   prefix: "",
+  legacy: true,
   name: "סיציליה 2026",
   shortName: "סיציליה",
   kicker: "Sicily Together",
@@ -112,10 +125,13 @@ const SICILY: TripConfig = {
   dayLabelSuffix: "סיציליה 🇮🇹",
   heroTitle: "סיציליה מחכה לנו 🇮🇹",
   heroImage: "/images/hero.jpg",
+  heroArt: null,
   countdownTarget: "2026-08-15T21:35:00+03:00",
   departureNote: "✈️ ההמראה מנתב״ג · שבת 15.8 · 21:35",
   startDate: "2026-08-15",
   endDate: "2026-08-24",
+  timezone: "Europe/Rome",
+  currency: "EUR",
   mapCenter: { lat: 37.55, lng: 14.25 },
   searchRegionHint: "Sicily",
   homeBase: {
@@ -128,6 +144,7 @@ const SICILY: TripConfig = {
   },
   pushTitle: "סיציליה 2026 🍋",
   tourKey: "micha-tour-seen-v1",
+  aiName: "המשרת של החבורה",
   ai: {
     navLabel: "המשרת",
     title: "🦻✨ המשרת של חבורת מיחא",
@@ -157,6 +174,7 @@ const SICILY: TripConfig = {
   },
   group: {
     unitLabel: "משפחות",
+    groupEmoji: "👨‍👩‍👧‍👦",
     pageTitle: "👨‍👩‍👧‍👦 המשפחות",
     summarySuffix: " · וילה אחת 🏡",
     moreLabel: "משפחות",
@@ -177,6 +195,7 @@ const SARDINIA: TripConfig = {
   id: "sardinia-2026",
   path: "trips/sardinia-2026",
   prefix: "/sardinia",
+  legacy: true,
   name: "סרדיניה 2026",
   shortName: "סרדיניה",
   kicker: "SARDINIA 60",
@@ -188,15 +207,19 @@ const SARDINIA: TripConfig = {
   dayLabelSuffix: "סרדיניה 🇮🇹",
   heroTitle: "סרדיניה, אנחנו באים",
   heroImage: "/images/sardinia-hero.jpg",
+  heroArt: { big: "60", icon: "✈️" },
   countdownTarget: "2026-09-03T07:00:00+03:00",
   departureNote: "✈️ ההמראה מנתב״ג · יום חמישי 3.9 · 07:00 · טרמינל 3",
   startDate: "2026-09-03",
   endDate: "2026-09-10",
+  timezone: "Europe/Rome",
+  currency: "EUR",
   mapCenter: { lat: 40.05, lng: 9.05 },
   searchRegionHint: "Sardinia",
   homeBase: null,
   pushTitle: "סרדיניה 2026 ✈️",
   tourKey: "sardinia-tour-seen-v1",
+  aiName: "הטייס",
   ai: {
     navLabel: "הטייס",
     title: "✈️✨ הטייס",
@@ -226,6 +249,7 @@ const SARDINIA: TripConfig = {
   },
   group: {
     unitLabel: "חברים",
+    groupEmoji: "👨‍✈️",
     pageTitle: "👨‍✈️ החבורה",
     summarySuffix: " · חוגגים 60 🎉",
     moreLabel: "החבורה",
@@ -246,6 +270,13 @@ export const TRIPS: Record<TripKey, TripConfig> = {
 };
 
 export const DEFAULT_TRIP = SICILY;
+
+/** Static config for a legacy trip id, or null for self-serve trips. */
+export function legacyTripById(
+  id: string | undefined | null
+): TripConfig | null {
+  return Object.values(TRIPS).find((trip) => trip.id === id) ?? null;
+}
 
 export function tripById(id: string | undefined | null): TripConfig {
   return (

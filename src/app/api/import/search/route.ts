@@ -1,8 +1,6 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
 import type { PlaceCategory } from "@/types";
 
 const RequestSchema = z.object({
@@ -34,10 +32,6 @@ function extractArea(address: string): string {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key) {
     return NextResponse.json({ error: "not_configured" }, { status: 500 });
@@ -51,6 +45,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
+  const access = await authorizeTrip(request, tripId);
+  if (access instanceof NextResponse) return access;
+  const trip = access.trip;
+
   const search = await fetch(
     "https://places.googleapis.com/v1/places:searchText",
     {
@@ -62,7 +60,7 @@ export async function POST(request: Request) {
           "places.displayName,places.formattedAddress,places.location,places.types,places.primaryType,places.websiteUri,places.photos,places.rating",
       },
       body: JSON.stringify({
-        textQuery: `${query} ${resolveTrip(tripId).searchRegionHint}`,
+        textQuery: `${query} ${trip.searchRegionHint}`,
         pageSize: 3,
       }),
     }

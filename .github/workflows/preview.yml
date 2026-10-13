@@ -1,0 +1,31 @@
+name: Deploy to Vercel (preview)
+
+# Every non-main branch gets a preview URL (Vercel "Preview" env vars) —
+# test new features on real infrastructure before they reach production.
+on:
+  push:
+    branches-ignore: [main]
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global vercel@latest
+      # Remote build on Vercel (never --prebuilt — see CLAUDE.md)
+      - name: Deploy preview
+        run: |
+          url=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url"

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>אין חיבור</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: flex; align-items: center; justify-content: center;
+        font-family: -apple-system, "Heebo", system-ui, sans-serif;
+        background: linear-gradient(160deg, #082433, #14627f); color: #faf7f0;
+        text-align: center; padding: 24px; box-sizing: border-box;
+      }
+      .emoji { font-size: 56px; }
+      h1 { font-size: 24px; margin: 16px 0 8px; }
+      p { opacity: .8; margin: 0 0 24px; line-height: 1.5; }
+      button {
+        background: #faf7f0; color: #082433; border: 0; border-radius: 16px;
+        padding: 14px 28px; font-size: 17px; font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="emoji">📡</div>
+      <h1>אין חיבור לאינטרנט</h1>
+      <p>בדקו Wi-Fi או נתונים סלולריים ונסו שוב</p>
+      <button onclick="location.replace('https://sicily-together.vercel.app/trips')">נסו שוב</button>
+    </div>
+  </body>
+</html>

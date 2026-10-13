@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.app.together.trips"],
+        "components": [{ "/": "/j/*", "comment": "Trip invite links open the app" }]
+      }
+    ]
+  }
+}

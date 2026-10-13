@@ -9,5 +9,6 @@ import { auth } from "@/lib/firebase/client";
 export async function logoutEverywhere(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   await signOut(auth()).catch(() => undefined);
-  window.location.replace(`${activeTrip().prefix}/gate`);
+  const trip = activeTrip();
+  window.location.replace(trip.legacy ? `${trip.prefix}/gate` : "/welcome");
 }

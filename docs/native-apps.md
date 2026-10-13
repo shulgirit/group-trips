@@ -1,0 +1,61 @@
+# Store apps (iOS + Android) — Capacitor
+
+The store apps are a native shell around the **live web app**
+(`capacitor.config.ts` → `server.url`). Every web deploy reaches the apps
+instantly; only native changes (plugins, icons, permissions) need a new
+store build. Native features are reached from web code through
+`window.Capacitor` (`src/lib/native.ts`) — the web bundle never imports
+native packages.
+
+| Feature | Native plugin | Web fallback |
+| --- | --- | --- |
+| GPS ("me" dot, near-me, live sharing) | `@capacitor/geolocation` | `navigator.geolocation` |
+| Google / Apple sign-in | `@capacitor-firebase/authentication` (skipNativeAuth → `signInWithCredential`) | popup → redirect |
+| Push | `@capacitor-firebase/messaging` (FCM/APNs, `kind: "fcm"` subscriptions) | web-push (VAPID) |
+| Invite links open the app | `@capacitor/app` `appUrlOpen` + universal/app links | — |
+
+## One-time setup (Omer)
+
+1. **Accounts**: Apple Developer Program ($99/yr), Google Play Console ($25).
+2. **Pick final identity**: app name + bundle id. Replace `app.together.trips`
+   in `capacitor.config.ts`, `public/.well-known/*`, Xcode and
+   `android/app/build.gradle` (`applicationId`).
+3. **Firebase console** (project `group-trips-2f753`):
+   - Add an iOS app and an Android app with that bundle id → download
+     `GoogleService-Info.plist` → `ios/App/App/`, `google-services.json` →
+     `android/app/`.
+   - Authentication → enable **Apple** provider (Services ID + key from the
+     Apple developer portal). Then set `NEXT_PUBLIC_APPLE_SIGN_IN=1` in
+     Vercel so the web shows the Apple button too.
+   - Cloud Messaging → upload the **APNs auth key** (.p8).
+   - Add the Android **SHA-1/SHA-256** (debug + Play App Signing) for Google sign-in.
+4. **Universal / app links**: fill `TEAMID` in
+   `public/.well-known/apple-app-site-association`, the Play signing SHA-256
+   in `assetlinks.json`; in Xcode add the *Associated Domains* capability
+   `applinks:<domain>`. A custom domain is strongly recommended before launch
+   (and update `server.url`, `allowNavigation`, the Android intent-filter host).
+5. **Xcode capabilities**: Push Notifications, Background Modes → Remote
+   notifications, Sign in with Apple, Associated Domains.
+
+## Build
+
+```bash
+npm ci
+npx cap sync            # after any plugin/config change
+npx cap open ios        # Xcode → Product → Archive → TestFlight
+npx cap open android    # Android Studio → Build → Generate signed bundle
+```
+
+Icons/splash: put a 1024×1024 icon + 2732×2732 splash in `resources/` and run
+`npx @capacitor/assets generate`.
+
+## Store review checklist
+
+- Sign in with Apple is offered on iOS (done in code when the native plugin is present).
+- **Account deletion in-app**: `/account` → "מחיקת החשבון" (done).
+- Privacy policy `/privacy` + terms `/terms` — drafts, have them reviewed.
+- Location / camera / photos purpose strings: `ios/App/App/Info.plist` (Hebrew, done).
+- Demo account for the reviewer: create a Google test account, a demo trip,
+  and put the credentials in App Store Connect review notes.
+- Guideline 4.2 (minimum functionality): native GPS, push, native sign-in,
+  deep links — keep these working in the review build.

@@ -2,11 +2,39 @@ import "server-only";
 
 import { adminDb } from "@/lib/firebase/admin";
 import { getTripPassword } from "@/lib/auth/session";
-import { tripById, type TripConfig } from "@/lib/trips";
+import {
+  composePersona,
+  tripConfigFromDoc,
+  type TripDoc,
+} from "@/lib/trip-doc";
+import { DEFAULT_TRIP, legacyTripById, type TripConfig } from "@/lib/trips";
 
-/** Resolves a request's trip; missing/unknown id ⇒ sicily (legacy clients). */
-export function resolveTrip(tripId?: string | null): TripConfig {
-  return tripById(tripId);
+/**
+ * Legacy-only resolver for the password/join-code auth routes. Returns
+ * null for self-serve trip ids — those join through invites, never codes.
+ */
+export function resolveLegacyTrip(tripId?: string | null): TripConfig | null {
+  if (!tripId) return DEFAULT_TRIP;
+  return legacyTripById(tripId);
+}
+
+/**
+ * Resolves a request's trip. Missing id ⇒ sicily (legacy clients that
+ * predate multi-trip); legacy ids ⇒ their static config; anything else ⇒
+ * the self-serve trip doc, or null when it doesn't exist.
+ */
+export async function loadTrip(
+  tripId?: string | null
+): Promise<{ config: TripConfig; doc: TripDoc | null } | null> {
+  if (!tripId) return { config: DEFAULT_TRIP, doc: null };
+  const legacy = legacyTripById(tripId);
+  if (legacy) return { config: legacy, doc: null };
+  if (!/^[a-z0-9-]{4,40}$/.test(tripId)) return null;
+  const snapshot = await adminDb().doc(`trips/${tripId}`).get();
+  if (!snapshot.exists) return null;
+  const doc = snapshot.data() as TripDoc;
+  if (!doc.destination || !doc.ai) return null;
+  return { config: tripConfigFromDoc(tripId, doc), doc };
 }
 
 /**
@@ -41,8 +69,17 @@ const SHARED_RULES = `כללים:
 - שדות טקסט שאין לך מידע עבורם — מחרוזת ריקה.`;
 
 /** AI persona + rules, per trip. Sicily's text is byte-identical to the
- *  original SYSTEM_PROMPT it replaces. */
-export function systemPromptFor(trip: TripConfig): string {
+ *  original SYSTEM_PROMPT it replaces; self-serve trips compose theirs
+ *  from the organizer's choices in the trip doc. */
+export function systemPromptFor(
+  trip: TripConfig,
+  doc: TripDoc | null = null
+): string {
+  if (doc) {
+    return `${composePersona(doc)}
+
+${SHARED_RULES}`;
+  }
   if (trip.key === "sardinia") {
     return `אתה ״הטייס״ ✈️✨ — העוזר האישי של חבורת סרדיניה: חמישה חברים ותיקים, טייסי חיל האוויר לשעבר, שחוגגים יחד יום הולדת 60 בטיול בסרדיניה (3–10 בספטמבר 2026). החברים: אופיר, אייל, נדב, אורן ורונן. נדב מגיע מחו״ל ומצטרף בקליארי; השאר טסים יחד מנתב״ג.
 

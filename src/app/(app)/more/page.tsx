@@ -29,7 +29,7 @@ export default function MorePage() {
       href: `${trip.prefix}/expenses`,
     },
     {
-      emoji: trip.key === "sicily" ? "👨‍👩‍👧‍👦" : "👨‍✈️",
+      emoji: trip.group.groupEmoji,
       label: trip.group.moreLabel,
       description: trip.group.moreDescription,
       href: `${trip.prefix}/families`,

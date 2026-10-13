@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { sendPushToAll } from "@/lib/server/push";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
 
 const RequestSchema = z.object({
   type: z.enum(["poll", "poll_option", "event"]),
@@ -22,11 +20,6 @@ const RequestSchema = z.object({
 
 /** Client-triggered group notifications (new poll / option / event). */
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -34,7 +27,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const trip = resolveTrip(body.tripId);
+  const access = await authorizeTrip(request, body.tripId);
+  if (access instanceof NextResponse) return access;
+  const trip = access.trip;
   const payloads = {
     poll: {
       title: "🗳️ סקר חדש בקבוצה",

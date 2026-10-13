@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { db, signInWithGoogle, storage } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
+import { BookingImporter } from "@/components/creator/BookingImporter";
 import type { TripDocument } from "@/types";
 
 const MAX_FILE_MB = 20;
@@ -38,7 +39,8 @@ function formatSize(bytes: number): string {
 
 export default function DocumentsPage() {
   const { ready, user, personal, epoch } = useFirebase();
-  const { path: tripPath } = useTrip();
+  const { path: tripPath, id: tripId } = useTrip();
+  const [importing, setImporting] = useState(false);
   const [tab, setTab] = useState<"shared" | "private">("shared");
   const [sharedDocs, setSharedDocs] = useState<TripDocument[] | null>(null);
   const [myDocs, setMyDocs] = useState<TripDocument[] | null>(null);
@@ -161,6 +163,36 @@ export default function DocumentsPage() {
       <h1 className="font-display text-2xl font-bold text-ink-900">
         🎟️ הזמנות ומסמכים
       </h1>
+
+      {personal && (
+        <section className="card overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setImporting((open) => !open)}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-start"
+          >
+            <span className="text-2xl" aria-hidden>
+              ✨
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold text-ink-900">
+                ייבוא הזמנה ללו״ז
+              </span>
+              <span className="block text-xs text-ink-500">
+                כרטיס טיסה, מלון או אטרקציה — ה-AI יוסיף ללו״ז ולמפה
+              </span>
+            </span>
+            <span className="text-sm font-semibold text-sea-700">
+              {importing ? "סגירה" : "פתיחה"}
+            </span>
+          </button>
+          {importing && (
+            <div className="border-t border-cream-200/70 px-4 py-4">
+              <BookingImporter tripId={tripId} compact />
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-2xl bg-cream-100 p-1">

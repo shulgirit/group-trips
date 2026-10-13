@@ -7,6 +7,7 @@ import { addPlace, samePlaceName } from "@/lib/db";
 import { usePlaces } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { apiFetch } from "@/lib/firebase/client";
 
 interface ImportedDraft {
   name: string;
@@ -89,7 +90,7 @@ export default function NewPlacePage() {
     setImporting(true);
     setImportError("");
     try {
-      const response = await fetch("/api/import/place", {
+      const response = await apiFetch("/api/import/place", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,7 +138,7 @@ export default function NewPlacePage() {
     setSearchError("");
     setSearchResults(null);
     try {
-      const response = await fetch("/api/import/search", {
+      const response = await apiFetch("/api/import/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, tripId }),

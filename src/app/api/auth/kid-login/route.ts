@@ -8,7 +8,7 @@ import {
   createSessionToken,
 } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { getJoinCode, resolveTrip } from "@/lib/server/trip-server";
+import { getJoinCode, resolveLegacyTrip } from "@/lib/server/trip-server";
 
 const RequestSchema = z.object({
   joinCode: z.string().min(1),
@@ -31,7 +31,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const trip = resolveTrip(body.tripId);
+  const trip = resolveLegacyTrip(body.tripId);
+  if (!trip) {
+    return NextResponse.json({ error: "invite_required" }, { status: 400 });
+  }
   const tripPassword = await getJoinCode(trip);
   if (!tripPassword || !constantTimeEquals(body.joinCode.trim(), tripPassword)) {
     return NextResponse.json({ error: "wrong_code" }, { status: 401 });

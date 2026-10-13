@@ -1,10 +1,24 @@
 "use client";
 
 import { activeTrip } from "@/lib/active-trip";
+import { apiFetch } from "@/lib/firebase/client";
+import { isNative, nativePlugin } from "@/lib/native";
+
+interface FirebaseMessagingPlugin {
+  requestPermissions(): Promise<{ receive: string }>;
+  checkPermissions(): Promise<{ receive: string }>;
+  getToken(): Promise<{ token: string }>;
+  deleteToken(): Promise<void>;
+}
+
+function messaging() {
+  return nativePlugin<FirebaseMessagingPlugin>("FirebaseMessaging");
+}
 
 /** Client helpers for web-push subscribe/unsubscribe. */
 
 export function pushSupported(): boolean {
+  if (isNative()) return Boolean(messaging());
   return (
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
@@ -14,7 +28,7 @@ export function pushSupported(): boolean {
 }
 
 export function isIosSafariNotInstalled(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined" || isNative()) return false;
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -45,10 +59,47 @@ export async function getCurrentSubscription(): Promise<PushSubscription | null>
   return registration.pushManager.getSubscription();
 }
 
+/** Whether this device currently receives the trip's notifications. */
+export async function pushEnabled(): Promise<boolean> {
+  const native = messaging();
+  if (native) {
+    const permission = await native.checkPermissions().catch(() => null);
+    return permission?.receive === "granted";
+  }
+  const subscription = await getCurrentSubscription();
+  return Boolean(subscription) && Notification.permission === "granted";
+}
+
+/** Native app: FCM/APNs token registered with the trip. */
+async function subscribeNative(
+  native: FirebaseMessagingPlugin,
+  meta: { uid?: string; userName?: string }
+): Promise<"subscribed" | "denied" | "failed"> {
+  try {
+    const permission = await native.requestPermissions();
+    if (permission.receive !== "granted") return "denied";
+    const { token } = await native.getToken();
+    const response = await apiFetch("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify({
+        fcmToken: token,
+        uid: meta.uid,
+        userName: meta.userName,
+        tripId: activeTrip().id,
+      }),
+    });
+    return response.ok ? "subscribed" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 export async function subscribeToPush(meta: {
   uid?: string;
   userName?: string;
 }): Promise<"subscribed" | "denied" | "failed"> {
+  const native = messaging();
+  if (native) return subscribeNative(native, meta);
   if (!pushSupported()) return "failed";
 
   const registration = await registerServiceWorker();
@@ -68,7 +119,7 @@ export async function subscribeToPush(meta: {
         ) as unknown as BufferSource,
       }));
 
-    const response = await fetch("/api/push/subscribe", {
+    const response = await apiFetch("/api/push/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -85,9 +136,21 @@ export async function subscribeToPush(meta: {
 }
 
 export async function unsubscribeFromPush(): Promise<void> {
+  const native = messaging();
+  if (native) {
+    const token = await native.getToken().then((t) => t.token).catch(() => "");
+    if (token) {
+      await apiFetch("/api/push/subscribe", {
+        method: "DELETE",
+        body: JSON.stringify({ fcmToken: token, tripId: activeTrip().id }),
+      }).catch(() => undefined);
+    }
+    await native.deleteToken().catch(() => undefined);
+    return;
+  }
   const subscription = await getCurrentSubscription();
   if (!subscription) return;
-  await fetch("/api/push/subscribe", {
+  await apiFetch("/api/push/subscribe", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ endpoint: subscription.endpoint, tripId: activeTrip().id }),
@@ -103,7 +166,7 @@ export function notifyGroup(
   actorUid?: string,
   extras?: { day?: string; navUrl?: string }
 ): void {
-  fetch("/api/push/notify", {
+  apiFetch("/api/push/notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type, title, detail, actorUid, tripId: activeTrip().id, ...extras }),

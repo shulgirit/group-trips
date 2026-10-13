@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
 
 export const maxDuration = 60;
 
@@ -18,13 +16,6 @@ const RequestSchema = z.object({
 /** Fast, focused briefing about a single recommended place — used by the
  *  "ספרו לי עוד" modal, without touching the chat thread. */
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "not_configured" }, { status: 500 });
-  }
 
   let body: z.infer<typeof RequestSchema>;
   try {
@@ -32,7 +23,12 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
-  const trip = resolveTrip(body.tripId);
+  const access = await authorizeTrip(request, body.tripId);
+  if (access instanceof NextResponse) return access;
+  const trip = access.trip;
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({ error: "not_configured" }, { status: 500 });
+  }
 
   try {
     const openai = new OpenAI();
@@ -42,7 +38,9 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            trip.key === "sicily"
+            trip.key === "custom"
+              ? `אתה ״${trip.aiName}״ — עוזר הטיולים של ${trip.group.moreDescription} ב${trip.shortName}. ענה בעברית, חם, תמציתי ומעשי. בלי פתיחים מיותרים.`
+              : trip.key === "sicily"
               ? "אתה המשרת של חבורת מיחא — עוזר טיולים לארבע משפחות ישראליות עם ילדים בסיציליה (חלק מהילדים עם שתלים קוכלאריים; ציין שיקולי שמיעה רק אם באמת רלוונטי). ענה בעברית, חם, תמציתי ומעשי. בלי פתיחים מיותרים."
               : "אתה ״הטייס״ — עוזר טיולים לחמישה חברים מבוגרים שחוגגים 60 בסרדיניה. ענה בעברית, ישיר, תמציתי ומעשי. בלי פתיחים מיותרים.",
         },

@@ -8,9 +8,11 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import type { Place } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
 
 const FILTERS = [
   { id: "all", label: "הכל" },
+  { id: "near", label: "📍 קרוב אליי" },
   { id: "attractions", label: "אטרקציות" },
   { id: "food", label: "אוכל" },
   { id: "beach", label: "חופים" },
@@ -29,6 +31,7 @@ function matchesFilter(
 ): boolean {
   switch (filter) {
     case "all":
+    case "near":
       return true;
     case "attractions":
       return ["attraction", "viewpoint"].includes(place.category);
@@ -54,6 +57,7 @@ export default function PlacesPage() {
   const { events } = useEvents();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
+  const { fix, status: locationStatus, start: startLocation } = useMyLocation();
 
   const scheduledIds = useMemo(
     () =>
@@ -67,7 +71,7 @@ export default function PlacesPage() {
 
   const visiblePlaces = useMemo(() => {
     const term = search.trim();
-    return (places ?? []).filter(
+    const matching = (places ?? []).filter(
       (place) =>
         matchesFilter(place, filter, scheduledIds) &&
         (!term ||
@@ -75,7 +79,19 @@ export default function PlacesPage() {
           place.area?.includes(term) ||
           place.address?.includes(term))
     );
-  }, [places, search, filter, scheduledIds]);
+    if (filter !== "near" || !fix) return matching;
+    const distance = (place: Place) =>
+      typeof place.lat === "number" && typeof place.lng === "number"
+        ? distanceMeters(fix, { lat: place.lat, lng: place.lng })
+        : Number.POSITIVE_INFINITY;
+    return [...matching].sort((a, b) => distance(a) - distance(b));
+  }, [places, search, filter, scheduledIds, fix]);
+
+  function distanceLabel(place: Place): string | null {
+    if (!fix || typeof place.lat !== "number" || typeof place.lng !== "number")
+      return null;
+    return formatDistance(distanceMeters(fix, { lat: place.lat, lng: place.lng }));
+  }
 
   return (
     <div className="space-y-4">
@@ -106,7 +122,10 @@ export default function PlacesPage() {
             <button
               key={id}
               type="button"
-              onClick={() => setFilter(id)}
+              onClick={() => {
+                setFilter(id);
+                if (id === "near" && locationStatus !== "on") startLocation();
+              }}
               className={`chip ${filter === id ? "chip-active" : ""}`}
             >
               {label}
@@ -114,6 +133,16 @@ export default function PlacesPage() {
           ))}
         </div>
       </div>
+
+      {filter === "near" && !fix && (
+        <p className="rounded-2xl bg-sea-100/60 px-4 py-3 text-sm text-ink-700">
+          {locationStatus === "denied"
+            ? "אין הרשאת מיקום — אפשרו אותה בהגדרות הטלפון כדי למיין לפי מרחק"
+            : locationStatus === "unavailable"
+              ? "לא הצלחנו לאתר את המיקום שלכם"
+              : "📍 מאתרים את המיקום שלכם…"}
+        </p>
+      )}
 
       {loading ? (
         <ListSkeleton rows={4} />
@@ -147,7 +176,11 @@ export default function PlacesPage() {
         <ul className="space-y-4">
           {visiblePlaces.map((place) => (
             <li key={place.id}>
-              <PlaceCard place={place} scheduled={scheduledIds.has(place.id)} />
+              <PlaceCard
+                place={place}
+                scheduled={scheduledIds.has(place.id)}
+                distanceLabel={filter === "near" ? distanceLabel(place) : null}
+              />
             </li>
           ))}
         </ul>

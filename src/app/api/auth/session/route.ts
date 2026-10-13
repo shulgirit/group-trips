@@ -9,7 +9,7 @@ import {
   verifySessionToken,
 } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { getJoinCode, resolveTrip } from "@/lib/server/trip-server";
+import { getJoinCode, resolveLegacyTrip } from "@/lib/server/trip-server";
 
 const RequestSchema = z.object({
   idToken: z.string().min(10),
@@ -38,7 +38,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_token" }, { status: 401 });
   }
 
-  const trip = resolveTrip(body.tripId);
+  const trip = resolveLegacyTrip(body.tripId);
+  if (!trip) {
+    return NextResponse.json({ error: "invite_required" }, { status: 400 });
+  }
   const userRef = adminDb().doc(`${trip.path}/users/${decoded.uid}`);
   const snapshot = await userRef.get();
 

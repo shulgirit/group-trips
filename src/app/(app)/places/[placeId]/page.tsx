@@ -28,7 +28,7 @@ import {
 import { SchedulePlaceSheet } from "@/components/events/SchedulePlaceSheet";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { isPersonalUser } from "@/lib/firebase/client";
+import { isPersonalUser, apiFetch } from "@/lib/firebase/client";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deletePlace, updatePlace } from "@/lib/db";
@@ -89,7 +89,7 @@ export default function PlaceDetailPage({
     setEnriching(true);
     setEnrichMessage("");
     try {
-      const response = await fetch("/api/import/enrich", {
+      const response = await apiFetch("/api/import/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(

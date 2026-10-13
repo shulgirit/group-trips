@@ -1,17 +1,18 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { constantTimeEquals } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@/lib/nav";
 import { sendPushToAll } from "@/lib/server/push";
-import { resolveTrip } from "@/lib/server/trip-server";
+import { authorizeTrip } from "@/lib/server/auth";
+import { loadTrip } from "@/lib/server/trip-server";
+import { TRIPS, type TripConfig } from "@/lib/trips";
 
 const REMINDER_WINDOW_MIN = 50;
 const REMINDER_MIN_LEAD_MIN = 10;
 
-function tripNowParts() {
+function tripNowParts(timeZone: string) {
   const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Rome",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -28,24 +29,55 @@ function tripNowParts() {
   };
 }
 
+/** Every trip that could have an event today (cron fan-out). */
+async function tripsInProgress(): Promise<TripConfig[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const trips: TripConfig[] = Object.values(TRIPS).filter(
+    (trip) => trip.endDate >= today
+  );
+  const snapshot = await adminDb()
+    .collection("trips")
+    .where("status", "==", "active")
+    .get();
+  for (const doc of snapshot.docs) {
+    // Filter in memory — avoids a composite index for status+endDate
+    const { startDate, endDate } = doc.data();
+    if (startDate > today || endDate < today) continue;
+    const loaded = await loadTrip(doc.id);
+    if (loaded && !loaded.config.legacy) trips.push(loaded.config);
+  }
+  return trips;
+}
+
 /**
  * Sends "leaving soon" reminders for events starting within the next
- * ~10-50 minutes (trip-local time, both trips are Europe/Rome). Idempotent via reminderSentAt.
- * Called opportunistically by open clients every few minutes.
+ * ~10-50 minutes (trip-local time). Idempotent via reminderSentAt.
+ * Called by open clients every few minutes, and by the scheduled
+ * reminders workflow (x-cron-secret) for every trip in progress.
  */
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const cronSecret = process.env.CRON_SECRET;
+  const presented = request.headers.get("x-cron-secret");
+  if (cronSecret && presented && constantTimeEquals(presented, cronSecret)) {
+    let sent = 0;
+    for (const trip of await tripsInProgress()) {
+      sent += await sendDueReminders(trip);
+    }
+    return NextResponse.json({ ok: true, sent });
   }
 
   const tripId = await request
     .json()
     .then((body) => (body as { tripId?: string })?.tripId)
     .catch(() => undefined);
-  const trip = resolveTrip(tripId);
+  const access = await authorizeTrip(request, tripId);
+  if (access instanceof NextResponse) return access;
+  const sent = await sendDueReminders(access.trip);
+  return NextResponse.json({ ok: true, sent });
+}
 
-  const { dateIso, minutes } = tripNowParts();
+async function sendDueReminders(trip: TripConfig): Promise<number> {
+  const { dateIso, minutes } = tripNowParts(trip.timezone);
   const snapshot = await adminDb()
     .collection(`${trip.path}/events`)
     .where("day", "==", dateIso)
@@ -94,5 +126,5 @@ export async function POST(request: Request) {
     sent++;
   }
 
-  return NextResponse.json({ ok: true, sent });
+  return sent;
 }

@@ -24,6 +24,30 @@ active trip; `src/lib/active-trip.ts` mirrors it for non-React code
 `src/app/(app)/**`. Firestore rules take the tripId wildcard
 (`isMember(tripId)`); one shared gate password + cookie covers both trips.
 
+## Self-serve product (added 2026-10, branch multitrip-platform)
+
+Anyone signs in (Google/Apple) and creates trips. Trip config lives in the
+**trip doc** (`TripDoc` in `src/lib/trip-doc.ts` → `tripConfigFromDoc()`
+builds the same `TripConfig` the pages already read; `trip.key === "custom"`,
+`trip.legacy === false`, prefix `/t/<tripId>`). Legacy sicily/sardinia stay
+on their static configs + cookie model (`trip.legacy`).
+- Membership = `trips/{id}/members/{uid}` (server-written only: create trip,
+  `/api/invites/redeem`); `src/lib/server/membership.ts` also writes the
+  trip `users/{uid}` profile, root `users/{uid}.tripIds` and the storage
+  claim `t.{tripId}`. Invites: top-level `invites/{code}` (server-only).
+- **Every API route authorizes with `authorizeTrip()`** (`src/lib/server/auth.ts`):
+  legacy cookie for legacy trips, Bearer ID token + members doc otherwise.
+  The proxy lets any Bearer `/api` request through — new routes MUST call it.
+  Client calls go through `apiFetch()` (attaches the token).
+- Creator wizard `src/components/creator/*` (`/new`), join `/j/[code]`,
+  hub `/trips`, AI persona composed by `composePersona()`; booking import
+  (`/api/import/booking` + `/apply`); GPS `src/lib/location.ts`, live
+  sharing `trips/{id}/locations/{uid}`.
+- Store apps: Capacitor shell (`capacitor.config.ts`, `ios/`, `android/`),
+  see `docs/native-apps.md`. Launch steps: `docs/multitrip-launch.md`.
+- Rules tests: `tests/rules.test.mjs` (emulator). Non-main branches get a
+  Vercel preview via `.github/workflows/preview.yml`.
+
 ## Ship a change
 
 **`git push origin main` = production deploy.** GitHub Actions

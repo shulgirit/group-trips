@@ -23,7 +23,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
-import { db, storage } from "@/lib/firebase/client";
+import { db, storage, apiFetch } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import {
   PLACE_CATEGORIES,
@@ -99,7 +99,7 @@ export default function AiPage() {
     setInfoText("");
     setInfoLoading(true);
     try {
-      const response = await fetch("/api/ai/place-info", {
+      const response = await apiFetch("/api/ai/place-info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -228,7 +228,7 @@ export default function AiPage() {
     setError("");
     setCanRetry(false);
     try {
-      const response = await fetch("/api/ai/chat", {
+      const response = await apiFetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

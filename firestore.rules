@@ -8,33 +8,118 @@ service cloud.firestore {
     function isCustomIdentity() {
       return request.auth.token.firebase.sign_in_provider == 'custom';
     }
-    function isGoogleUser() {
-      return request.auth.token.firebase.sign_in_provider == 'google.com';
+    function isPersonalProvider() {
+      return request.auth.token.firebase.sign_in_provider in ['google.com', 'apple.com'];
+    }
+
+    // ── Legacy trips (shared password model, until migrated) ──
+    function isLegacyTrip(tripId) {
+      return tripId in ['sicily-2026', 'sardinia-2026'];
     }
     // A registered personal identity: Google account or a kid's
     // name-based identity — both have a server-created users/{uid} doc.
     function hasProfile(tripId) {
       return exists(/databases/$(database)/documents/trips/$(tripId)/users/$(request.auth.uid));
     }
+
+    // ── Self-serve trips: membership is members/{uid}, written only by
+    //    the server (create trip / redeem invite). ──
+    function memberDoc(tripId) {
+      return /databases/$(database)/documents/trips/$(tripId)/members/$(request.auth.uid);
+    }
+    function isTripMember(tripId) {
+      return exists(memberDoc(tripId));
+    }
+    function role(tripId) {
+      return get(memberDoc(tripId)).data.role;
+    }
+    function isAdmin(tripId) {
+      return isTripMember(tripId) && role(tripId) in ['owner', 'admin'];
+    }
+    function isAdult(tripId) {
+      return isTripMember(tripId) && role(tripId) != 'kid';
+    }
+
     // A member is either the shared custom identity, or a registered
-    // personal identity (created after presenting the join code).
+    // personal identity (legacy trips) — or a members/{uid} doc (new trips).
     function isMember(tripId) {
-      return signedIn() && (isCustomIdentity() || hasProfile(tripId));
+      return signedIn() && (
+        isLegacyTrip(tripId)
+          ? (isCustomIdentity() || hasProfile(tripId))
+          : isTripMember(tripId)
+      );
+    }
+    // Who may hold a personal space (private docs, AI chats)
+    function hasPersonalSpace(tripId) {
+      return isLegacyTrip(tripId) ? hasProfile(tripId) : isTripMember(tripId);
+    }
+    // Deleting places: parents in legacy trips; adults (or as the trip allows) otherwise
+    function canDeletePlaces(tripId) {
+      return isLegacyTrip(tripId)
+        ? request.auth.token.firebase.sign_in_provider == 'google.com'
+        : (isAdmin(tripId)
+           || (isAdult(tripId)
+               && get(/databases/$(database)/documents/trips/$(tripId)).data.get('settings', {}).get('membersCanDeletePlaces', true) == true));
+    }
+
+    // Root user profiles ("My trips"): owner reads/edits own, server writes tripIds.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tripIds']);
+    }
+
+    // Invite codes (top-level index) — managed through the server API only.
+    match /invites/{code} {
+      allow read, write: if false;
     }
 
     match /trips/{tripId} {
-      allow read, write: if isMember(tripId);
+      allow read: if isMember(tripId);
+      // Legacy: members edit freely (aboutUs etc). New trips: admins edit
+      // the config; everyone may edit the group's "about us" text.
+      allow update: if isMember(tripId) && (
+        isLegacyTrip(tripId)
+        || isAdmin(tripId)
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aboutUs'])
+      );
+      allow create, delete: if isLegacyTrip(tripId) && isMember(tripId);
+    }
+
+    // Membership list — readable by members, written by the server only.
+    match /trips/{tripId}/members/{uid} {
+      allow read: if isMember(tripId);
+    }
+    // Usage counters and booking-import drafts are server-managed.
+    match /trips/{tripId}/usage/{month} {
+      allow read: if isAdmin(tripId);
+    }
+    match /trips/{tripId}/imports/{importId} {
+      allow read: if isMember(tripId);
+      allow update: if isAdult(tripId);
+    }
+
+    // Families: in new trips only admins reshape the group.
+    match /trips/{tripId}/families/{familyId} {
+      allow read: if isMember(tripId);
+      allow write: if isMember(tripId) && (isLegacyTrip(tripId) || isAdmin(tripId));
+    }
+
+    // Shared live locations: each member writes only their own dot.
+    match /trips/{tripId}/locations/{uid} {
+      allow read: if isMember(tripId);
+      allow write: if isMember(tripId) && request.auth.uid == uid;
     }
 
     // Documents: shared ones visible to all members, private ones only to
-    // their owner (private requires a personal Google identity).
+    // their owner (private requires a personal identity).
     match /trips/{tripId}/documents/{docId} {
       allow read: if isMember(tripId)
         && (resource.data.visibility == 'shared'
             || resource.data.ownerUid == request.auth.uid);
       allow create: if isMember(tripId)
         && request.resource.data.ownerUid == request.auth.uid
-        && (request.resource.data.visibility == 'shared' || hasProfile(tripId));
+        && (request.resource.data.visibility == 'shared' || hasPersonalSpace(tripId));
       allow update, delete: if isMember(tripId)
         && resource.data.ownerUid == request.auth.uid;
     }
@@ -52,25 +137,26 @@ service cloud.firestore {
         && resource.data.ownerUid == request.auth.uid;
       allow create: if isMember(tripId)
         && request.resource.data.ownerUid == request.auth.uid
-        && hasProfile(tripId);
+        && hasPersonalSpace(tripId);
     }
 
-    // Places: every member adds and edits; deleting is for the parents
-    // (Google accounts only — kids' name identities cannot delete).
+    // Places: every member adds and edits; deleting per canDeletePlaces.
     match /trips/{tripId}/places/{placeId} {
       allow read, create, update: if isMember(tripId);
-      allow delete: if isMember(tripId) && isGoogleUser();
+      allow delete: if isMember(tripId) && canDeletePlaces(tripId);
     }
 
     // All other trip data is shared between the members.
     // pushSubscriptions is server-managed only (Admin SDK).
     match /trips/{tripId}/{coll}/{docId} {
       allow read, write: if isMember(tripId)
-        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions', 'places']);
+        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions', 'places',
+                      'members', 'usage', 'imports', 'families', 'locations']);
     }
     match /trips/{tripId}/{coll}/{docId}/{sub}/{subId} {
       allow read, write: if isMember(tripId)
-        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions']);
+        && !(coll in ['documents', 'chatSessions', 'users', 'pushSubscriptions',
+                      'members', 'usage', 'imports']);
     }
   }
 }

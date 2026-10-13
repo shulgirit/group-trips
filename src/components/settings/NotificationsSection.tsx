@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BellRing, BellOff } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import {
-  getCurrentSubscription,
+  pushEnabled,
   isIosSafariNotInstalled,
   pushSupported,
   subscribeToPush,
@@ -29,10 +29,7 @@ export function NotificationsSection() {
         setStatus("install_first");
         return;
       }
-      const subscription = await getCurrentSubscription();
-      setStatus(
-        subscription && Notification.permission === "granted" ? "on" : "off"
-      );
+      setStatus((await pushEnabled()) ? "on" : "off");
     })();
   }, []);
 

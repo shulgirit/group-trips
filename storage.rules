@@ -4,29 +4,45 @@ service firebase.storage {
     function signedIn() {
       return request.auth != null;
     }
-    // Members carry a server-set `member` claim (Google accounts get it
-    // at join; custom tokens — kids and the legacy shared identity — are
-    // only ever minted by our own server).
-    function isMember() {
-      return signedIn()
-        && (request.auth.token.firebase.sign_in_provider == 'custom'
-            || request.auth.token.member == true);
+    function isLegacyTrip(tripId) {
+      return tripId in ['sicily-2026', 'sardinia-2026'];
+    }
+    // Legacy trips: members carry a server-set `member` claim (Google
+    // accounts get it at join; custom tokens — kids and the legacy shared
+    // identity — are only ever minted by our own server).
+    // Self-serve trips: the server adds the trip id to the `t` claim map
+    // when it writes members/{uid} (cross-service firestore.exists is not
+    // provisioned on this project).
+    function isMember(tripId) {
+      return signedIn() && (
+        isLegacyTrip(tripId)
+          ? (request.auth.token.firebase.sign_in_provider == 'custom'
+             || request.auth.token.member == true)
+          : tripId in request.auth.token.get('t', {})
+      );
     }
 
     // Shared documents: any member reads; only the uploader writes.
     match /trips/{tripId}/documents/shared/{uid}/{fileName} {
-      allow read: if isMember();
-      allow write: if isMember() && request.auth.uid == uid;
+      allow read: if isMember(tripId);
+      allow write: if isMember(tripId) && request.auth.uid == uid;
     }
 
     // Private documents: owner only.
     match /trips/{tripId}/documents/private/{uid}/{fileName} {
-      allow read, write: if isMember() && request.auth.uid == uid;
+      allow read, write: if isMember(tripId) && request.auth.uid == uid;
     }
 
     // Trip photos and other shared media
     match /trips/{tripId}/photos/{allPaths=**} {
-      allow read, write: if isMember();
+      allow read, write: if isMember(tripId);
+    }
+
+    // Booking confirmations uploaded in the trip creator / documents
+    match /trips/{tripId}/imports/{uid}/{fileName} {
+      allow read: if isMember(tripId);
+      allow write: if isMember(tripId) && request.auth.uid == uid
+        && request.resource.size < 15 * 1024 * 1024;
     }
   }
 }

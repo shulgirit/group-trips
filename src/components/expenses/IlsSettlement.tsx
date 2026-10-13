@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { calcCombinedBalances, calcSettlement } from "@/lib/settlement";
 import type { Expense, Family } from "@/types";
+import { apiFetch } from "@/lib/firebase/client";
 
 function familyName(families: Family[], id: string): string {
   return families.find((f) => f.id === id)?.name.replace("משפחת ", "") ?? id;
@@ -34,7 +35,7 @@ export function IlsSettlement({
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/rates");
+        const response = await apiFetch("/api/rates");
         // A stale session redirects to /gate with an HTML 200 — treat as failure
         const isJson = response.headers
           .get("content-type")

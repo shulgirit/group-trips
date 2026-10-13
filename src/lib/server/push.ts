@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import webpush from "web-push";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminMessaging } from "@/lib/firebase/admin";
 
 export interface PushPayload {
   title: string;
@@ -13,9 +13,45 @@ export interface PushPayload {
 }
 
 interface StoredSubscription {
+  /** "fcm" = native app token (iOS/Android); absent = web push */
+  kind?: "web" | "fcm";
   endpoint: string;
   keys: { p256dh: string; auth: string };
+  token?: string;
   uid?: string;
+}
+
+/** Native app notification via FCM (APNs on iOS). */
+async function sendFcm(token: string, payload: PushPayload): Promise<"ok" | "gone" | "error"> {
+  try {
+    await adminMessaging().send({
+      token,
+      notification: { title: payload.title, body: payload.body },
+      data: {
+        url: payload.url ?? "/",
+        ...(payload.navUrl ? { navUrl: payload.navUrl } : {}),
+        ...(payload.tag ? { tag: payload.tag } : {}),
+      },
+      android: {
+        priority: "high",
+        notification: { ...(payload.tag ? { tag: payload.tag } : {}), sound: "default" },
+      },
+      apns: {
+        payload: { aps: { sound: "default", ...(payload.tag ? { "thread-id": payload.tag } : {}) } },
+      },
+    });
+    return "ok";
+  } catch (error) {
+    const code = (error as { code?: string })?.code ?? "";
+    if (
+      code === "messaging/registration-token-not-registered" ||
+      code === "messaging/invalid-registration-token"
+    ) {
+      return "gone";
+    }
+    console.error("[push] fcm send failed", code);
+    return "error";
+  }
 }
 
 function configured(): boolean {
@@ -50,8 +86,8 @@ export async function sendPushToAll(
   payload: PushPayload,
   options?: { excludeUid?: string }
 ): Promise<{ sent: number; removed: number }> {
-  if (!configured()) return { sent: 0, removed: 0 };
-  setup();
+  const webReady = configured();
+  if (webReady) setup();
 
   const snapshot = await subscriptionsRef(tripPath).get();
   let sent = 0;
@@ -69,6 +105,16 @@ export async function sendPushToAll(
       ) {
         return;
       }
+      if (sub.kind === "fcm" && sub.token) {
+        const result = await sendFcm(sub.token, payload);
+        if (result === "ok") sent++;
+        if (result === "gone") {
+          await doc.ref.delete().catch(() => undefined);
+          removed++;
+        }
+        return;
+      }
+      if (!webReady) return;
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
@@ -88,6 +134,11 @@ export async function sendPushToAll(
   );
 
   return { sent, removed };
+}
+
+/** Welcome ping to one native device. */
+export async function sendFcmTo(token: string, payload: PushPayload): Promise<boolean> {
+  return (await sendFcm(token, payload)) === "ok";
 }
 
 /** Sends to a single subscription (used by the test button). */

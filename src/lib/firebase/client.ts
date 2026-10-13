@@ -2,10 +2,15 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
+  connectAuthEmulator,
   getAuth,
   signInWithCustomToken,
   signInWithPopup,
+  signInWithRedirect,
+  signInAnonymously,
   GoogleAuthProvider,
+  OAuthProvider,
+  signInWithCredential,
   onAuthStateChanged,
   type User,
 } from "firebase/auth";
@@ -14,9 +19,21 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   getFirestore,
+  connectFirestoreEmulator,
   type Firestore,
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { connectStorageEmulator, getStorage } from "firebase/storage";
+import { nativePlugin } from "@/lib/native";
+
+/** @capacitor-firebase/authentication — native Google/Apple sheets. */
+interface NativeAuthPlugin {
+  signInWithGoogle(options?: { skipNativeAuth?: boolean }): Promise<{
+    credential?: { idToken?: string; accessToken?: string };
+  }>;
+  signInWithApple(options?: { skipNativeAuth?: boolean }): Promise<{
+    credential?: { idToken?: string; nonce?: string };
+  }>;
+}
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -26,6 +43,9 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+/** Local development / E2E tests against the Firebase emulator suite. */
+const USE_EMULATORS = process.env.NEXT_PUBLIC_FIREBASE_EMULATORS === "1";
 
 function app() {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -41,6 +61,7 @@ export function db(): Firestore {
           tabManager: persistentMultipleTabManager(),
         }),
       });
+      if (USE_EMULATORS) connectFirestoreEmulator(firestoreInstance, "127.0.0.1", 8080);
     } catch {
       // Already initialized (e.g. HMR) — reuse
       firestoreInstance = getFirestore(app());
@@ -49,25 +70,156 @@ export function db(): Firestore {
   return firestoreInstance;
 }
 
+let emulatorsWired = false;
+
+// E2E hook (emulators only): sign in as a fake Google user without a popup
+if (USE_EMULATORS && typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__e2eSignIn = async (
+    name: string,
+    email: string
+  ) => {
+    const credential = GoogleAuthProvider.credential(
+      JSON.stringify({ sub: email, email, name, email_verified: true })
+    );
+    return (await signInWithCredential(auth(), credential)).user.uid;
+  };
+}
+
 export function auth() {
-  return getAuth(app());
+  const instance = getAuth(app());
+  if (USE_EMULATORS && !emulatorsWired) {
+    emulatorsWired = true;
+    connectAuthEmulator(instance, "http://127.0.0.1:9099", { disableWarnings: true });
+    connectStorageEmulator(getStorage(app()), "127.0.0.1", 9199);
+  }
+  return instance;
 }
 
 export function storage() {
+  auth();
   return getStorage(app());
 }
 
-/** True when the user has a real personal identity (Google), not the shared trip identity. */
+const PERSONAL_PROVIDERS = new Set(["google.com", "apple.com"]);
+
+/** True when the user has a real personal identity (Google/Apple), not the shared trip identity. */
 export function isPersonalUser(user: User | null): boolean {
   return Boolean(
-    user?.providerData.some((p) => p.providerId === "google.com")
+    user?.providerData.some((p) => PERSONAL_PROVIDERS.has(p.providerId))
   );
 }
 
+/** Sign in with Apple is enabled per environment once configured in Firebase. */
+export const APPLE_SIGN_IN_ENABLED =
+  process.env.NEXT_PUBLIC_APPLE_SIGN_IN === "1";
+
+/** iOS app review requires Sign in with Apple whenever Google is offered. */
+export function appleSignInAvailable(): boolean {
+  return (
+    APPLE_SIGN_IN_ENABLED ||
+    (typeof window !== "undefined" &&
+      nativePlugin("FirebaseAuthentication") !== null &&
+      /iphone|ipad|ipod/i.test(navigator.userAgent))
+  );
+}
+
+async function signInWithProvider(
+  provider: GoogleAuthProvider | OAuthProvider
+): Promise<User> {
+  try {
+    const credential = await signInWithPopup(auth(), provider);
+    return credential.user;
+  } catch (error) {
+    // Popups are blocked in some in-app browsers (WhatsApp, Instagram) —
+    // fall back to a full-page redirect; the page reloads signed in.
+    const code = (error as { code?: string }).code ?? "";
+    if (
+      code === "auth/popup-blocked" ||
+      code === "auth/operation-not-supported-in-this-environment"
+    ) {
+      await signInWithRedirect(auth(), provider);
+    }
+    throw error;
+  }
+}
+
 export async function signInWithGoogle(): Promise<User> {
-  const provider = new GoogleAuthProvider();
-  const credential = await signInWithPopup(auth(), provider);
+  // Inside the store app, popups don't exist — use the native account sheet
+  // and hand its credential to the web SDK.
+  const native = nativePlugin<NativeAuthPlugin>("FirebaseAuthentication");
+  if (native) {
+    const result = await native.signInWithGoogle({ skipNativeAuth: true });
+    const credential = GoogleAuthProvider.credential(
+      result.credential?.idToken ?? null,
+      result.credential?.accessToken ?? null
+    );
+    return (await signInWithCredential(auth(), credential)).user;
+  }
+  return signInWithProvider(new GoogleAuthProvider());
+}
+
+export async function signInWithApple(): Promise<User> {
+  const native = nativePlugin<NativeAuthPlugin>("FirebaseAuthentication");
+  if (native) {
+    const result = await native.signInWithApple({ skipNativeAuth: true });
+    const credential = new OAuthProvider("apple.com").credential({
+      idToken: result.credential?.idToken ?? "",
+      rawNonce: result.credential?.nonce,
+    });
+    return (await signInWithCredential(auth(), credential)).user;
+  }
+  const provider = new OAuthProvider("apple.com");
+  provider.addScope("email");
+  provider.addScope("name");
+  return signInWithProvider(provider);
+}
+
+/** Kid devices: an anonymous identity, bound to a trip by an invite. */
+export async function signInAsGuest(): Promise<User> {
+  const current = auth().currentUser;
+  if (current) return current;
+  const credential = await signInAnonymously(auth());
   return credential.user;
+}
+
+/** Resolves once Firebase restored the persisted session (user or null). */
+export function waitForAuth(): Promise<User | null> {
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth(), (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
+/**
+ * Authorization header for our API routes. Self-serve trips authenticate
+ * every request with the Firebase ID token; legacy trips still rely on
+ * the trip_session cookie (sent automatically).
+ */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const user = auth().currentUser;
+  if (!user) return {};
+  try {
+    return { Authorization: `Bearer ${await user.getIdToken()}` };
+  } catch {
+    return {};
+  }
+}
+
+/** fetch() for our own API with JSON + the caller's ID token attached. */
+export async function apiFetch(
+  url: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(await authHeaders())) {
+    headers.set(key, value);
+  }
+  if (init.body && typeof init.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  return fetch(url, { ...init, headers });
 }
 
 /**

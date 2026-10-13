@@ -6,18 +6,20 @@ import { IdentityPrompt } from "@/components/providers/IdentityPrompt";
 import { ReminderPinger } from "@/components/providers/ReminderPinger";
 import { TripProvider } from "@/components/providers/TripProvider";
 import { TourLauncher } from "@/components/tour/TourLauncher";
-import type { TripKey } from "@/lib/trips";
+import type { TripConfig, TripKey } from "@/lib/trips";
 
 /** Shared app chrome, mounted once per trip route tree. */
 export function TripAppShell({
   tripKey,
+  config,
   children,
 }: {
-  tripKey: TripKey;
+  tripKey?: TripKey;
+  config?: TripConfig;
   children: React.ReactNode;
 }) {
   return (
-    <TripProvider tripKey={tripKey}>
+    <TripProvider tripKey={tripKey} config={config}>
       <FirebaseProvider>
         <ReminderPinger />
         <TourLauncher />
