@@ -16,12 +16,12 @@ export function LegalPage({
       <Link href="/welcome" className="text-sm font-medium text-sea-700">
         → {BRAND.name}
       </Link>
-      <h1 className="mt-4 font-display text-3xl font-bold text-ink-900">{title}</h1>
+      <h1 className="mt-4 font-display text-3xl font-normal text-ink-900">{title}</h1>
       <p className="mt-1 text-sm text-ink-500">עודכן לאחרונה: {updated}</p>
       <div className="mt-8 space-y-7">
         {sections.map((section) => (
           <section key={section.heading}>
-            <h2 className="font-display text-xl font-bold text-ink-900">{section.heading}</h2>
+            <h2 className="font-display text-xl font-medium text-ink-900">{section.heading}</h2>
             {section.body.map((paragraph) => (
               <p key={paragraph} className="mt-2 leading-relaxed text-ink-700">
                 {paragraph}

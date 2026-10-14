@@ -251,7 +251,7 @@ export function CreatorWizard() {
           <p className="text-4xl" aria-hidden>
             ✈️
           </p>
-          <h1 className="mt-3 font-display text-2xl font-bold text-ink-900">טיול חדש</h1>
+          <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">טיול חדש</h1>
           <p className="mt-2 text-sm text-ink-500">התחברו כדי ליצור טיול ולהזמין את החבורה</p>
           <div className="mt-6">
             <SignInPanel />
@@ -290,7 +290,7 @@ export function CreatorWizard() {
             <p className="text-6xl" aria-hidden>
               🎉
             </p>
-            <h1 className="mt-3 font-display text-3xl font-bold text-ink-900">
+            <h1 className="mt-3 font-display text-3xl font-normal text-ink-900">
               {state.emoji} {state.name} מוכן!
             </h1>
             <p className="mt-2 text-ink-500">עכשיו מזמינים את החבורה — כל אחד בוחר את השם שלו ונכנס</p>
@@ -357,7 +357,7 @@ export function CreatorWizard() {
         {stepKey === "bookings" && state.tripId && (
           <div className="space-y-6">
             <header>
-              <h1 className="font-display text-3xl font-bold text-ink-900">הזמנות וכרטיסים 🎟️</h1>
+              <h1 className="font-display text-3xl font-normal text-ink-900">הזמנות וכרטיסים 🎟️</h1>
               <p className="mt-1 text-ink-500">
                 טיסות, מלון, רכב ואטרקציות שכבר הזמנתם — ה-AI יקרא אותם ויכניס ללו״ז ולמפה.
                 אפשר לדלג ולהוסיף אחר כך ממסך המסמכים.
@@ -380,7 +380,7 @@ export function CreatorWizard() {
         {stepKey === "launch" && (
           <div className="space-y-6">
             <header>
-              <h1 className="font-display text-3xl font-bold text-ink-900">
+              <h1 className="font-display text-3xl font-normal text-ink-900">
                 {isEdit ? "סיכום ושמירה" : "הכל מוכן? 🚀"}
               </h1>
               <p className="mt-1 text-ink-500">
@@ -394,7 +394,7 @@ export function CreatorWizard() {
                   <img src={primaryPlace(state)!.coverImage!} alt="" className="h-full w-full object-cover" />
                 )}
                 <div className="hero-overlay absolute inset-0" />
-                <p className="absolute inset-x-4 bottom-3 font-display text-2xl font-bold text-cream-50">
+                <p className="absolute inset-x-4 bottom-3 font-display text-2xl font-normal text-cream-50">
                   {state.emoji} {state.name}
                 </p>
               </div>

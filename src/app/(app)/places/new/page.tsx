@@ -245,7 +245,7 @@ export default function NewPlacePage() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <h1 className="font-display text-2xl font-bold text-ink-900">
+      <h1 className="font-display text-2xl font-normal text-ink-900">
         מקום חדש
       </h1>
 

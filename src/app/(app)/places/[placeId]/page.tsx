@@ -253,7 +253,7 @@ export default function PlaceDetailPage({
             {category.label}
             {place.area ? ` · ${place.area}` : ""}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-bold leading-tight text-cream-50">
+          <h1 className="mt-1 font-display text-3xl font-normal leading-tight text-cream-50">
             {place.name}
           </h1>
         </div>

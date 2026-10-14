@@ -69,7 +69,7 @@ export function QuickAdd() {
           />
           <div className="absolute inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-[2rem] bg-cream-50 p-5 pb-safe shadow-2xl">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-cream-300" />
-            <h2 className="mb-1 font-display text-xl font-bold text-ink-900">
+            <h2 className="mb-1 font-display text-xl font-medium text-ink-900">
               מה מוסיפים?
             </h2>
             <p className="mb-4 text-sm text-ink-500">הכל מסתנכרן לכולם מיד</p>

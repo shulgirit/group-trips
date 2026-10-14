@@ -121,7 +121,7 @@ export default function EditEventPage({
         >
           <ChevronRight size={20} />
         </button>
-        <h1 className="font-display text-2xl font-bold text-ink-900">
+        <h1 className="font-display text-2xl font-normal text-ink-900">
           עריכת אירוע
         </h1>
       </div>

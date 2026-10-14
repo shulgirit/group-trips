@@ -77,13 +77,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold text-ink-900">
+      <h1 className="font-display text-2xl font-normal text-ink-900">
         ⚙️ הגדרות
       </h1>
 
       {/* Personal identity */}
       <section>
-        <h2 className="mb-3 font-display text-lg font-bold text-ink-900">
+        <h2 className="mb-3 font-display text-lg font-medium text-ink-900">
           החשבון שלי
         </h2>
         {!personal ? (
@@ -215,7 +215,7 @@ export default function SettingsPage() {
 
       {/* Trip info */}
       <section>
-        <h2 className="mb-3 font-display text-lg font-bold text-ink-900">
+        <h2 className="mb-3 font-display text-lg font-medium text-ink-900">
           הטיול
         </h2>
         <div className="divide-y divide-cream-200 rounded-3xl border border-cream-200 bg-white">
@@ -249,7 +249,7 @@ export default function SettingsPage() {
 
       {/* App */}
       <section>
-        <h2 className="mb-3 font-display text-lg font-bold text-ink-900">
+        <h2 className="mb-3 font-display text-lg font-medium text-ink-900">
           האפליקציה
         </h2>
         <div className="rounded-3xl border border-cream-200 bg-white px-4 py-3 text-sm leading-relaxed text-ink-500">

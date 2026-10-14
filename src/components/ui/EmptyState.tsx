@@ -17,7 +17,7 @@ export function EmptyState({
       >
         {emoji}
       </span>
-      <h3 className="mt-4 font-display text-xl font-bold text-ink-900">
+      <h3 className="mt-4 font-display text-xl font-medium text-ink-900">
         {title}
       </h3>
       {description && (

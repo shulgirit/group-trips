@@ -26,7 +26,7 @@ export async function GateScreen({ tripKey }: { tripKey: TripKey }) {
 
       <div className="relative w-full max-w-sm text-center">
         <p className="kicker text-lemon-300">{trip.kicker}</p>
-        <h1 className="mt-2 font-display text-5xl font-bold text-cream-50">
+        <h1 className="mt-2 font-display text-5xl font-light text-cream-50">
           {trip.name}
         </h1>
         <p className="mt-2 text-lg text-cream-50/85">{trip.tagline}</p>

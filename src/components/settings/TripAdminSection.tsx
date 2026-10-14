@@ -73,7 +73,7 @@ export function TripAdminSection() {
       {isAdmin && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-ink-900">
+            <h2 className="font-display text-lg font-medium text-ink-900">
               הזמנת החבורה 📩
             </h2>
             <Link
@@ -95,7 +95,7 @@ export function TripAdminSection() {
 
       {!isKid && (
         <section className="card space-y-3 px-4 py-4">
-          <h2 className="font-display text-lg font-bold text-ink-900">
+          <h2 className="font-display text-lg font-medium text-ink-900">
             📱 חיבור הטלפון של הילדים
           </h2>
           <p className="text-sm leading-relaxed text-ink-500">
@@ -130,7 +130,7 @@ export function TripAdminSection() {
 
       {isAdmin && members && (
         <section className="space-y-2">
-          <h2 className="font-display text-lg font-bold text-ink-900">
+          <h2 className="font-display text-lg font-medium text-ink-900">
             מי בטיול ({members.length})
           </h2>
           <ul className="card divide-y divide-cream-200/80 overflow-hidden">

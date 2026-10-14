@@ -100,7 +100,7 @@ function CalendarContent() {
       <div className="flex items-center justify-between">
         <div>
           <p className="kicker text-terra-500">המסע שלנו</p>
-          <h1 className="font-display text-3xl font-bold text-ink-900">
+          <h1 className="font-display text-3xl font-normal text-ink-900">
             לוח הטיול
           </h1>
         </div>
@@ -228,7 +228,7 @@ function CalendarContent() {
                         <div className="text-left">
                           <p
                             dir="ltr"
-                            className="font-display text-xl font-bold tabular-nums text-sea-700"
+                            className="font-display text-xl font-medium tabular-nums text-sea-700"
                           >
                             {event.startTime}
                           </p>

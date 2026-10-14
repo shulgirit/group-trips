@@ -415,7 +415,7 @@ export default function AiPage() {
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       <p className="kicker text-terra-500">{trip.ai.kicker}</p>
-      <h1 className="mb-1 font-display text-3xl font-bold text-ink-900">
+      <h1 className="mb-1 font-display text-3xl font-normal text-ink-900">
         {trip.ai.title}
       </h1>
       <p className="mb-3 text-sm text-ink-500">
@@ -559,7 +559,7 @@ export default function AiPage() {
                             </span>
                           )}
                           <div className="min-w-0">
-                            <p className="truncate font-display text-lg font-bold text-ink-900">
+                            <p className="truncate font-display text-lg font-medium text-ink-900">
                               {candidate.name}
                             </p>
                             <p className="text-sm text-ink-500">

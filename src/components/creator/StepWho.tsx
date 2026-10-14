@@ -198,7 +198,7 @@ export function StepWho({
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="font-display text-3xl font-bold text-ink-900">מי בא? 👨‍👩‍👧‍👦</h1>
+        <h1 className="font-display text-3xl font-normal text-ink-900">מי בא? 👨‍👩‍👧‍👦</h1>
         <p className="mt-1 text-ink-500">
           השמות מאפשרים לכל אחד לבחור את עצמו כשמצטרפים — ולעוזר ה-AI להכיר אתכם
         </p>

@@ -86,7 +86,7 @@ export function StepAi({
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="font-display text-3xl font-bold text-ink-900">עוזר ה-AI שלכם ✨</h1>
+        <h1 className="font-display text-3xl font-normal text-ink-900">עוזר ה-AI שלכם ✨</h1>
         <p className="mt-1 text-ink-500">
           הוא ממליץ, משבץ בלו״ז, פותח סקרים ומכיר את כל הטיול. תנו לו אופי
         </p>

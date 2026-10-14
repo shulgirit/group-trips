@@ -97,7 +97,7 @@ export function JoinFlow({ code }: { code: string }) {
           <p className="text-4xl" aria-hidden>
             🔗
           </p>
-          <p className="mt-3 font-display text-xl font-bold text-ink-900">{error}</p>
+          <p className="mt-3 font-display text-xl font-medium text-ink-900">{error}</p>
           <Link href="/trips" className="btn-soft mt-6 px-5 py-3">
             לטיולים שלי
           </Link>
@@ -137,7 +137,7 @@ export function JoinFlow({ code }: { code: string }) {
             <div className="hero-overlay absolute inset-0" />
             <div className="absolute inset-x-5 bottom-4">
               <p className="kicker text-lemon-300">הוזמנתם לטיול</p>
-              <h1 className="font-display text-3xl font-bold text-cream-50">
+              <h1 className="font-display text-3xl font-normal text-cream-50">
                 {preview.emoji} {preview.name}
               </h1>
             </div>
@@ -158,7 +158,7 @@ export function JoinFlow({ code }: { code: string }) {
 
         {!canPick ? (
           <section className="card space-y-4 px-5 py-6 text-center">
-            <h2 className="font-display text-xl font-bold text-ink-900">
+            <h2 className="font-display text-xl font-medium text-ink-900">
               התחברו כדי להצטרף
             </h2>
             <p className="text-sm text-ink-500">
@@ -184,7 +184,7 @@ export function JoinFlow({ code }: { code: string }) {
           </section>
         ) : (
           <section className="space-y-3">
-            <h2 className="font-display text-xl font-bold text-ink-900">
+            <h2 className="font-display text-xl font-medium text-ink-900">
               {kidsOnly ? "מי אתם? 👋" : "מי אתם מהחבורה? 👋"}
             </h2>
             {families.length > 1 && (

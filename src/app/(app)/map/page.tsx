@@ -414,7 +414,7 @@ export default function MapPage() {
     <div className="space-y-3">
       <div>
         <p className="kicker text-terra-500">{trip.legacy ? "האי שלנו" : trip.shortName}</p>
-        <h1 className="font-display text-3xl font-bold text-ink-900">מפה</h1>
+        <h1 className="font-display text-3xl font-normal text-ink-900">מפה</h1>
       </div>
 
       <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
@@ -511,7 +511,7 @@ export default function MapPage() {
                 </div>
                 <div className="min-w-0 flex-1 px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate font-display text-lg font-bold text-ink-900">
+                    <p className="truncate font-display text-lg font-medium text-ink-900">
                       {selected.name}
                     </p>
                     <button

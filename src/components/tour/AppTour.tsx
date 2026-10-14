@@ -334,7 +334,7 @@ export function AppTour({
           {step.emoji}
         </span>
         <p className="kicker mt-6 text-lemon-300">{step.kicker}</p>
-        <h2 className="mt-2 font-display text-3xl font-bold leading-tight text-cream-50">
+        <h2 className="mt-2 font-display text-3xl font-normal leading-tight text-cream-50">
           {step.title}
         </h2>
         <div className="mt-5 max-w-sm space-y-3">

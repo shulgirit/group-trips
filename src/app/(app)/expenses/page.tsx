@@ -347,7 +347,7 @@ function ExpensesContent() {
       <div className="flex items-center justify-between">
         <div>
           <p className="kicker text-terra-500">חשבון משותף</p>
-          <h1 className="font-display text-3xl font-bold text-ink-900">
+          <h1 className="font-display text-3xl font-normal text-ink-900">
             הוצאות
           </h1>
         </div>
@@ -389,7 +389,7 @@ function ExpensesContent() {
               <p className="kicker text-sea-100">סה״כ הוצאות משותפות</p>
               <p
                 dir="ltr"
-                className="mt-1.5 text-right font-display text-4xl font-bold tabular-nums"
+                className="mt-1.5 text-right font-display text-4xl font-light tabular-nums"
               >
                 {summaries
                   .map((s) => formatAmount(s.total, s.currency))

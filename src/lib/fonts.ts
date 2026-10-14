@@ -1,7 +1,17 @@
-import { Heebo } from "next/font/google";
+import { IBM_Plex_Sans_Hebrew, Jost } from "next/font/google";
 
-export const heebo = Heebo({
+/** UI face — Hebrew + Latin in one family. */
+export const plex = IBM_Plex_Sans_Hebrew({
   subsets: ["hebrew", "latin"],
-  variable: "--font-heebo",
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-plex",
+  display: "swap",
+});
+
+/** Brand face — the TOGETHER wordmark, eyebrows and display numerals. */
+export const jost = Jost({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-jost",
   display: "swap",
 });

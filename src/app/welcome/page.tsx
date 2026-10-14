@@ -51,7 +51,7 @@ export default function WelcomePage() {
             {BRAND.emoji}
           </span>
           <p className="kicker mt-5 text-lemon-300">{BRAND.name}</p>
-          <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-cream-50">
+          <h1 className="mt-2 font-display text-4xl font-light leading-tight text-cream-50">
             {BRAND.tagline}
           </h1>
           <p className="mt-3 text-base leading-relaxed text-cream-50/80">
@@ -81,7 +81,7 @@ export default function WelcomePage() {
               <p className="text-2xl" aria-hidden>
                 {feature.emoji}
               </p>
-              <p className="mt-2 font-display text-lg font-bold text-ink-900">
+              <p className="mt-2 font-display text-lg font-medium text-ink-900">
                 {feature.title}
               </p>
               <p className="mt-1 text-sm leading-relaxed text-ink-500">

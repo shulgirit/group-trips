@@ -1,0 +1,41 @@
+/** Hebrew — source of truth. Shared words used across the app. */
+const common = {
+  appName: "Together",
+  tagline: "הטיול הקבוצתי שלכם, במקום אחד",
+  save: "שמירה",
+  saving: "שומרים…",
+  cancel: "ביטול",
+  close: "סגירה",
+  delete: "מחיקה",
+  edit: "עריכה",
+  back: "חזרה",
+  next: "הבא",
+  continue: "המשך",
+  done: "סיום",
+  later: "אחר כך",
+  loading: "טוען…",
+  retry: "נסו שוב",
+  copy: "העתקה",
+  copied: "הועתק",
+  share: "שיתוף",
+  search: "חיפוש",
+  all: "הכל",
+  everyone: "כולם",
+  yes: "כן",
+  no: "לא",
+  or: "או",
+  today: "היום",
+  tomorrow: "מחר",
+  errors: {
+    generic: "משהו השתבש, נסו שוב",
+    network: "אין חיבור לרשת, נסו שוב",
+    saveFailed: "השמירה נכשלה, נסו שוב",
+    connection: "בעיה בהתחברות לנתונים. בדקו את החיבור לרשת ונסו לרענן",
+  },
+  language: {
+    title: "שפה",
+    hint: "שפת התפריטים והכפתורים. תוכן שהחבורה כתבה נשאר כמו שהוא.",
+  },
+};
+
+export default common;

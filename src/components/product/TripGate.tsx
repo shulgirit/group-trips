@@ -43,7 +43,7 @@ function Notice({
         <p className="text-4xl" aria-hidden>
           {emoji}
         </p>
-        <h1 className="mt-3 font-display text-2xl font-bold text-ink-900">
+        <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">
           {title}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-500">{text}</p>

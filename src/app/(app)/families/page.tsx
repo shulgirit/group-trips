@@ -17,7 +17,7 @@ export default function FamiliesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold text-ink-900">
+      <h1 className="font-display text-2xl font-normal text-ink-900">
         {trip.group.pageTitle}
       </h1>
       {loading ? (

@@ -62,7 +62,7 @@ export function TripCard({
           {badge.label}
         </span>
         <div className="absolute inset-x-4 bottom-3">
-          <p className="font-display text-2xl font-bold text-cream-50 drop-shadow">
+          <p className="font-display text-2xl font-normal text-cream-50 drop-shadow">
             {trip.emoji} {trip.name}
           </p>
           <p className="text-sm text-cream-50/85">

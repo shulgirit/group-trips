@@ -1,58 +1,61 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   Sicily Together — design tokens
-   Modern Sicilian Editorial: limestone, Mediterranean sea,
-   terracotta, lemon, olive. Warm, premium, quiet.
+   Together — design tokens (quiet luxury)
+   Ink navy, warm ivory, one brass accent. Sea-glass is the quiet
+   secondary, clay is reserved for alerts and destructive actions.
+   Legacy scale names are kept (sea/cream/ink/terra/lemon/olive) and
+   remapped, so every existing class picks up the new palette.
    ───────────────────────────────────────────────────────────── */
 
 @theme {
-  /* Limestone / warm cream neutrals */
-  --color-cream-50: #faf7f0;
-  --color-cream-100: #f3eee1;
-  --color-cream-200: #e8dfcc;
-  --color-cream-300: #d6c7a8;
+  /* Ivory grounds & hairlines */
+  --color-cream-50: #f7f5f0;
+  --color-cream-100: #efebe3;
+  --color-cream-200: #e4dfd4;
+  --color-cream-300: #cfc7b8;
 
-  /* Warm ink */
-  --color-ink-900: #26221b;
-  --color-ink-700: #453f33;
-  --color-ink-500: #776d5c;
-  --color-ink-300: #b0a48e;
+  /* Text */
+  --color-ink-900: #0f1b2d;
+  --color-ink-700: #2e3a4b;
+  --color-ink-500: #6b6a66;
+  --color-ink-300: #a9a59c;
 
-  /* Mediterranean */
-  --color-sea-950: #082433;
-  --color-sea-900: #0b2e40;
-  --color-sea-700: #0f4f6b;
-  --color-sea-600: #14627f;
-  --color-sea-500: #1e81a3;
-  --color-sea-400: #47a5c4;
-  --color-sea-200: #bfe0ea;
-  --color-sea-100: #e4f1f5;
+  /* Ink navy — primary */
+  --color-sea-950: #08111d;
+  --color-sea-900: #0f1b2d;
+  --color-sea-700: #16243a;
+  --color-sea-600: #22324a;
+  --color-sea-500: #3a4c66;
+  --color-sea-400: #6b7a90;
+  --color-sea-200: #d3d8e0;
+  --color-sea-100: #e9ecf1;
 
-  /* Terracotta */
-  --color-terra-600: #a5502d;
-  --color-terra-500: #bf653c;
-  --color-terra-400: #d68356;
-  --color-terra-100: #f6e6da;
+  /* Clay — alerts, destructive */
+  --color-terra-600: #8a4c37;
+  --color-terra-500: #9c5a43;
+  --color-terra-400: #b5775f;
+  --color-terra-100: #f3e8e2;
 
-  /* Sicilian lemon */
-  --color-lemon-500: #dfae38;
-  --color-lemon-400: #edc65c;
-  --color-lemon-300: #f4d888;
-  --color-lemon-100: #faf1d8;
+  /* Brass — the one accent */
+  --color-lemon-500: #a8865a;
+  --color-lemon-400: #bb9b70;
+  --color-lemon-300: #d5c09f;
+  --color-lemon-200: #e6d9c3;
+  --color-lemon-100: #f2ece2;
 
-  /* Olive */
-  --color-olive-500: #757d4d;
-  --color-olive-100: #edefe2;
+  /* Sea-glass — quiet secondary */
+  --color-olive-500: #5e7f7a;
+  --color-olive-100: #e6edeb;
 
-  --shadow-card: 0 1px 2px rgb(38 34 27 / 0.05), 0 10px 30px -12px rgb(38 34 27 / 0.14);
-  --shadow-float: 0 4px 12px rgb(38 34 27 / 0.10), 0 18px 44px -14px rgb(38 34 27 / 0.24);
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04), 0 8px 24px -16px rgb(15 27 45 / 0.12);
+  --shadow-float: 0 2px 8px rgb(15 27 45 / 0.08), 0 16px 40px -16px rgb(15 27 45 / 0.22);
 }
 
 @theme inline {
-  --font-sans: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
-  /* One family everywhere — hierarchy comes from weight and size */
-  --font-display: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-mark: var(--font-jost), "Helvetica Neue", Arial, sans-serif;
 }
 
 /* ── base ─────────────────────────────────────────────────── */
@@ -66,14 +69,12 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   background-color: var(--color-cream-50);
-  background-image:
-    radial-gradient(1100px 480px at 88% -6%, rgb(237 198 92 / 0.08), transparent 62%),
-    radial-gradient(950px 560px at -12% 18%, rgb(30 129 163 / 0.05), transparent 58%);
-  background-repeat: no-repeat;
+  font-feature-settings: "kern", "liga";
+  letter-spacing: 0.005em;
 }
 
 ::selection {
-  background-color: var(--color-lemon-300);
+  background-color: var(--color-lemon-200);
   color: var(--color-ink-900);
 }
 
@@ -96,9 +97,9 @@ body {
 /* ── component language ───────────────────────────────────── */
 
 @layer components {
-  /* Cards */
+  /* Surfaces: hairline first, shadow barely there */
   .card {
-    @apply rounded-3xl border border-cream-200/80 bg-white;
+    @apply rounded-2xl border border-cream-200 bg-white;
     box-shadow: var(--shadow-card);
   }
 
@@ -108,57 +109,65 @@ body {
   .btn-accent,
   .btn-soft,
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium tracking-[0.01em] transition active:scale-[0.985] disabled:opacity-45 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply bg-sea-700 text-cream-50;
+    @apply bg-sea-900 text-cream-50 hover:bg-sea-700;
   }
+  /* The signature action: ink with a brass hairline */
   .btn-accent {
-    @apply bg-terra-500 text-cream-50;
+    @apply bg-sea-900 text-lemon-200 ring-1 ring-inset ring-lemon-500/70 hover:bg-sea-700;
   }
   .btn-soft {
-    @apply bg-cream-100 font-medium text-ink-700;
+    @apply bg-cream-100 text-ink-700 hover:bg-cream-200;
   }
   .btn-outline {
-    @apply border border-sea-200 bg-white font-medium text-sea-700;
+    @apply border border-cream-300 bg-white text-ink-900 hover:border-ink-300;
   }
 
   /* Chips */
   .chip {
-    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-cream-100 px-4 py-2 text-sm font-medium text-ink-500 transition;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-cream-200 bg-white px-3.5 py-1.5 text-sm text-ink-500 transition;
   }
   .chip.chip-active {
-    @apply bg-sea-700 text-cream-50;
+    @apply border-sea-900 bg-sea-900 text-cream-50;
   }
 
   /* Form fields */
   .field {
-    @apply w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-sea-500 focus:ring-2 focus:ring-sea-200/60;
+    @apply w-full rounded-xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none transition placeholder:text-ink-300 focus:border-sea-500 focus:ring-2 focus:ring-sea-200/70;
   }
 
-  /* Editorial section title with a small Sicilian rule */
   .section-title {
-    @apply font-display text-xl font-bold text-ink-900;
+    @apply font-display text-lg font-medium text-ink-900;
   }
 
   /* Text over photography */
   .hero-overlay {
     background: linear-gradient(
       to top,
-      rgb(8 36 51 / 0.86) 0%,
-      rgb(8 36 51 / 0.45) 45%,
-      rgb(8 36 51 / 0.12) 75%,
-      rgb(8 36 51 / 0.28) 100%
+      rgb(8 17 29 / 0.88) 0%,
+      rgb(8 17 29 / 0.48) 42%,
+      rgb(8 17 29 / 0.1) 72%,
+      rgb(8 17 29 / 0.3) 100%
     );
   }
 }
 
 /* Small caps label used for editorial kickers */
 .kicker {
+  font-family: var(--font-mark);
   font-size: 0.6875rem;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 400;
+}
+
+/* Brand display numerals (countdown, totals) */
+.numerals {
+  font-family: var(--font-mark);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* Hide scrollbars on horizontal chip rows (still scrollable) */

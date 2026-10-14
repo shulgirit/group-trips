@@ -27,7 +27,7 @@ export function TripHeroBackdrop({ trip }: { trip: TripConfig }) {
       <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-lemon-400/15 blur-3xl" />
       <div className="absolute -right-12 bottom-14 h-72 w-72 rounded-full bg-sea-400/25 blur-3xl" />
       {trip.heroArt?.big && (
-        <span className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 select-none font-display text-[10rem] font-bold leading-none text-cream-50/10">
+        <span className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 select-none font-display text-[10rem] font-light leading-none text-cream-50/10">
           {trip.heroArt.big}
         </span>
       )}

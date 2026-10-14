@@ -171,7 +171,7 @@ function StopCard({
           )}
           <div className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate font-display text-2xl font-bold text-cream-50">
+              <p className="truncate font-display text-2xl font-normal text-cream-50">
                 {flagEmoji(stop.place.country)} {stop.place.label}
               </p>
               <p className="text-xs text-cream-50/80" dir="ltr">
@@ -369,7 +369,7 @@ export function StepWhere({
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="font-display text-3xl font-bold text-ink-900">לאן טסים? 🌍</h1>
+        <h1 className="font-display text-3xl font-normal text-ink-900">לאן טסים? 🌍</h1>
         <p className="mt-1 text-ink-500">
           יעד אחד או מסלול של כמה ארצות — כל השאר נבנה מזה
         </p>

@@ -100,7 +100,7 @@ export default function HomePage() {
             <p className="kicker text-lemon-300">{trip.kicker}</p>
             {duringTrip ? (
               <>
-                <h1 className="mt-2 font-display text-4xl font-bold text-cream-50">
+                <h1 className="mt-2 font-display text-4xl font-light text-cream-50">
                   {now ? greeting(now) : "שלום ☀️"}
                 </h1>
                 {dayNumber && (
@@ -112,7 +112,7 @@ export default function HomePage() {
               </>
             ) : (
               <>
-                <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-cream-50">
+                <h1 className="mt-2 font-display text-4xl font-light leading-tight text-cream-50">
                   {trip.heroTitle}
                 </h1>
                 <div className="mt-5">
@@ -132,7 +132,7 @@ export default function HomePage() {
         <section className="card overflow-hidden border-lemon-300 bg-lemon-100">
           <div className="px-5 py-4">
             <p className="kicker text-terra-600">קורה עכשיו</p>
-            <p className="mt-1.5 font-display text-2xl font-bold text-ink-900">
+            <p className="mt-1.5 font-display text-2xl font-normal text-ink-900">
               {currentEvent.emoji ? `${currentEvent.emoji} ` : ""}
               {currentEvent.title}
             </p>
@@ -167,7 +167,7 @@ export default function HomePage() {
               <div className="hero-overlay absolute inset-0" />
               <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-5 pb-4">
                 <div className="min-w-0">
-                  <p className="truncate font-display text-2xl font-bold text-cream-50">
+                  <p className="truncate font-display text-2xl font-normal text-cream-50">
                     {nextEvent.emoji ? `${nextEvent.emoji} ` : ""}
                     {nextEvent.title}
                   </p>

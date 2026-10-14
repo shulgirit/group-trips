@@ -160,7 +160,7 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold text-ink-900">
+      <h1 className="font-display text-2xl font-normal text-ink-900">
         🎟️ הזמנות ומסמכים
       </h1>
 

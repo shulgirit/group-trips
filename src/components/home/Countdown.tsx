@@ -63,7 +63,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
         >
           <div
             dir="ltr"
-            className="font-display text-[1.75rem] font-bold leading-8 tabular-nums text-cream-50"
+            className="font-display text-[1.75rem] font-light leading-8 tabular-nums text-cream-50"
           >
             {value}
           </div>

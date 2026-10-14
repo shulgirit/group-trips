@@ -33,7 +33,7 @@ export function ProductShell({
         >
           <Link
             href={personal ? "/trips" : "/welcome"}
-            className="flex items-center gap-2 font-display text-lg font-bold text-ink-900"
+            className="flex items-center gap-2 font-display text-lg font-medium text-ink-900"
           >
             <span
               aria-hidden

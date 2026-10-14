@@ -98,7 +98,7 @@ export default function PlacesPage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="kicker text-terra-500">{trip.kicker}</p>
-          <h1 className="font-display text-3xl font-bold text-ink-900">
+          <h1 className="font-display text-3xl font-normal text-ink-900">
             מקומות
           </h1>
         </div>

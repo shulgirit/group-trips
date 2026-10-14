@@ -56,7 +56,7 @@ export default function MorePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold text-ink-900">עוד</h1>
+      <h1 className="font-display text-2xl font-normal text-ink-900">עוד</h1>
       <ul className="space-y-2">
         {sections.map(({ emoji, label, description, href }) => (
           <li key={label}>

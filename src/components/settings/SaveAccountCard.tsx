@@ -55,7 +55,7 @@ export function SaveAccountCard() {
 
   return (
     <section className="card space-y-3 border-lemon-300 bg-lemon-100/60 px-4 py-4">
-      <h2 className="font-display text-lg font-bold text-ink-900">
+      <h2 className="font-display text-lg font-medium text-ink-900">
         🔐 שמרו את הגישה שלכם
       </h2>
       <p className="text-sm leading-relaxed text-ink-700">

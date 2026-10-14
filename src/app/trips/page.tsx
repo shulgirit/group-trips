@@ -31,7 +31,7 @@ export default function MyTripsPage() {
           <p className="text-4xl" aria-hidden>
             🧳
           </p>
-          <h1 className="mt-3 font-display text-2xl font-bold text-ink-900">
+          <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">
             הטיולים שלי
           </h1>
           <p className="mt-2 text-sm text-ink-500">
@@ -54,7 +54,7 @@ export default function MyTripsPage() {
       <div className="space-y-8">
         <header>
           <p className="kicker text-terra-500">הטיולים שלי</p>
-          <h1 className="mt-1 font-display text-3xl font-bold text-ink-900">
+          <h1 className="mt-1 font-display text-3xl font-normal text-ink-900">
             {firstName ? `היי ${firstName} 👋` : "היי 👋"}
           </h1>
           <p className="mt-1 text-ink-500">לאן נוסעים הפעם?</p>
@@ -74,7 +74,7 @@ export default function MyTripsPage() {
             <Plus className="h-6 w-6" />
           </span>
           <span>
-            <span className="block font-display text-lg font-bold text-ink-900">
+            <span className="block font-display text-lg font-medium text-ink-900">
               טיול חדש
             </span>
             <span className="block text-sm text-ink-500">

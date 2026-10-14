@@ -87,7 +87,7 @@ function PollCard({
   return (
     <div className={`card p-4 ${poll.pinned ? "border-lemon-300" : ""}`}>
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-display text-xl font-bold text-ink-900">
+        <h3 className="font-display text-xl font-medium text-ink-900">
           {poll.question}
         </h3>
         <span
@@ -183,7 +183,7 @@ function PollCard({
                     {isMyVote ? "✓ " : ""}
                     {option.label}
                   </span>
-                  <span className="px-4 font-display text-lg font-bold tabular-nums text-sea-700">
+                  <span className="px-4 font-display text-lg font-medium tabular-nums text-sea-700">
                     {count}
                   </span>
                 </span>
@@ -340,7 +340,7 @@ export default function PollsPage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="kicker text-terra-500">מחליטים ביחד</p>
-          <h1 className="font-display text-3xl font-bold text-ink-900">
+          <h1 className="font-display text-3xl font-normal text-ink-900">
             סקרים
           </h1>
         </div>

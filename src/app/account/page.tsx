@@ -32,7 +32,7 @@ export default function AccountPage() {
 
   return (
     <ProductShell>
-      <h1 className="font-display text-3xl font-bold text-ink-900">החשבון שלי</h1>
+      <h1 className="font-display text-3xl font-normal text-ink-900">החשבון שלי</h1>
       {loading ? null : !personal || !user ? (
         <div className="card mt-6 px-5 py-6">
           <SignInPanel />
@@ -46,7 +46,7 @@ export default function AccountPage() {
             </p>
           </div>
           <section className="card space-y-3 border-terra-100 px-5 py-5">
-            <h2 className="font-display text-lg font-bold text-terra-600">
+            <h2 className="font-display text-lg font-medium text-terra-600">
               מחיקת החשבון
             </h2>
             <p className="text-sm leading-relaxed text-ink-500">

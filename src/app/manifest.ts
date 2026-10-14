@@ -2,15 +2,13 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "סיציליה 2026",
-    short_name: "סיציליה",
-    description: "אפליקציית הטיול המשפחתית הפרטית שלנו בסיציליה",
-    lang: "he",
-    dir: "rtl",
+    name: "Together",
+    short_name: "Together",
+    description: "Your group trip, all in one place",
     start_url: "/",
     display: "standalone",
-    background_color: "#fbf8f1",
-    theme_color: "#fbf8f1",
+    background_color: "#0f1b2d",
+    theme_color: "#f7f5f0",
     icons: [
       {
         src: "/icons/icon-192.png",
