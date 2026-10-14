@@ -23,7 +23,7 @@ export const OPERATOR: {
   kind: "sole-proprietor",
   legalName: "[Your full name]",
   businessName: { en: "Tal Development", he: "טל פיתוח" },
-  registrationNumber: "[עוסק number]",
+  registrationNumber: null,
   location: { en: "[City], Israel", he: "[עיר], ישראל" },
   privacyEmail: "privacy@togethertrips.app",
   supportEmail: "support@togethertrips.app",
