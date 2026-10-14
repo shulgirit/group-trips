@@ -1,21 +1,44 @@
 /**
- * The legal entity behind the service. FILL THESE IN before store
- * submission — they appear in the Privacy Policy and Terms, in both
- * languages. Have both documents reviewed by a lawyer.
+ * Who runs the service. Today: a private individual. When a company is
+ * formed, switch `kind` to "company" and fill in its details — both
+ * languages of the Privacy Policy and Terms update automatically.
+ * Have both documents reviewed by a lawyer.
  */
-export const OPERATOR = {
-  /** Registered company or sole-proprietor name, e.g. "Example Ltd." */
-  legalName: "[Operator legal name]",
-  /** Company / ID number registered in Israel */
-  registrationNumber: "[Company number]",
-  /** Registered postal address */
-  address: "[Registered address, Israel]",
-  /** Privacy and data-protection contact */
+export const OPERATOR: {
+  kind: "individual" | "company";
+  /** Full legal name — the person's name, or the registered company name */
+  legalName: string;
+  /** Company number (company only) */
+  registrationNumber: string | null;
+  /** Individual: city and country. Company: registered address. */
+  location: { en: string; he: string };
+  privacyEmail: string;
+  supportEmail: string;
+  effectiveDate: { en: string; he: string };
+  minimumAge: number;
+} = {
+  kind: "individual",
+  legalName: "[Your full name]",
+  registrationNumber: null,
+  location: { en: "[City], Israel", he: "[עיר], ישראל" },
   privacyEmail: "privacy@togethertrips.app",
-  /** General support contact */
   supportEmail: "support@togethertrips.app",
-  /** Date both documents take effect (shown on the pages) */
   effectiveDate: { en: "October 14, 2026", he: "14 באוקטובר 2026" },
-  /** Minimum age to create an account */
   minimumAge: 16,
-} as const;
+};
+
+/** "Jane Doe, an individual based in Tel Aviv, Israel" / "Acme Ltd. (registration no. 5…), address" */
+export function operatorIdentity(locale: "en" | "he"): string {
+  const O = OPERATOR;
+  if (O.kind === "company") {
+    const reg = O.registrationNumber
+      ? locale === "en"
+        ? ` (registration no. ${O.registrationNumber})`
+        : ` (מספר רישום ${O.registrationNumber})`
+      : "";
+    return `${O.legalName}${reg}, ${O.location[locale]}`;
+  }
+  return locale === "en"
+    ? `${O.legalName}, an individual based in ${O.location.en}`
+    : `${O.legalName}, אדם פרטי, ${O.location.he}`;
+}

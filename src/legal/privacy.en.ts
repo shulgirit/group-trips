@@ -1,4 +1,4 @@
-import { OPERATOR as O } from "./operator";
+import { OPERATOR as O, operatorIdentity } from "./operator";
 import type { LegalDoc } from "./types";
 
 const privacyEn: LegalDoc = {
@@ -10,7 +10,7 @@ const privacyEn: LegalDoc = {
       id: "who",
       heading: "1. Who we are",
       blocks: [
-        `Together ("Together", "we", "us") is a group-trip planning service available on the web and as an app for iOS and Android. It is operated by ${O.legalName} (registration no. ${O.registrationNumber}), ${O.address}. We are the controller of the personal data described in this policy.`,
+        `Together ("Together", "we", "us") is a group-trip planning service available on the web and as an app for iOS and Android. It is operated by ${operatorIdentity("en")}. We are the controller of the personal data described in this policy.`,
         `For any privacy question or request, contact us at ${O.privacyEmail}.`,
         "This policy applies to the Together website, web app and mobile apps (together, the \"Service\"). It should be read together with our Terms of Use.",
       ],
@@ -217,7 +217,7 @@ const privacyEn: LegalDoc = {
       id: "contact",
       heading: "15. Contact",
       blocks: [
-        `${O.legalName}, ${O.address}. Privacy questions and requests: ${O.privacyEmail}. General support: ${O.supportEmail}.`,
+        `${operatorIdentity("en")}. Privacy questions and requests: ${O.privacyEmail}. General support: ${O.supportEmail}.`,
       ],
     },
   ],

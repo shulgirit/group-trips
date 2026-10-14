@@ -1,4 +1,4 @@
-import { OPERATOR as O } from "./operator";
+import { OPERATOR as O, operatorIdentity } from "./operator";
 import type { LegalDoc } from "./types";
 
 const privacyHe: LegalDoc = {
@@ -10,7 +10,7 @@ const privacyHe: LegalDoc = {
       id: "who",
       heading: "1. מי אנחנו",
       blocks: [
-        `Together ("Together", "אנחנו") הוא שירות לתכנון טיולים קבוצתיים, הזמין באתר ובאפליקציה ל-iOS ול-Android. השירות מופעל על ידי ${O.legalName} (מספר רישום ${O.registrationNumber}), ${O.address}. אנחנו הגורם האחראי (בעל מאגר המידע) על המידע האישי המתואר במדיניות זו.`,
+        `Together ("Together", "אנחנו") הוא שירות לתכנון טיולים קבוצתיים, הזמין באתר ובאפליקציה ל-iOS ול-Android. השירות מופעל על ידי ${operatorIdentity("he")}. אנחנו הגורם האחראי (בעל מאגר המידע) על המידע האישי המתואר במדיניות זו.`,
         `לכל שאלה או בקשה בנושא פרטיות אפשר לפנות אלינו בכתובת ${O.privacyEmail}.`,
         "מדיניות זו חלה על האתר, אפליקציית הרשת והאפליקציות לנייד של Together (יחד: \"השירות\"), ויש לקרוא אותה יחד עם תנאי השימוש. המדיניות מנוסחת בלשון רבים מטעמי נוחות ומיועדת לכל המגדרים.",
       ],
@@ -217,7 +217,7 @@ const privacyHe: LegalDoc = {
       id: "contact",
       heading: "15. יצירת קשר",
       blocks: [
-        `${O.legalName}, ${O.address}. שאלות ובקשות בנושא פרטיות: ${O.privacyEmail}. תמיכה כללית: ${O.supportEmail}.`,
+        `${operatorIdentity("he")}. שאלות ובקשות בנושא פרטיות: ${O.privacyEmail}. תמיכה כללית: ${O.supportEmail}.`,
       ],
     },
   ],

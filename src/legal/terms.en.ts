@@ -1,4 +1,4 @@
-import { OPERATOR as O } from "./operator";
+import { OPERATOR as O, operatorIdentity } from "./operator";
 import type { LegalDoc } from "./types";
 
 const termsEn: LegalDoc = {
@@ -10,7 +10,7 @@ const termsEn: LegalDoc = {
       id: "agreement",
       heading: "1. The agreement",
       blocks: [
-        `These Terms of Use ("Terms") are a binding agreement between you and ${O.legalName} (registration no. ${O.registrationNumber}), ${O.address} ("Together", "we", "us"), which operates the Together website, web app and mobile apps (the "Service").`,
+        `These Terms of Use ("Terms") are a binding agreement between you and ${operatorIdentity("en")} ("Together", "we", "us"), which operates the Together website, web app and mobile apps (the "Service").`,
         "By creating an account, joining a trip or otherwise using the Service, you agree to these Terms and to our Privacy Policy. If you do not agree, do not use the Service.",
       ],
     },
@@ -178,14 +178,14 @@ const termsEn: LegalDoc = {
       heading: "20. General",
       blocks: [
         "We may update these Terms from time to time. We will post the new version with a new effective date and, for material changes, notify you in the app or by email before they take effect. Continuing to use the Service after that date means you accept the updated Terms.",
-        "If any provision is found unenforceable, the rest remain in effect. Our failure to enforce a provision is not a waiver. You may not transfer your rights under these Terms; we may transfer ours as part of a reorganization, merger or sale. These Terms and the Privacy Policy are the entire agreement between us about the Service. If the English and Hebrew versions differ, the Hebrew version prevails for users in Israel and the English version for everyone else.",
+        "If any provision is found unenforceable, the rest remain in effect. Our failure to enforce a provision is not a waiver. You may not transfer your rights under these Terms; we may transfer ours as part of a reorganization, merger or sale (including to a company we form to run the Service). These Terms and the Privacy Policy are the entire agreement between us about the Service. If the English and Hebrew versions differ, the Hebrew version prevails for users in Israel and the English version for everyone else.",
       ],
     },
     {
       id: "contact",
       heading: "21. Contact",
       blocks: [
-        `${O.legalName}, ${O.address}. Email: ${O.supportEmail}.`,
+        `${operatorIdentity("en")}. Email: ${O.supportEmail}.`,
       ],
     },
   ],
