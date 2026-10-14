@@ -104,6 +104,12 @@ const EMOJI_TO_ICON: Record<string, LucideIcon> = {
   "🦻✨": Sparkles,
   "✈️✨": Plane,
   "🧳": Luggage,
+  "🏨": BedDouble,
+  "🍽️": Utensils,
+  "📌": MapPin,
+  "🍝": Utensils,
+  "🏡": BedDouble,
+  "🅿️": SquareParking,
   "🎟️": Ticket,
   "🏛️": Landmark,
   "🚗": CarFront,
@@ -112,7 +118,19 @@ const EMOJI_TO_ICON: Record<string, LucideIcon> = {
   "👨‍👩‍👧‍👦": Users,
 };
 
+/** Icon keys stored on events created by booking import and the AI. */
+const EVENT_GLYPHS: Record<string, LucideIcon> = {
+  plane: Plane,
+  hotel: BedDouble,
+  car: CarFront,
+  ticket: Ticket,
+  dining: Utensils,
+  pin: MapPin,
+  luggage: Luggage,
+};
+
 const KEY_TO_ICON: Record<string, LucideIcon> = {
+  ...EVENT_GLYPHS,
   ...Object.fromEntries(TRIP_GLYPHS.map((g) => [g.key, g.Icon])),
   ...PERSONA_GLYPHS,
 };

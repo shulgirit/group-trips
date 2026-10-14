@@ -197,7 +197,8 @@ export class ImportError extends Error {
 /** Scrapes a URL, hunts for reviews, extracts a Hebrew place draft. */
 export async function importPlaceFromUrl(
   url: string,
-  region = "Sicily"
+  region = "Sicily",
+  locale: "he" | "en" = "he"
 ): Promise<PlaceDraft> {
   if (!process.env.FIRECRAWL_API_KEY || !process.env.OPENAI_API_KEY) {
     throw new ImportError("scrape_failed");
@@ -233,7 +234,9 @@ export async function importPlaceFromUrl(
         {
           role: "system",
           content:
-            "אתה עוזר של אפליקציית טיולים. חלץ מהדף מידע מובנה על המקום. אל תמציא — שדה שאין לו מידע בדף, השאר מחרוזת ריקה. טקסטים חופשיים בעברית.",
+            locale === "en"
+              ? "You help a travel app. Extract structured info about the place from the page. Don't invent: leave fields with no info as empty strings. Write all free text in English (ignore 'בעברית' in field descriptions)."
+              : "אתה עוזר של אפליקציית טיולים. חלץ מהדף מידע מובנה על המקום. אל תמציא — שדה שאין לו מידע בדף, השאר מחרוזת ריקה. טקסטים חופשיים בעברית.",
         },
         {
           role: "user",

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { BookingItemSchema } from "@/lib/booking";
 import { authorizeTrip } from "@/lib/server/auth";
+import { requestLocale } from "@/i18n/server";
+import { translate } from "@/i18n/translate";
 import { applyBookings } from "@/lib/server/booking-import";
 
 export const maxDuration = 60;
@@ -23,6 +25,7 @@ export async function POST(request: Request) {
   const access = await authorizeTrip(request, body.tripId);
   if (access instanceof NextResponse) return access;
   const { trip, doc, uid, member } = access;
+  const locale = await requestLocale();
   if (!uid || access.role === "kid") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
@@ -35,7 +38,8 @@ export async function POST(request: Request) {
   }
 
   const result = await applyBookings(trip, body.items, {
-    signer: `📩 ${member?.displayName || "ייבוא הזמנות"}`,
+    signer: member?.displayName || translate(locale, "server.booking.importer"),
+    locale,
     setHomeBase: !doc?.homeBase && !trip.homeBase,
   });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeTrip } from "@/lib/server/auth";
+import { requestLocale } from "@/i18n/server";
 import { ImportError, importPlaceFromUrl } from "@/lib/server/import-place";
 
 export const maxDuration = 120;
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
   const trip = access.trip;
 
   try {
-    const draft = await importPlaceFromUrl(url, trip.searchRegionHint);
+    const draft = await importPlaceFromUrl(url, trip.searchRegionHint, await requestLocale());
     return NextResponse.json({ draft });
   } catch (error) {
     const reason = error instanceof ImportError ? error.reason : "extract_failed";

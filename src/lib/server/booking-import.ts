@@ -7,6 +7,8 @@ import { BookingItemSchema, type BookingItem } from "@/lib/booking";
 import { samePlaceName } from "@/lib/place-name";
 import { geocodePlace } from "@/lib/server/import-place";
 import type { TripConfig } from "@/lib/trips";
+import type { Locale } from "@/i18n/config";
+import { translate } from "@/i18n/translate";
 
 const ExtractionSchema = z.object({ items: z.array(BookingItemSchema) });
 
@@ -55,24 +57,32 @@ const JSON_SCHEMA = {
 
 const SYSTEM = `אתה מחלץ פרטי הזמנות מאישורי הזמנה (טיסות, מלונות, דירות, השכרת רכב, כרטיסים לאטרקציות, מסעדות).
 החזר רשימת items — פריט אחד לכל הזמנה נפרדת. טיסה הלוך-חזור = שני פריטים (כל מקטע טיסה בנפרד; עם עצירת ביניים — כל מקטע בנפרד).
-- title: שם קצר בעברית, למשל "טיסה לרומא", "מלון Villa Maria", "השכרת רכב — Hertz", "כרטיסים למוזיאון הוותיקן".
+- title: שם קצר, למשל "טיסה לרומא", "מלון Villa Maria", "השכרת רכב — Hertz", "כרטיסים למוזיאון הוותיקן".
 - startDate/startTime: לטיסה — זמן ההמראה המקומי; ללינה — צ'ק-אין; לרכב — איסוף. endDate/endTime: נחיתה / צ'ק-אאוט / החזרה.
 - location: שם המקום או הכתובת המלאה כפי שמופיעה (למלון/דירה — הכתובת). city: עיר.
 - from/to: לטיסות — שם העיר וקוד שדה התעופה, למשל "תל אביב (TLV)".
 - travelers: שמות הנוסעים/האורחים כפי שמופיעים.
-- notes: פרטים שימושיים קצרים בעברית (טרמינל, מושבים, כבודה, שעת צ'ק-אין, מה כלול). בלי מספרי כרטיס אשראי.
+- notes: פרטים שימושיים קצרים (טרמינל, מושבים, כבודה, שעת צ'ק-אין, מה כלול). בלי מספרי כרטיס אשראי.
 - שדה שאין עליו מידע — מחרוזת ריקה. אל תמציא.
 - אם המסמך אינו אישור הזמנה — החזר items ריק.`;
 
 /** Runs the model over a file (PDF/image) or pasted text. */
 export async function extractBookings(input: {
+  locale?: Locale;
   text?: string;
   file?: { base64: string; contentType: string; fileName: string };
   tripHint: string;
 }): Promise<BookingItem[]> {
   const openai = new OpenAI();
   const content: OpenAI.Chat.ChatCompletionContentPart[] = [
-    { type: "text", text: `הטיול: ${input.tripHint}. חלץ את ההזמנות:` },
+    {
+      type: "text",
+      text: `הטיול: ${input.tripHint}. ${
+        input.locale === "en"
+          ? "Write title and notes in English (not Hebrew)."
+          : "כתוב title ו-notes בעברית."
+      } חלץ את ההזמנות:`,
+    },
   ];
   if (input.text) content.push({ type: "text", text: input.text.slice(0, 30_000) });
   if (input.file) {
@@ -134,13 +144,18 @@ function minutesBetween(a: string, b: string, dayA: string, dayB: string) {
 export async function applyBookings(
   trip: TripConfig,
   items: BookingItem[],
-  options: { signer: string; setHomeBase: boolean }
+  options: { signer: string; setHomeBase: boolean; locale?: Locale }
 ): Promise<{ events: number; places: number; homeBase: boolean }> {
   const db = adminDb();
   const tripRef = db.doc(trip.path);
   const existingPlaces = (await tripRef.collection("places").get()).docs.map(
     (d) => ({ id: d.id, name: String(d.data().name ?? "") })
   );
+  const locale = options.locale ?? "he";
+  const checkIn = translate(locale, "server.booking.checkIn");
+  const checkOut = translate(locale, "server.booking.checkOut");
+  const stayName = (title: string) =>
+    title.replace(/^(מלון|דירה|לינה|Hotel|Apartment|Stay)\s*[—:-]?\s*/i, "");
   let events = 0;
   let places = 0;
   let homeBase = false;
@@ -205,13 +220,14 @@ export async function applyBookings(
     }
 
     if (!DATE.test(item.startDate)) continue;
+    // Stored icon keys (rendered with <Glyph>)
     const emoji = {
-      flight: "✈️",
-      lodging: "🏨",
-      car: "🚗",
-      activity: "🎟️",
-      restaurant: "🍽️",
-      other: "📌",
+      flight: "plane",
+      lodging: "hotel",
+      car: "car",
+      activity: "ticket",
+      restaurant: "dining",
+      other: "pin",
     }[item.kind];
     const startTime = TIME.test(item.startTime)
       ? pad(item.startTime)
@@ -226,7 +242,7 @@ export async function applyBookings(
       item.kind === "flight" && item.flightNumber
         ? `${item.title} · ${item.flightNumber}`
         : item.kind === "lodging"
-          ? `צ'ק-אין — ${item.title.replace(/^(מלון|דירה|לינה)\s*[—-]?\s*/, "")}`
+          ? `${checkIn} · ${stayName(item.title)}`
           : item.title;
     const notes = [
       item.kind === "flight" && item.from && item.to ? `${item.from} ← ${item.to}` : "",
@@ -251,8 +267,8 @@ export async function applyBookings(
     // A lodging stay also gets a check-out reminder
     if (item.kind === "lodging" && DATE.test(item.endDate)) {
       await tripRef.collection("events").add({
-        title: `צ'ק-אאוט — ${title.replace(/^צ'ק-אין — /, "")}`,
-        emoji: "🧳",
+        title: `${checkOut} · ${stayName(item.title)}`,
+        emoji: "luggage",
         placeId,
         day: item.endDate,
         startTime: TIME.test(item.endTime) ? pad(item.endTime) : "11:00",

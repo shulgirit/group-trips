@@ -3,6 +3,8 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { sendFcmTo, sendPushTo, subscriptionDocId } from "@/lib/server/push";
 import { authorizeTrip } from "@/lib/server/auth";
+import { requestLocale } from "@/i18n/server";
+import { translate } from "@/i18n/translate";
 
 const SubscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -32,9 +34,10 @@ export async function POST(request: Request) {
   const access = await authorizeTrip(request, body.tripId);
   if (access instanceof NextResponse) return access;
   const trip = access.trip;
+  const locale = await requestLocale();
   const welcome = {
-    title: `ההתראות פועלות ${trip.emoji}`,
-    body: "נעדכן אתכם על סקרים חדשים ותזכורות לפני כל פעילות",
+    title: translate(locale, "server.push.welcomeTitle"),
+    body: translate(locale, "server.push.welcomeBody"),
     url: trip.prefix || "/",
     tag: "welcome",
   };
@@ -42,6 +45,7 @@ export async function POST(request: Request) {
   const owner = {
     uid: access.uid ?? body.uid ?? null,
     userName: body.userName ?? null,
+    locale,
     createdAt: Date.now(),
   };
 

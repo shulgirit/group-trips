@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip } from "@/lib/server/auth";
+import { requestLocale } from "@/i18n/server";
 import { downloadImportFile, extractBookings } from "@/lib/server/booking-import";
 import { checkAiQuota, recordAiUsage } from "@/lib/server/usage";
 
@@ -70,7 +71,8 @@ export async function POST(request: Request) {
             fileName: body.fileName ?? "booking",
           }
         : undefined,
-      tripHint: `${trip.name}, ${trip.shortName}, ${trip.startDate} עד ${trip.endDate}`,
+      tripHint: `${trip.name}, ${trip.shortName}, ${trip.startDate} – ${trip.endDate}`,
+      locale: await requestLocale(),
     });
     recordAiUsage(trip, "bookingImports").catch(() => undefined);
     const record = {

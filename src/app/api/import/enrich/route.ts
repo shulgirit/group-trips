@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enrichSavedPlace } from "@/lib/server/enrich";
 import { authorizeTrip } from "@/lib/server/auth";
+import { requestLocale } from "@/i18n/server";
 
 export const maxDuration = 120;
 
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   const trip = access.trip;
 
   try {
-    const result = await enrichSavedPlace(trip, placeId, url);
+    const result = await enrichSavedPlace(trip, placeId, url, await requestLocale());
     return NextResponse.json(result);
   } catch (error) {
     console.error("[import/enrich]", error);

@@ -7,6 +7,7 @@ import {
   tripConfigFromDoc,
   type TripDoc,
 } from "@/lib/trip-doc";
+import type { Locale } from "@/i18n/config";
 import { DEFAULT_TRIP, legacyTripById, type TripConfig } from "@/lib/trips";
 
 /**
@@ -55,8 +56,15 @@ export async function getJoinCode(trip: TripConfig): Promise<string | null> {
 
 // Operational rules shared by every trip persona — keep in sync with the
 // tool loop's behavior, not with any one trip.
+function languageRule(locale: Locale): string {
+  return locale === "he"
+    ? "- ענה תמיד בעברית, בטון חם וקצר."
+    : "- Always reply in English, warm and concise (the rules below are in Hebrew, but every reply, candidate description and summary must be in English). Keep proper names as they are.";
+}
+
 const SHARED_RULES = `כללים:
-- ענה תמיד בעברית, בטון חם וקצר.
+{{LANGUAGE_RULE}}
+- בלי אימוג׳י בתשובות — כתיבה נקייה ומקצועית.
 - יש לך גישה חיה לגוגל מפות דרך הכלי search_google_places (דירוגים, ביקורות, כתובות). כשמבקשים "הכי טובים" או לפי ציון — חפש בו ואז החזר candidates. לעולם אל תגיד שאין לך גישה לגוגל מפות או לאינטרנט.
 - לכל candidate שאתה מחזיר, המערכת מצרפת אוטומטית תמונה אמיתית, דירוג גוגל ומיקום למפה — אתה רק צריך לבחור נכון.
 - כשמבקשים המלצות על מקומות — החזר אותם כ-candidates מובנים (3-5), שמות אמיתיים בלבד. כשאתה מחזיר candidates אל תפרט אותם בתוך reply — משפט הקדמה בלבד.
@@ -73,15 +81,20 @@ const SHARED_RULES = `כללים:
  *  from the organizer's choices in the trip doc. */
 export function systemPromptFor(
   trip: TripConfig,
-  doc: TripDoc | null = null
+  doc: TripDoc | null = null,
+  locale: Locale = "he"
 ): string {
+  return personaPrompt(trip, doc).replace("{{LANGUAGE_RULE}}", languageRule(locale));
+}
+
+function personaPrompt(trip: TripConfig, doc: TripDoc | null): string {
   if (doc) {
     return `${composePersona(doc)}
 
 ${SHARED_RULES}`;
   }
   if (trip.key === "sardinia") {
-    return `אתה ״הטייס״ ✈️✨ — העוזר האישי של חבורת סרדיניה: חמישה חברים ותיקים, טייסי חיל האוויר לשעבר, שחוגגים יחד יום הולדת 60 בטיול בסרדיניה (3–10 בספטמבר 2026). החברים: אופיר, אייל, נדב, אורן ורונן. נדב מגיע מחו״ל ומצטרף בקליארי; השאר טסים יחד מנתב״ג.
+    return `אתה ״הטייס״ — העוזר האישי של חבורת סרדיניה: חמישה חברים ותיקים, טייסי חיל האוויר לשעבר, שחוגגים יחד יום הולדת 60 בטיול בסרדיניה (3–10 בספטמבר 2026). החברים: אופיר, אייל, נדב, אורן ורונן. נדב מגיע מחו״ל ומצטרף בקליארי; השאר טסים יחד מנתב״ג.
 
 סגנון והתאמה לקבוצה:
 - דבר כמו נווט ותיק בקבינה — ישיר, חברי, עם קריצה. הומור יבש מותר.
@@ -90,7 +103,7 @@ ${SHARED_RULES}`;
 
 ${SHARED_RULES}`;
   }
-  return `אתה ״המשרת של חבורת מיחא״ 🦻✨ — העוזר האישי של טיול משפחתי בסיציליה: ארבע משפחות ישראליות, הורים וילדים, וילה משותפת בקסטלמארה דל גולפו. חלק מהילדים המקסימים שלנו הם חירשים ומשתמשים בשתלים קוכלאריים (החבורה נקראת על שם ארגון מיח״א).
+  return `אתה ״המשרת של חבורת מיחא״ — העוזר האישי של טיול משפחתי בסיציליה: ארבע משפחות ישראליות, הורים וילדים, וילה משותפת בקסטלמארה דל גולפו. חלק מהילדים המקסימים שלנו הם חירשים ומשתמשים בשתלים קוכלאריים (החבורה נקראת על שם ארגון מיח״א).
 
 רגישות שמיעה — בטבעיות ורק כשזה רלוונטי (לא בכל תשובה):
 - העדף חוויות ויזואליות ומוחשיות; שים לב לסביבות רועשות מאוד.

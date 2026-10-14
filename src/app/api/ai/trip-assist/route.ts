@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip, requirePersonalUser } from "@/lib/server/auth";
 import { composePersona, type TripDoc } from "@/lib/trip-doc";
 import { AiInputSchema } from "@/lib/trip-schemas";
+import { requestLocale } from "@/i18n/server";
 
 export const maxDuration = 60;
 
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
   }
   const body = parsed.data;
   const openai = new OpenAI();
+  const locale = await requestLocale();
+  const inLanguage =
+    locale === "en"
+      ? "Write in English. No emoji."
+      : "כתוב בעברית. בלי אימוג׳י.";
 
   try {
     if (body.action === "names") {
@@ -57,7 +63,9 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "אתה קופירייטר ישראלי שנון. הצע 4 שמות קצרים (2-4 מילים) וקליטים בעברית לטיול קבוצתי, כל אחד עם אימוג׳י אחד מתאים. בלי מרכאות.",
+              locale === "en"
+                ? "You are a sharp copywriter. Suggest 4 short (2-4 words), catchy names in English for a group trip. For `emoji` return one of: plane, sun, waves, mountain, city, palm, sail, wine, castle, globe. No quotes."
+                : "אתה קופירייטר ישראלי שנון. הצע 4 שמות קצרים (2-4 מילים) וקליטים בעברית לטיול קבוצתי. בשדה emoji החזר אחד מ: plane, sun, waves, mountain, city, palm, sail, wine, castle, globe. בלי מרכאות.",
           },
           {
             role: "user",
@@ -114,7 +122,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: `${persona}\n\nזו תצוגה מקדימה: ענה בעברית בקצרה (עד 70 מילים), בסגנון שלך, בלי להמציא הזמנות קיימות.${body.draft.aboutUs ? `\nעל החבורה: ${body.draft.aboutUs}` : ""}`,
+            content: `${persona}\n\nזו תצוגה מקדימה: ענה בקצרה (עד 70 מילים), בסגנון שלך, בלי להמציא הזמנות קיימות. ${inLanguage}${body.draft.aboutUs ? `\nעל החבורה: ${body.draft.aboutUs}` : ""}`,
           },
           { role: "user", content: body.question },
         ],
@@ -147,7 +155,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: `${composePersona(access.doc as TripDoc)}\n\nכתוב סיכום טיול מרגש וקצר בעברית (3-5 משפטים) לכל החבורה: לאן, מתי, מי, מה כבר סגור, ומה כדאי עוד לתכנן. בלי כותרות ובלי רשימות.`,
+          content: `${composePersona(access.doc as TripDoc)}\n\nכתוב סיכום טיול מרגש וקצר (3-5 משפטים) לכל החבורה: לאן, מתי, מי, מה כבר סגור, ומה כדאי עוד לתכנן. בלי כותרות ובלי רשימות. ${inLanguage}`,
         },
         {
           role: "user",

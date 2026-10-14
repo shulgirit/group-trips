@@ -8,6 +8,9 @@ import { samePlaceName } from "@/lib/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
 import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
+import type { Locale } from "@/i18n/config";
+import { requestLocale } from "@/i18n/server";
+import { translate } from "@/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 import { systemPromptFor } from "@/lib/server/trip-server";
 import { checkAiQuota, recordAiUsage } from "@/lib/server/usage";
@@ -18,7 +21,7 @@ import { PLACE_CATEGORIES } from "@/types";
 export const maxDuration = 300;
 
 const GLOBAL_POLL_ID = "global";
-const GLOBAL_POLL_QUESTION = "🗳️ סקר הרעיונות של הקבוצה";
+const GLOBAL_POLL_QUESTION = "סקר הרעיונות של הקבוצה";
 
 /* ---------- response schema ---------- */
 
@@ -54,6 +57,8 @@ const RequestSchema = z.object({
   /** Who is talking, e.g. "מיקה ממשפחת טל" */
   speaker: z.string().max(80).optional(),
   tripId: z.string().optional(),
+  /** The speaker's UI language — the reply follows it */
+  locale: z.enum(["he", "en"]).optional(),
 });
 
 const JSON_SCHEMA = {
@@ -151,7 +156,11 @@ const buildTools = (trip: TripConfig): OpenAI.Chat.ChatCompletionTool[] => [
         type: "object",
         properties: {
           title: { type: "string", description: "שם הפעילות בעברית" },
-          emoji: { type: "string", description: "אימוג׳י אחד מתאים" },
+          emoji: {
+            type: "string",
+            description:
+              "מפתח אייקון אחד: plane, hotel, car, ticket, dining, pin, luggage, sun, waves, mountain, city, wine, castle",
+          },
           day: {
             type: "string",
             description: `תאריך YYYY-MM-DD בטווח הטיול (${trip.startDate} עד ${trip.endDate})`,
@@ -486,7 +495,7 @@ async function executeTool(
   const tripRef = adminDb().collection("trips").doc(trip.id);
   // "🦻✨ המשרת של החבורה" for sicily — byte-identical to the original
   const aiName = trip.aiName;
-  const aiSigner = `${trip.ai.emoji} ${aiName}`;
+  const aiSigner = aiName;
 
   if (name === "add_place") {
     const args = z
@@ -659,13 +668,13 @@ async function executeTool(
         });
       }
     }
-    sendPushToAll(trip.path, {
-      title: `📅 ${aiName} הוסיף ללוח`,
+    sendPushToAll(trip.path, (locale) => ({
+      title: translate(locale, "server.push.aiEventTitle", { ai: aiName }),
       body: `${args.title} · ${args.day.slice(8, 10)}.${args.day.slice(5, 7)} · ${startTime}`,
       url: `${trip.prefix}/calendar?day=${args.day}`,
       tag: "event",
       navUrl,
-    }).catch(() => undefined);
+    })).catch(() => undefined);
     return {
       ok: true,
       eventId: eventRef.id,
@@ -705,12 +714,12 @@ async function executeTool(
       createdAt: Date.now(),
     });
     // Exactly one notification, led by the question
-    sendPushToAll(trip.path, {
-      title: "🗳️ סקר חדש בקבוצה",
+    sendPushToAll(trip.path, (locale) => ({
+      title: translate(locale, "server.push.pollTitle"),
       body: args.question,
       url: `${trip.prefix}/polls`,
       tag: "poll",
-    }).catch(() => undefined);
+    })).catch(() => undefined);
     return {
       ok: true,
       pollId: pollRef.id,
@@ -776,6 +785,7 @@ export async function POST(request: Request) {
   const access = await authorizeTrip(request, body.tripId);
   if (access instanceof NextResponse) return access;
   const { trip, doc } = access;
+  const locale: Locale = body.locale ?? (await requestLocale());
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: "not_configured" }, { status: 500 });
   }
@@ -797,7 +807,7 @@ export async function POST(request: Request) {
     const openai = new OpenAI();
 
     const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPromptFor(trip, doc) },
+      { role: "system", content: systemPromptFor(trip, doc, locale) },
       { role: "system", content: `הקשר הטיול העדכני:\n${context}` },
       ...(body.speaker
         ? [
@@ -829,14 +839,16 @@ export async function POST(request: Request) {
     const flushPendingNotifications = () => {
       const labels = pending.pollOptionLabels;
       if (!labels.length) return;
-      sendPushToAll(trip.path, {
-        title: "🗳️ סקר הרעיונות של הקבוצה התעדכן",
+      sendPushToAll(trip.path, (locale) => ({
+        title: translate(locale, "server.push.ideasUpdatedTitle"),
         body:
           labels.slice(0, 3).join(" · ") +
-          (labels.length > 3 ? ` ועוד ${labels.length - 3}` : ""),
+          (labels.length > 3
+            ? ` ${translate(locale, "server.push.andMore", { count: labels.length - 3 })}`
+            : ""),
         url: `${trip.prefix}/polls`,
         tag: "poll",
-      }).catch(() => undefined);
+      })).catch(() => undefined);
     };
 
     for (let round = 0; round < 4; round++) {

@@ -68,7 +68,8 @@ async function knowledgeEnrich(
   region: string,
   audience: string,
   name: string,
-  area?: string
+  area?: string,
+  locale: "he" | "en" = "he"
 ): Promise<z.infer<typeof KnowledgeSchema> | null> {
   if (!process.env.OPENAI_API_KEY) return null;
   try {
@@ -79,7 +80,7 @@ async function knowledgeEnrich(
         {
           role: "system",
           content:
-            `אתה עוזר טיולים. אם אתה מזהה בביטחון גבוה את המקום הספציפי הזה ב${region} — כתוב עליו תוכן שימושי בעברית ${audience}. אם אינך בטוח שאתה מכיר את המקום המדויק — החזר known=false ואל תמציא כלום. אל תנחש שעות פתיחה או מחירים מדויקים; עדיף שדה ריק.`,
+            `אתה עוזר טיולים. אם אתה מזהה בביטחון גבוה את המקום הספציפי הזה ב${region} — כתוב עליו תוכן שימושי בעברית ${audience}. אם אינך בטוח שאתה מכיר את המקום המדויק — החזר known=false ואל תמציא כלום. אל תנחש שעות פתיחה או מחירים מדויקים; עדיף שדה ריק.${locale === "en" ? " Write all text fields in English, not Hebrew." : ""}`,
         },
         { role: "user", content: `המקום: ${name}${area ? `, ${area}` : ""}` },
       ],
@@ -161,11 +162,14 @@ function mergeDraft(
 export async function enrichSavedPlace(
   trip: TripConfig,
   placeId: string,
-  explicitUrl?: string
+  explicitUrl?: string,
+  locale: "he" | "en" = "he"
 ): Promise<EnrichResult> {
   const placeRef = adminDb().doc(`${trip.path}/places/${placeId}`);
   const snapshot = await placeRef.get();
-  if (!snapshot.exists) return { ok: false, message: "המקום לא נמצא" };
+  if (!snapshot.exists) {
+    return { ok: false, message: locale === "en" ? "Place not found" : "המקום לא נמצא" };
+  }
   const existing = snapshot.data() as Record<string, unknown>;
   const name = String(existing.name ?? "");
   const area = existing.area ? String(existing.area) : undefined;
@@ -185,9 +189,9 @@ export async function enrichSavedPlace(
 
   if (url) {
     try {
-      const draft = await importPlaceFromUrl(url);
+      const draft = await importPlaceFromUrl(url, trip.searchRegionHint, locale);
       updates = mergeDraft(existing, draft, url);
-      source = "האתר הרשמי";
+      source = locale === "en" ? "official website" : "האתר הרשמי";
     } catch (error) {
       if (!(error instanceof ImportError)) throw error;
     }
@@ -202,9 +206,10 @@ export async function enrichSavedPlace(
   if (!Object.keys(updates).some((k) => k === "summary" || k === "tips")) {
     const knowledge = await knowledgeEnrich(
       trip.shortName,
-      trip.key === "sicily" ? "למשפחות" : "למטיילים מבוגרים",
+      trip.key === "sicily" ? "למשפחות" : "למטיילים",
       name,
-      area
+      area,
+      locale
     );
     if (knowledge) {
       updates = {
@@ -217,7 +222,7 @@ export async function enrichSavedPlace(
         }),
         ...updates,
       };
-      source = source || "ידע כללי מאומת";
+      source = source || (locale === "en" ? "verified general knowledge" : "ידע כללי מאומת");
     }
   }
 
@@ -237,14 +242,20 @@ export async function enrichSavedPlace(
   if (!updatedFields.length) {
     return {
       ok: false,
-      message: `לא הצלחתי למצוא מידע נוסף על ״${name}״ — לא באתר ולא במקורות אחרים. הדביקו קישור לאתר בשדה שנפתח כאן למטה ואקרא ממנו`,
+      message:
+        locale === "en"
+          ? `Couldn't find more about "${name}" on its website or elsewhere. Paste a link to its website in the field below and I'll read it.`
+          : `לא הצלחתי למצוא מידע נוסף על ״${name}״ — לא באתר ולא במקורות אחרים. הדביקו קישור לאתר בשדה שנפתח כאן למטה ואקרא ממנו`,
     };
   }
 
   await placeRef.update(updates);
   return {
     ok: true,
-    message: `״${name}״ הועשר (מקור: ${source || "Google"}) — ${updatedFields.length} שדות עודכנו`,
+    message:
+      locale === "en"
+        ? `"${name}" updated (source: ${source || "Google"}): ${updatedFields.length} fields`
+        : `״${name}״ הועשר (מקור: ${source || "Google"}) — ${updatedFields.length} שדות עודכנו`,
     updatedFields,
   };
 }

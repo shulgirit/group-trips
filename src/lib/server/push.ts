@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import webpush from "web-push";
 import { adminDb, adminMessaging } from "@/lib/firebase/admin";
+import { isLocale, type Locale } from "@/i18n/config";
 
 export interface PushPayload {
   title: string;
@@ -19,6 +20,16 @@ interface StoredSubscription {
   keys: { p256dh: string; auth: string };
   token?: string;
   uid?: string;
+  /** UI language of the device that subscribed */
+  locale?: string;
+}
+
+/** A fixed payload, or one built per subscriber language. */
+export type PushContent = PushPayload | ((locale: Locale) => PushPayload);
+
+/** Legacy subscriptions predate languages — they're all Hebrew speakers. */
+function subscriberLocale(sub: StoredSubscription): Locale {
+  return isLocale(sub.locale) ? sub.locale : "he";
 }
 
 /** Native app notification via FCM (APNs on iOS). */
@@ -83,7 +94,7 @@ export function subscriptionsRef(tripPath: string) {
  */
 export async function sendPushToAll(
   tripPath: string,
-  payload: PushPayload,
+  content: PushContent,
   options?: { excludeUid?: string }
 ): Promise<{ sent: number; removed: number }> {
   const webReady = configured();
@@ -92,7 +103,8 @@ export async function sendPushToAll(
   const snapshot = await subscriptionsRef(tripPath).get();
   let sent = 0;
   let removed = 0;
-  const body = JSON.stringify(payload);
+  const render = (locale: Locale) =>
+    typeof content === "function" ? content(locale) : content;
 
   await Promise.all(
     snapshot.docs.map(async (doc) => {
@@ -105,6 +117,7 @@ export async function sendPushToAll(
       ) {
         return;
       }
+      const payload = render(subscriberLocale(sub));
       if (sub.kind === "fcm" && sub.token) {
         const result = await sendFcm(sub.token, payload);
         if (result === "ok") sent++;
@@ -118,7 +131,7 @@ export async function sendPushToAll(
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
-          body
+          JSON.stringify(payload)
         );
         sent++;
       } catch (error) {

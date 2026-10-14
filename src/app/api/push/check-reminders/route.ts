@@ -3,6 +3,7 @@ import { constantTimeEquals } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@/lib/nav";
 import { sendPushToAll } from "@/lib/server/push";
+import { translate } from "@/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 import { loadTrip } from "@/lib/server/trip-server";
 import { TRIPS, type TripConfig } from "@/lib/trips";
@@ -116,13 +117,16 @@ async function sendDueReminders(trip: TripConfig): Promise<number> {
       }
     }
 
-    await sendPushToAll(trip.path, {
-      title: `⏰ בעוד ${lead} דקות: ${event.title}`,
+    await sendPushToAll(trip.path, (locale) => ({
+      title: translate(locale, "server.push.reminderTitle", {
+        minutes: lead,
+        title: String(event.title),
+      }),
       body: `${event.startTime}${event.notes ? ` · ${event.notes}` : ""}`,
       url: trip.prefix || "/",
       tag: `reminder-${doc.id}`,
       navUrl,
-    });
+    }));
     sent++;
   }
 

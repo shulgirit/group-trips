@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { sendPushToAll } from "@/lib/server/push";
+import { sendPushToAll, type PushPayload } from "@/lib/server/push";
+import type { Locale } from "@/i18n/config";
+import { translate, type TKey } from "@/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 
 const RequestSchema = z.object({
@@ -30,31 +32,38 @@ export async function POST(request: Request) {
   const access = await authorizeTrip(request, body.tripId);
   if (access instanceof NextResponse) return access;
   const trip = access.trip;
-  const payloads = {
-    poll: {
-      title: "🗳️ סקר חדש בקבוצה",
-      body: body.title,
-      url: `${trip.prefix}/polls`,
-      tag: "poll",
-    },
-    poll_option: {
-      title: "🗳️ אפשרות חדשה בסקר הקבוצתי",
-      body: `${body.title} — בואו להצביע`,
-      url: `${trip.prefix}/polls`,
-      tag: "poll",
-    },
-    event: {
-      title: "📅 נוסף ללוח הטיול",
-      body: body.detail ? `${body.title} · ${body.detail}` : body.title,
-      url: body.day
-        ? `${trip.prefix}/calendar?day=${body.day}`
-        : `${trip.prefix}/calendar`,
-      tag: "event",
-      navUrl: body.navUrl,
-    },
-  } as const;
+  const payloadFor = (locale: Locale): PushPayload => {
+    const t = (key: TKey, vars?: Record<string, string | number>) =>
+      translate(locale, key, vars);
+    switch (body.type) {
+      case "poll":
+        return {
+          title: t("server.push.pollTitle"),
+          body: body.title,
+          url: `${trip.prefix}/polls`,
+          tag: "poll",
+        };
+      case "poll_option":
+        return {
+          title: t("server.push.pollOptionTitle"),
+          body: t("server.push.pollOptionBody", { title: body.title }),
+          url: `${trip.prefix}/polls`,
+          tag: "poll",
+        };
+      case "event":
+        return {
+          title: t("server.push.eventTitle"),
+          body: body.detail ? `${body.title} · ${body.detail}` : body.title,
+          url: body.day
+            ? `${trip.prefix}/calendar?day=${body.day}`
+            : `${trip.prefix}/calendar`,
+          tag: "event",
+          navUrl: body.navUrl,
+        };
+    }
+  };
 
-  const result = await sendPushToAll(trip.path, payloads[body.type], {
+  const result = await sendPushToAll(trip.path, payloadFor, {
     excludeUid: body.actorUid,
   });
   return NextResponse.json({ ok: true, ...result });
