@@ -8,7 +8,7 @@
 export const OPERATOR: {
   kind: "individual" | "sole-proprietor" | "company";
   /** Full legal name — the owner's name, or the registered company name */
-  legalName: string;
+  legalName: { en: string; he: string };
   /** Trading name of a sole proprietor */
   businessName: { en: string; he: string } | null;
   /** Company number, or the עוסק number for a sole proprietor */
@@ -21,10 +21,10 @@ export const OPERATOR: {
   minimumAge: number;
 } = {
   kind: "sole-proprietor",
-  legalName: "[Your full name]",
+  legalName: { en: "Omer Tal", he: "עומר טל" },
   businessName: { en: "Tal Development", he: "טל פיתוח" },
   registrationNumber: null,
-  location: { en: "[City], Israel", he: "[עיר], ישראל" },
+  location: { en: "Tel Aviv, Israel", he: "תל אביב, ישראל" },
   privacyEmail: "privacy@togethertrips.app",
   supportEmail: "support@togethertrips.app",
   effectiveDate: { en: "October 14, 2026", he: "14 באוקטובר 2026" },
@@ -40,15 +40,15 @@ export function operatorIdentity(locale: "en" | "he"): string {
         ? ` (registration no. ${O.registrationNumber})`
         : ` (מספר רישום ${O.registrationNumber})`
       : "";
-    return `${O.legalName}${reg}, ${O.location[locale]}`;
+    return `${O.legalName[locale]}${reg}, ${O.location[locale]}`;
   }
   if (O.kind === "sole-proprietor" && O.businessName) {
     const no = O.registrationNumber;
     return locale === "en"
-      ? `${O.legalName}, doing business as ${O.businessName.en} (${O.businessName.he}), an Israeli exempt dealer${no ? ` (no. ${no})` : ""}, ${O.location.en}`
-      : `${O.legalName}, הפועל/ת בשם העסקי ״${O.businessName.he}״ (עוסק פטור${no ? ` מס׳ ${no}` : ""}), ${O.location.he}`;
+      ? `${O.legalName.en}, doing business as ${O.businessName.en} (${O.businessName.he}), an Israeli exempt dealer${no ? ` (no. ${no})` : ""}, ${O.location.en}`
+      : `${O.legalName.he}, בשם העסקי ״${O.businessName.he}״ (עוסק פטור${no ? ` מס׳ ${no}` : ""}), ${O.location.he}`;
   }
   return locale === "en"
-    ? `${O.legalName}, an individual based in ${O.location.en}`
-    : `${O.legalName}, אדם פרטי, ${O.location.he}`;
+    ? `${O.legalName.en}, an individual based in ${O.location.en}`
+    : `${O.legalName.he}, אדם פרטי, ${O.location.he}`;
 }
