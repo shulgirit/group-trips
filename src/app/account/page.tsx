@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import Link from "next/link";
 import { signOut } from "firebase/auth";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useT } from "@/i18n";
 import { apiFetch, auth } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/use-auth-user";
@@ -12,11 +14,13 @@ export default function AccountPage() {
   const t = useT();
   const { user, personal, loading } = useAuthUser();
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const closeDialog = useCallback(() => {
+    setConfirming(false);
+    setError("");
+  }, []);
 
   async function deleteAccount() {
-    setBusy(true);
     setError("");
     try {
       const response = await apiFetch("/api/account", { method: "DELETE" });
@@ -26,7 +30,6 @@ export default function AccountPage() {
       window.location.replace("/welcome");
     } catch {
       setError(t("product.account.deleteFailed"));
-      setBusy(false);
     }
   }
 
@@ -52,35 +55,41 @@ export default function AccountPage() {
             <p className="text-sm leading-relaxed text-ink-500">
               {t("product.account.deleteText")}
             </p>
-            {confirming ? (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={deleteAccount}
-                  className="btn-accent flex-1 py-3"
-                >
-                  {busy ? t("product.account.deleting") : t("product.account.confirmDelete")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(false)}
-                  className="btn-soft px-5 py-3"
-                >
-                  {t("common.cancel")}
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="btn-outline w-full border-terra-100 py-3 text-terra-600"
-              >
-                {t("product.account.deleteTitle")}
-              </button>
-            )}
-            {error && <p className="text-sm text-terra-600">{error}</p>}
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="btn-outline w-full border-terra-200 py-3 text-terra-600"
+            >
+              {t("product.account.deleteTitle")}
+            </button>
           </section>
+          <p className="flex justify-center gap-4 text-sm text-ink-500">
+            <Link href="/privacy" className="underline-offset-4 hover:underline">
+              {t("product.account.privacyLink")}
+            </Link>
+            <Link href="/terms" className="underline-offset-4 hover:underline">
+              {t("product.account.termsLink")}
+            </Link>
+          </p>
+          <ConfirmDialog
+            open={confirming}
+            title={t("product.account.dialogTitle")}
+            description={t("product.account.dialogText")}
+            items={[
+              t("product.account.items.profile"),
+              t("product.account.items.chats"),
+              t("product.account.items.documents"),
+              t("product.account.items.location"),
+              t("product.account.items.trips"),
+              t("product.account.items.shared"),
+            ]}
+            confirmWord={t("common.confirm.word")}
+            confirmLabel={t("product.account.confirmDelete")}
+            busyLabel={t("product.account.deleting")}
+            error={error}
+            onConfirm={deleteAccount}
+            onClose={closeDialog}
+          />
         </div>
       )}
     </ProductShell>

@@ -193,6 +193,17 @@ export function JoinFlow({ code }: { code: string }) {
             <p className="text-xs leading-relaxed text-ink-500">
               {t("product.join.guestNote")}
             </p>
+            <p className="border-t border-cream-200 pt-4 text-xs leading-relaxed text-ink-500">
+              {t("product.welcome.consent.before")}
+              <Link href="/terms" className="underline underline-offset-2">
+                {t("product.welcome.consent.terms")}
+              </Link>
+              {t("product.welcome.consent.between")}
+              <Link href="/privacy" className="underline underline-offset-2">
+                {t("product.welcome.consent.privacy")}
+              </Link>
+              {t("product.welcome.consent.after")}
+            </p>
           </section>
         ) : (
           <section className="space-y-3">

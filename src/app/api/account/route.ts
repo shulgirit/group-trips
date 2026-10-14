@@ -1,37 +1,20 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/firebase/admin";
 import { requirePersonalUser, requireUser } from "@/lib/server/auth";
-import { removeMember } from "@/lib/server/membership";
+import { purgeAccount } from "@/lib/server/purge";
 
 /**
- * Account deletion (App Store requirement). Leaves every self-serve trip,
- * archives trips the user owns (other members' content is kept for them
- * until the archive is purged), deletes the root profile and the auth user.
+ * Permanent account deletion (App Store / GDPR). Owned trips pass to
+ * another adult member or are deleted when nobody else is in them; every
+ * trace of the user (profile, chats, files, votes, devices, location) is
+ * removed, then the sign-in account itself.
  */
 export async function DELETE(request: Request) {
   const user = await requireUser(request);
   if (user instanceof NextResponse) return user;
-  const db = adminDb();
-
-  const profile = await db.doc(`users/${user.uid}`).get();
-  const tripIds = (profile.data()?.tripIds as string[] | undefined) ?? [];
-  for (const tripId of tripIds) {
-    const trip = await db.doc(`trips/${tripId}`).get();
-    if (trip.data()?.ownerUid === user.uid) {
-      await trip.ref.set(
-        { status: "archived", ownerDeletedAt: Date.now() },
-        { merge: true }
-      );
-      await db.doc(`trips/${tripId}/members/${user.uid}`).delete();
-      await db.doc(`trips/${tripId}/users/${user.uid}`).delete();
-    } else {
-      await removeMember(tripId, user.uid).catch(() => undefined);
-    }
-  }
-  await db.doc(`users/${user.uid}`).delete();
-  await adminAuth().deleteUser(user.uid);
-  return NextResponse.json({ ok: true });
+  const result = await purgeAccount(user.uid);
+  return NextResponse.json({ ok: true, ...result });
 }
 
 /**

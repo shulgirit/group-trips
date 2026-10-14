@@ -37,6 +37,8 @@ const settings: typeof he = {
     photosDescription: "The trip gallery",
     settingsDescription: "Account, identity and trip details",
     soon: "Soon",
+    myTrips: "My trips",
+    myTripsDescription: "Switch to another trip or start a new one",
   },
   families: {
     travelers: { one: "1 traveler", other: "{count} travelers" },

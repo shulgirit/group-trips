@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   ChevronRight,
   Images,
+  LayoutGrid,
   Settings,
   Ticket,
   Users,
@@ -30,6 +31,17 @@ export default function MorePage() {
   const aiHref = `${trip.prefix}/ai`;
 
   const sections: MoreSection[] = [
+    // Legacy trips run on a shared password, so there's no "My trips" for them
+    ...(trip.legacy
+      ? []
+      : [
+          {
+            icon: LayoutGrid,
+            label: t("settings.more.myTrips"),
+            description: t("settings.more.myTripsDescription"),
+            href: "/trips",
+          },
+        ]),
     {
       icon: null, // the trip's AI persona glyph
       label: trip.ai.moreLabel,

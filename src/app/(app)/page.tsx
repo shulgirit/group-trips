@@ -8,6 +8,7 @@ import {
   Check,
   ChevronRight,
   Compass,
+  LayoutGrid,
   Map as MapIcon,
   MapPin,
   Users,
@@ -111,6 +112,15 @@ export default function HomePage() {
         <div className="relative h-[340px] md:h-[400px]">
           <TripHeroBackdrop trip={trip} />
           <div className="hero-overlay absolute inset-0" />
+          {!trip.legacy && (
+            <Link
+              href="/trips"
+              className="absolute end-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-cream-50/30 bg-ink-900/30 px-3 py-1.5 text-xs font-medium text-cream-50 backdrop-blur"
+            >
+              <LayoutGrid size={14} strokeWidth={STROKE} aria-hidden />
+              {t("settings.more.myTrips")}
+            </Link>
+          )}
           <div className="absolute inset-x-0 bottom-0 px-6 pb-7 text-center">
             <p className="kicker text-lemon-300">{trip.kicker}</p>
             {duringTrip ? (

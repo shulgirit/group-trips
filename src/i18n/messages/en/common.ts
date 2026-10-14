@@ -7,6 +7,12 @@ const common: typeof he = {
   saving: "Saving…",
   cancel: "Cancel",
   close: "Close",
+  confirm: {
+    irreversible: "This cannot be undone",
+    typeToConfirm: "To confirm, type {word}",
+    working: "Deleting…",
+    word: "DELETE",
+  },
   delete: "Delete",
   edit: "Edit",
   back: "Back",

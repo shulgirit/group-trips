@@ -81,8 +81,24 @@ const product: typeof he = {
     title: "My account",
     deleteTitle: "Delete account",
     deleteText:
-      "We'll delete your profile and remove you from all trips. Trips you organize will be archived. This can't be undone.",
-    confirmDelete: "Yes, delete permanently",
+      "Permanently delete your account and all of your data that we hold. It can't be recovered.",
+    dialogTitle: "Permanently delete your account?",
+    dialogText:
+      "Your account and all of your personal data will be erased from our servers immediately and permanently. We can't restore it, even if you ask us to.",
+    items: {
+      profile: "Your profile, sign-in and preferences",
+      chats: "Your conversations with the AI assistant",
+      documents: "Documents, files and bookings you uploaded",
+      location: "Shared location, notification devices and poll votes",
+      trips:
+        "Trips you organize pass to another adult in the trip; a trip with nobody else in it is deleted entirely",
+      shared:
+        "Places and events you shared stay with the group, without your name",
+    },
+    confirmDelete: "Delete account permanently",
+    yourData: "Your data",
+    privacyLink: "Privacy Policy",
+    termsLink: "Terms of Use",
     deleting: "Deleting…",
     deleteFailed:
       "Deletion failed. If you signed in a while ago, sign out, sign in again and retry.",
@@ -159,10 +175,36 @@ const product: typeof he = {
     guest: "Guest",
     remove: "Remove",
     removeConfirm: "Remove {name} from the trip?",
+    removeText:
+      "{name} will be removed from the trip and all of their personal data in it deleted: AI chats, documents, location and votes. Places and events they shared stay.",
+    removeFailed: "Couldn't remove — please try again",
     theParticipant: "this participant",
-    leave: "Leave trip",
-    leaveConfirm: "Leave the trip? You can only come back with a new invite link",
-    leaveFailed: "The trip organizer can't leave — you can archive the trip instead",
+    leave: "Leave trip and delete my data",
+    leaveConfirm: "Leave the trip and delete your data?",
+    leaveText:
+      "You'll leave the trip and all of your personal data in it will be permanently deleted. You can only come back with a new invite link.",
+    leaveItems: {
+      chats: "Your conversations with the AI assistant in this trip",
+      documents: "Documents and files you uploaded, including shared ones",
+      location: "Shared location, notifications and poll votes",
+      shared: "Places and events you shared stay with the group, without your name",
+    },
+    leaveAction: "Leave and delete",
+    leaveFailed: "Couldn't leave — please try again",
+    dangerTitle: "Danger zone",
+    deleteTrip: "Delete trip permanently",
+    deleteTripHint:
+      "Deletes the trip for every participant, including all content and files.",
+    deleteTripTitle: "Permanently delete \u201c{name}\u201d?",
+    deleteTripText:
+      "The trip will be deleted for every participant, immediately and permanently. No one will be able to restore it.",
+    deleteTripItems: {
+      content: "Schedule, places, polls, expenses and settle-up",
+      files: "All uploaded documents, photos and booking files",
+      chats: "All conversations with the AI assistant",
+      people: "Participants, families, invite links and locations",
+    },
+    deleteTripFailed: "Deletion failed — please try again",
     roles: {
       owner: "Organizer",
       admin: "Admin",
@@ -170,51 +212,8 @@ const product: typeof he = {
     },
   },
   legal: {
-    updated: "Last updated: {date}",
-    updatedDate: "October 2026",
-    privacy: {
-      title: "Privacy Policy",
-      collect: {
-        heading: "What we collect",
-        p1: "Account details from Google or Apple: name, email and profile photo.",
-        p2: "Content you and your group add to the trip: places, schedule events, polls, expenses, documents and photos.",
-        p3: "Location — only when you allow it, only while the app is open, and only to show you on the map or share your location with the group when you choose to.",
-        p4: "A push notification token, to send reminders and trip updates.",
-      },
-      use: {
-        heading: "How we use it",
-        p1: "Your information is used only to run your trip: showing it to trip members, sending notifications and powering the AI assistant.",
-        p2: "When you chat with the AI assistant or upload a booking confirmation, the relevant content is sent to our AI provider (OpenAI) for processing only. Place searches run against Google Maps.",
-        p3: "We don't sell data and we don't show ads.",
-      },
-      visibility: {
-        heading: "Who sees what",
-        p1: "Everything in a trip is visible only to members of that trip. Documents you mark as private and your conversations with the AI assistant are visible only to you.",
-      },
-      deletion: {
-        heading: "Deletion",
-        p1: "You can delete your account at any time from within the app: My account → Delete account. Your profile is deleted and you leave all trips.",
-      },
-    },
-    terms: {
-      title: "Terms of Use",
-      service: {
-        heading: "The service",
-        p1: "The app helps groups plan and manage a shared trip. It is currently free, subject to reasonable usage limits (for example, a monthly number of AI conversations).",
-      },
-      ai: {
-        heading: "The AI assistant",
-        p1: "AI recommendations are generated automatically and may contain mistakes. Check opening hours, prices and bookings against the source before relying on them.",
-      },
-      content: {
-        heading: "Your content",
-        p1: "The content you upload belongs to you. You are responsible for not uploading content you don't have the right to share, and for sharing other people's personal information only with their consent.",
-      },
-      contact: {
-        heading: "Contact",
-        p1: "Questions? Write to us from within the app or by email to the service operator.",
-      },
-    },
+    updated: "Effective: {date}",
+    contents: "Contents",
   },
 };
 

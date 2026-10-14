@@ -123,12 +123,18 @@ export async function createDefaultInvites(
   }
 }
 
+/** Trips a user organizes that haven't ended yet (free-plan limit). */
 export async function activeTripCount(uid: string): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10);
   const snapshot = await adminDb()
     .collection("trips")
     .where("ownerUid", "==", uid)
-    .where("status", "in", ["draft", "active"])
-    .count()
     .get();
-  return snapshot.data().count;
+  return snapshot.docs.filter((doc) => {
+    const data = doc.data();
+    return (
+      (data.status === "draft" || data.status === "active") &&
+      String(data.endDate ?? "") >= today
+    );
+  }).length;
 }

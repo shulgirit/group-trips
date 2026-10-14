@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pencil, Smartphone } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
 import { InviteLinks, inviteUrl } from "@/components/product/InviteLinks";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { apiFetch } from "@/lib/firebase/client";
@@ -26,14 +27,26 @@ export function TripAdminSection() {
   const { user } = useFirebase();
   const { families } = useFamilies();
   const { data: me } = useDocData<TripMember>(
-    `${trip.path}/members/${user?.uid ?? "_"}`
+    `${trip.path}/members/${user?.uid ?? "_"}`,
   );
   const { data: members } = useCollectionData<TripMember & { id: string }>(
-    `${trip.path}/members`
+    `${trip.path}/members`,
   );
   const [kidLink, setKidLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // Which destructive dialog is open (member removal carries its target)
+  const [dialog, setDialog] = useState<
+    | { kind: "remove"; uid: string; name: string }
+    | { kind: "leave" }
+    | { kind: "purge" }
+    | null
+  >(null);
+  const [dialogError, setDialogError] = useState("");
+  const closeDialog = useCallback(() => {
+    setDialog(null);
+    setDialogError("");
+  }, []);
 
   if (trip.legacy || !user || !me) return null;
   const isAdmin = me.role === "owner" || me.role === "admin";
@@ -57,19 +70,25 @@ export function TripAdminSection() {
     }
   }
 
-  async function removeMember(uid: string, name: string) {
-    if (!confirm(t("product.admin.removeConfirm", { name: name || t("product.admin.theParticipant") }))) return;
-    await apiFetch(`/api/trips/${trip.id}?member=${uid}`, { method: "DELETE" });
+  async function runDelete(query: string, failKey: TKey, after?: () => void) {
+    setDialogError("");
+    try {
+      const response = await apiFetch(`/api/trips/${trip.id}?${query}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      if (after) after();
+      else closeDialog();
+    } catch {
+      setDialogError(t(failKey));
+    }
   }
 
-  async function leave() {
-    if (!confirm(t("product.admin.leaveConfirm"))) return;
-    const response = await apiFetch(`/api/trips/${trip.id}?member=self`, {
-      method: "DELETE",
-    });
-    if (response.ok) window.location.replace("/trips");
-    else setMessage(t("product.admin.leaveFailed"));
-  }
+  const isOwner = me.role === "owner";
+  const removeName =
+    dialog?.kind === "remove"
+      ? dialog.name || t("product.admin.theParticipant")
+      : "";
 
   return (
     <>
@@ -99,13 +118,23 @@ export function TripAdminSection() {
       {!isKid && (
         <section className="card space-y-3 px-4 py-4">
           <h2 className="flex items-center gap-2 font-display text-lg font-normal text-ink-900">
-            <Smartphone size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
+            <Smartphone
+              size={18}
+              strokeWidth={STROKE}
+              aria-hidden
+              className="shrink-0 text-ink-500"
+            />
             {t("product.admin.kidsTitle")}
           </h2>
-          <p className="text-sm leading-relaxed text-ink-500">{t("product.admin.kidsText")}</p>
+          <p className="text-sm leading-relaxed text-ink-500">
+            {t("product.admin.kidsText")}
+          </p>
           {kidLink ? (
             <div className="space-y-2">
-              <p className="rounded-xl bg-cream-100 px-3 py-2 text-xs text-ink-700" dir="ltr">
+              <p
+                className="rounded-xl bg-cream-100 px-3 py-2 text-xs text-ink-700"
+                dir="ltr"
+              >
                 {kidLink}
               </p>
               <button
@@ -123,7 +152,9 @@ export function TripAdminSection() {
               onClick={pairKid}
               className="btn-outline w-full py-2.5 text-sm"
             >
-              {busy ? t("product.admin.wait") : t("product.admin.createKidLink")}
+              {busy
+                ? t("product.admin.wait")
+                : t("product.admin.createKidLink")}
             </button>
           )}
         </section>
@@ -156,7 +187,13 @@ export function TripAdminSection() {
                 {member.role !== "owner" && member.id !== user.uid && (
                   <button
                     type="button"
-                    onClick={() => removeMember(member.id, member.displayName)}
+                    onClick={() =>
+                      setDialog({
+                        kind: "remove",
+                        uid: member.id,
+                        name: member.displayName,
+                      })
+                    }
                     className="text-xs font-medium text-terra-600"
                   >
                     {t("product.admin.remove")}
@@ -168,16 +205,95 @@ export function TripAdminSection() {
         </section>
       )}
 
-      {me.role !== "owner" && (
-        <button
-          type="button"
-          onClick={leave}
-          className="w-full text-center text-sm font-medium text-terra-600"
-        >
-          {t("product.admin.leave")}
-        </button>
+      {!isKid && (
+        <section className="space-y-3 rounded-2xl border border-terra-200 px-4 py-4">
+          <h2 className="kicker text-terra-600">
+            {t("product.admin.dangerTitle")}
+          </h2>
+          {isOwner ? (
+            <>
+              <p className="text-sm leading-relaxed text-ink-500">
+                {t("product.admin.deleteTripHint")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setDialog({ kind: "purge" })}
+                className="btn-outline w-full border-terra-200 py-3 text-terra-600"
+              >
+                {t("product.admin.deleteTrip")}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDialog({ kind: "leave" })}
+              className="btn-outline w-full border-terra-200 py-3 text-terra-600"
+            >
+              {t("product.admin.leave")}
+            </button>
+          )}
+        </section>
       )}
-      {message && <p className="text-center text-sm text-terra-600">{message}</p>}
+      {message && (
+        <p className="text-center text-sm text-terra-600">{message}</p>
+      )}
+
+      <ConfirmDialog
+        open={dialog?.kind === "remove"}
+        title={t("product.admin.removeConfirm", { name: removeName })}
+        description={t("product.admin.removeText", { name: removeName })}
+        confirmLabel={t("product.admin.remove")}
+        error={dialogError}
+        onConfirm={() =>
+          dialog?.kind === "remove"
+            ? runDelete(
+                `member=${encodeURIComponent(dialog.uid)}`,
+                "product.admin.removeFailed",
+              )
+            : undefined
+        }
+        onClose={closeDialog}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === "leave"}
+        title={t("product.admin.leaveConfirm")}
+        description={t("product.admin.leaveText")}
+        items={[
+          t("product.admin.leaveItems.chats"),
+          t("product.admin.leaveItems.documents"),
+          t("product.admin.leaveItems.location"),
+          t("product.admin.leaveItems.shared"),
+        ]}
+        confirmWord={t("common.confirm.word")}
+        confirmLabel={t("product.admin.leaveAction")}
+        error={dialogError}
+        onConfirm={() =>
+          runDelete("member=self", "product.admin.leaveFailed", () =>
+            window.location.replace("/trips"),
+          )
+        }
+        onClose={closeDialog}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === "purge"}
+        title={t("product.admin.deleteTripTitle", { name: trip.name })}
+        description={t("product.admin.deleteTripText")}
+        items={[
+          t("product.admin.deleteTripItems.content"),
+          t("product.admin.deleteTripItems.files"),
+          t("product.admin.deleteTripItems.chats"),
+          t("product.admin.deleteTripItems.people"),
+        ]}
+        confirmWord={t("common.confirm.word")}
+        confirmLabel={t("product.admin.deleteTrip")}
+        error={dialogError}
+        onConfirm={() =>
+          runDelete("purge=1", "product.admin.deleteTripFailed", () =>
+            window.location.replace("/trips"),
+          )
+        }
+        onClose={closeDialog}
+      />
     </>
   );
 }

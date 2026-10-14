@@ -6,6 +6,12 @@ const common = {
   saving: "שומרים…",
   cancel: "ביטול",
   close: "סגירה",
+  confirm: {
+    irreversible: "פעולה בלתי הפיכה",
+    typeToConfirm: "כדי לאשר, הקלידו {word}",
+    working: "מוחקים…",
+    word: "מחיקה",
+  },
   delete: "מחיקה",
   edit: "עריכה",
   back: "חזרה",

@@ -36,6 +36,8 @@ const settings = {
     photosDescription: "הגלריה של הטיול",
     settingsDescription: "החשבון שלי, הזהות שלי ופרטי הטיול",
     soon: "בקרוב",
+    myTrips: "הטיולים שלי",
+    myTripsDescription: "מעבר לטיול אחר או יצירת טיול חדש",
   },
   families: {
     travelers: { one: "מטייל אחד", other: "{count} מטיילים" },

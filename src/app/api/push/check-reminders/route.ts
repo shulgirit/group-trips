@@ -3,6 +3,7 @@ import { constantTimeEquals } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@/lib/nav";
 import { sendPushToAll } from "@/lib/server/push";
+import { deleteExpiredLocations } from "@/lib/server/purge";
 import { translate } from "@/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 import { loadTrip } from "@/lib/server/trip-server";
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
     let sent = 0;
     for (const trip of await tripsInProgress()) {
       sent += await sendDueReminders(trip);
+      // Shared locations are deleted as soon as their sharing window ends
+      await deleteExpiredLocations(trip.path).catch(() => undefined);
     }
     return NextResponse.json({ ok: true, sent });
   }

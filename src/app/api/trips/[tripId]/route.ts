@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip } from "@/lib/server/auth";
-import { addMember, removeMember } from "@/lib/server/membership";
+import { addMember } from "@/lib/server/membership";
+import { purgeTrip, purgeUserFromTrip } from "@/lib/server/purge";
 import {
   createDefaultInvites,
   tripFieldsFromInput,
@@ -57,8 +58,11 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 /**
- * DELETE ?member=<uid> removes a member (admins), or the caller leaves
- * (member=self). DELETE without a member archives the trip (owner).
+ * DELETE ?member=<uid>  — an admin removes a member (their data in the
+ *                         trip is deleted too).
+ * DELETE ?member=self   — leave the trip and delete my data in it.
+ * DELETE ?purge=1       — owner deletes the whole trip permanently.
+ * DELETE (no params)    — owner archives the trip.
  */
 export async function DELETE(request: Request, { params }: Params) {
   const { tripId } = await params;
@@ -67,7 +71,8 @@ export async function DELETE(request: Request, { params }: Params) {
   if (!access.doc || !access.uid) {
     return NextResponse.json({ error: "legacy_trip" }, { status: 400 });
   }
-  const target = new URL(request.url).searchParams.get("member");
+  const search = new URL(request.url).searchParams;
+  const target = search.get("member");
 
   if (target) {
     const self = target === "self" || target === access.uid;
@@ -78,12 +83,20 @@ export async function DELETE(request: Request, { params }: Params) {
     if (uid === access.doc.ownerUid) {
       return NextResponse.json({ error: "owner_cannot_leave" }, { status: 400 });
     }
-    await removeMember(tripId, uid);
+    const member = await adminDb().doc(`trips/${tripId}/members/${uid}`).get();
+    if (!member.exists) {
+      return NextResponse.json({ error: "not_member" }, { status: 404 });
+    }
+    await purgeUserFromTrip(tripId, uid);
     return NextResponse.json({ ok: true });
   }
 
   if (access.role !== "owner") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (search.get("purge") === "1") {
+    await purgeTrip(tripId);
+    return NextResponse.json({ ok: true, deleted: true });
   }
   await adminDb()
     .doc(`trips/${tripId}`)

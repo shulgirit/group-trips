@@ -113,7 +113,8 @@ body {
   .btn-primary,
   .btn-accent,
   .btn-soft,
-  .btn-outline {
+  .btn-outline,
+  .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium tracking-[0.01em] transition active:scale-[0.985] disabled:opacity-45 disabled:active:scale-100;
   }
   .btn-primary {
@@ -128,6 +129,10 @@ body {
   }
   .btn-outline {
     @apply border border-cream-300 bg-white text-ink-900 hover:border-ink-300;
+  }
+  /* Irreversible actions only */
+  .btn-danger {
+    @apply bg-terra-600 text-white hover:brightness-110;
   }
 
   /* Chips */
