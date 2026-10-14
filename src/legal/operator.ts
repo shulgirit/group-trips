@@ -1,14 +1,17 @@
 /**
- * Who runs the service. Today: a private individual. When a company is
- * formed, switch `kind` to "company" and fill in its details — both
- * languages of the Privacy Policy and Terms update automatically.
- * Have both documents reviewed by a lawyer.
+ * Who runs the service. Today: a sole proprietor (עוסק פטור) trading as
+ * "טל פיתוח". An עוסק is not a separate legal entity — the owner is the
+ * operator. When a company (בע״מ) is formed, switch `kind` to "company"
+ * and fill in its details — both languages of the Privacy Policy and
+ * Terms update automatically. Have both documents reviewed by a lawyer.
  */
 export const OPERATOR: {
-  kind: "individual" | "company";
-  /** Full legal name — the person's name, or the registered company name */
+  kind: "individual" | "sole-proprietor" | "company";
+  /** Full legal name — the owner's name, or the registered company name */
   legalName: string;
-  /** Company number (company only) */
+  /** Trading name of a sole proprietor */
+  businessName: { en: string; he: string } | null;
+  /** Company number, or the עוסק number for a sole proprietor */
   registrationNumber: string | null;
   /** Individual: city and country. Company: registered address. */
   location: { en: string; he: string };
@@ -17,9 +20,10 @@ export const OPERATOR: {
   effectiveDate: { en: string; he: string };
   minimumAge: number;
 } = {
-  kind: "individual",
+  kind: "sole-proprietor",
   legalName: "[Your full name]",
-  registrationNumber: null,
+  businessName: { en: "Tal Development", he: "טל פיתוח" },
+  registrationNumber: "[עוסק number]",
   location: { en: "[City], Israel", he: "[עיר], ישראל" },
   privacyEmail: "privacy@togethertrips.app",
   supportEmail: "support@togethertrips.app",
@@ -37,6 +41,12 @@ export function operatorIdentity(locale: "en" | "he"): string {
         : ` (מספר רישום ${O.registrationNumber})`
       : "";
     return `${O.legalName}${reg}, ${O.location[locale]}`;
+  }
+  if (O.kind === "sole-proprietor" && O.businessName) {
+    const no = O.registrationNumber;
+    return locale === "en"
+      ? `${O.legalName}, doing business as ${O.businessName.en} (${O.businessName.he}), an Israeli exempt dealer${no ? ` (no. ${no})` : ""}, ${O.location.en}`
+      : `${O.legalName}, הפועל/ת בשם העסקי ״${O.businessName.he}״ (עוסק פטור${no ? ` מס׳ ${no}` : ""}), ${O.location.he}`;
   }
   return locale === "en"
     ? `${O.legalName}, an individual based in ${O.location.en}`
