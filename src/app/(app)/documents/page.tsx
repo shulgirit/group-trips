@@ -16,6 +16,18 @@ import {
   ref as storageRef,
   uploadBytes,
 } from "firebase/storage";
+import {
+  FileImage,
+  FileText,
+  Lock,
+  Loader2,
+  Paperclip,
+  Sparkles,
+  Ticket,
+  Trash2,
+  Upload,
+  type LucideIcon,
+} from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
@@ -23,13 +35,15 @@ import { db, signInWithGoogle, storage } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import { BookingImporter } from "@/components/creator/BookingImporter";
 import type { TripDocument } from "@/types";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 
 const MAX_FILE_MB = 20;
 
-function fileEmoji(contentType: string): string {
-  if (contentType.startsWith("image/")) return "🖼️";
-  if (contentType.includes("pdf")) return "📄";
-  return "📎";
+function fileIcon(contentType: string): LucideIcon {
+  if (contentType.startsWith("image/")) return FileImage;
+  if (contentType.includes("pdf")) return FileText;
+  return Paperclip;
 }
 
 function formatSize(bytes: number): string {
@@ -40,6 +54,7 @@ function formatSize(bytes: number): string {
 export default function DocumentsPage() {
   const { ready, user, personal, epoch } = useFirebase();
   const { path: tripPath, id: tripId } = useTrip();
+  const t = useT();
   const [importing, setImporting] = useState(false);
   const [tab, setTab] = useState<"shared" | "private">("shared");
   const [sharedDocs, setSharedDocs] = useState<TripDocument[] | null>(null);
@@ -94,16 +109,14 @@ export default function DocumentsPage() {
     try {
       await signInWithGoogle();
     } catch {
-      setMessage(
-        "ההתחברות לא הושלמה — ודאו שחלונות קופצים מותרים ונסו שוב"
-      );
+      setMessage(t("money.docs.errors.signIn"));
     }
   }
 
   async function handleUpload(file: File) {
     if (!user) return;
     if (file.size > MAX_FILE_MB * 1_000_000) {
-      setMessage(`הקובץ גדול מדי (עד ${MAX_FILE_MB}MB)`);
+      setMessage(t("money.docs.errors.tooLarge", { max: MAX_FILE_MB }));
       return;
     }
     setUploading(true);
@@ -117,7 +130,7 @@ export default function DocumentsPage() {
       await addDoc(collection(db(), `${tripPath}/documents`), {
         name: file.name,
         ownerUid: user.uid,
-        ownerName: user.displayName ?? "מישהו מהקבוצה",
+        ownerName: user.displayName ?? t("money.docs.someone"),
         visibility,
         storagePath: path,
         contentType: file.type || "application/octet-stream",
@@ -125,7 +138,7 @@ export default function DocumentsPage() {
         createdAt: Date.now(),
       });
     } catch {
-      setMessage("ההעלאה נכשלה, נסו שוב");
+      setMessage(t("money.docs.errors.upload"));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -139,7 +152,7 @@ export default function DocumentsPage() {
       );
       window.open(url, "_blank", "noopener");
     } catch {
-      setMessage("לא הצלחנו לפתוח את הקובץ");
+      setMessage(t("money.docs.errors.open"));
     }
   }
 
@@ -151,7 +164,7 @@ export default function DocumentsPage() {
         () => undefined
       );
     } catch {
-      setMessage("המחיקה נכשלה");
+      setMessage(t("money.docs.errors.delete"));
     }
   }
 
@@ -159,9 +172,9 @@ export default function DocumentsPage() {
   const canUpload = tab === "shared" ? Boolean(user) : personal;
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-display text-2xl font-normal text-ink-900">
-        🎟️ הזמנות ומסמכים
+    <div className="space-y-5">
+      <h1 className="font-display text-3xl font-light tracking-tight text-ink-900">
+        {t("money.docs.title")}
       </h1>
 
       {personal && (
@@ -169,21 +182,24 @@ export default function DocumentsPage() {
           <button
             type="button"
             onClick={() => setImporting((open) => !open)}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-start"
+            className="flex w-full items-center gap-3 px-4 py-4 text-start"
           >
-            <span className="text-2xl" aria-hidden>
-              ✨
+            <span
+              aria-hidden
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cream-200 text-lemon-600"
+            >
+              <Sparkles size={18} strokeWidth={STROKE} aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-ink-900">
-                ייבוא הזמנה ללו״ז
+              <span className="block text-ink-900">
+                {t("money.docs.importTitle")}
               </span>
               <span className="block text-xs text-ink-500">
-                כרטיס טיסה, מלון או אטרקציה — ה-AI יוסיף ללו״ז ולמפה
+                {t("money.docs.importHint")}
               </span>
             </span>
-            <span className="text-sm font-semibold text-sea-700">
-              {importing ? "סגירה" : "פתיחה"}
+            <span className="text-sm text-sea-700">
+              {importing ? t("common.close") : t("money.docs.open")}
             </span>
           </button>
           {importing && (
@@ -195,18 +211,18 @@ export default function DocumentsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-2xl bg-cream-100 p-1">
+      <div className="flex gap-1 rounded-2xl border border-cream-200 bg-cream-50 p-1">
         {(
           [
-            { id: "shared", label: "משותף לכולם" },
-            { id: "private", label: "האזור האישי שלי" },
+            { id: "shared", label: t("money.docs.tabShared") },
+            { id: "private", label: t("money.docs.tabPrivate") },
           ] as const
         ).map(({ id, label }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition ${
+            className={`flex-1 rounded-xl py-2.5 text-sm transition ${
               tab === id ? "bg-white text-ink-900 shadow-sm" : "text-ink-500"
             }`}
           >
@@ -216,30 +232,35 @@ export default function DocumentsPage() {
       </div>
 
       {tab === "private" && !personal ? (
-        <div className="rounded-3xl border border-sea-200 bg-sea-100/50 p-5 text-center">
-          <p className="text-lg font-semibold text-ink-900">
-            האזור האישי דורש התחברות
+        <div className="card p-6 text-center">
+          <Lock
+            size={20}
+            strokeWidth={STROKE}
+            aria-hidden
+            className="mx-auto text-ink-500"
+          />
+          <p className="mt-3 font-display text-lg font-light text-ink-900">
+            {t("money.docs.privateNeedsSignIn")}
           </p>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-ink-500">
-            מסמכים אישיים (דרכונים, כרטיסים אישיים) גלויים רק לכם — בשביל זה
-            צריך זהות אישית
+          <p className="mx-auto mt-1.5 max-w-xs text-sm leading-relaxed text-ink-500">
+            {t("money.docs.privateExplain")}
           </p>
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="mt-4 rounded-2xl bg-sea-600 px-5 py-3 font-semibold text-cream-50 transition active:scale-[0.98]"
+            className="btn-primary mt-5 px-5 py-3"
           >
-            התחברות עם Google
+            {t("money.docs.signInGoogle")}
           </button>
         </div>
       ) : (
         <>
           {/* Upload */}
           <label
-            className={`block rounded-3xl border-2 border-dashed px-4 py-5 text-center transition ${
+            className={`block rounded-3xl border border-dashed px-4 py-6 text-center transition ${
               uploading
                 ? "border-cream-300 opacity-60"
-                : "border-sea-200 active:bg-sea-100/40"
+                : "border-cream-300 active:bg-sea-100/40"
             }`}
           >
             <input
@@ -252,25 +273,37 @@ export default function DocumentsPage() {
                 if (file) handleUpload(file);
               }}
             />
-            <span className="text-2xl" aria-hidden>
-              {uploading ? "⏳" : "⬆️"}
-            </span>
-            <p className="mt-1 font-medium text-ink-900">
+            {uploading ? (
+              <Loader2
+                size={20}
+                strokeWidth={STROKE}
+                aria-hidden
+                className="mx-auto animate-spin text-ink-500"
+              />
+            ) : (
+              <Upload
+                size={20}
+                strokeWidth={STROKE}
+                aria-hidden
+                className="mx-auto text-sea-700"
+              />
+            )}
+            <p className="mt-2 text-ink-900">
               {uploading
-                ? "מעלה…"
+                ? t("money.docs.uploading")
                 : tab === "shared"
-                  ? "העלאת קובץ משותף"
-                  : "העלאת קובץ אישי"}
+                  ? t("money.docs.uploadShared")
+                  : t("money.docs.uploadPrivate")}
             </p>
-            <p className="text-xs text-ink-500">
-              PDF, תמונות וכל קובץ עד {MAX_FILE_MB}MB
+            <p className="mt-0.5 text-xs text-ink-500">
+              {t("money.docs.uploadHint", { max: MAX_FILE_MB })}
             </p>
           </label>
 
           {message && (
             <p
               role="alert"
-              className="rounded-2xl bg-terra-100 px-4 py-2.5 text-sm font-medium text-terra-600"
+              className="rounded-2xl border border-terra-200 bg-terra-100 px-4 py-2.5 text-sm text-terra-600"
             >
               {message}
             </p>
@@ -281,31 +314,40 @@ export default function DocumentsPage() {
             <ListSkeleton rows={2} />
           ) : documents.length === 0 ? (
             <EmptyState
-              emoji={tab === "shared" ? "🎟️" : "🔒"}
-              title={tab === "shared" ? "אין עדיין מסמכים משותפים" : "האזור האישי ריק"}
+              icon={tab === "shared" ? Ticket : Lock}
+              title={
+                tab === "shared"
+                  ? t("money.docs.emptySharedTitle")
+                  : t("money.docs.emptyPrivateTitle")
+              }
               description={
                 tab === "shared"
-                  ? "כרטיסי טיסה, אישור הוילה, ביטוחים — הכל במקום אחד במקום לחפש בוואטסאפ"
-                  : "רק אתם רואים את מה שמועלה כאן"
+                  ? t("money.docs.emptySharedDescription")
+                  : t("money.docs.emptyPrivateDescription")
               }
             />
           ) : (
             <ul className="space-y-2">
-              {documents.map((document_) => (
+              {documents.map((document_) => {
+                const FileIcon = fileIcon(document_.contentType);
+                return (
                 <li
                   key={document_.id}
-                  className="flex items-center gap-3 rounded-3xl border border-cream-200 bg-white px-4 py-3"
+                  className="flex items-center gap-3 rounded-3xl border border-cream-200 bg-white px-4 py-3.5"
                 >
                   <button
                     type="button"
                     onClick={() => openDocument(document_)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-right"
+                    className="flex min-w-0 flex-1 items-center gap-3 text-start"
                   >
-                    <span className="text-2xl" aria-hidden>
-                      {fileEmoji(document_.contentType)}
-                    </span>
+                    <FileIcon
+                      size={20}
+                      strokeWidth={STROKE}
+                      aria-hidden
+                      className="shrink-0 text-sea-700"
+                    />
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-ink-900">
+                      <span className="block truncate text-ink-900">
                         {document_.name}
                       </span>
                       <span className="block text-xs text-ink-500">
@@ -318,29 +360,29 @@ export default function DocumentsPage() {
                       <button
                         type="button"
                         onClick={() => handleDelete(document_)}
-                        className="rounded-xl bg-terra-600 px-2.5 py-2 text-xs font-semibold text-cream-50"
+                        className="rounded-xl bg-terra-600 px-2.5 py-2 text-xs text-cream-50"
                       >
-                        למחוק
+                        {t("money.confirmDelete")}
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setDeletingId(document_.id)}
-                        aria-label="מחיקה"
-                        className="text-ink-300"
+                        aria-label={t("common.delete")}
+                        className="p-1 text-ink-300"
                       >
-                        🗑️
+                        <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
                       </button>
                     ))}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
 
           {tab === "shared" && !personal && user && (
             <p className="text-center text-sm text-ink-500">
-              💡 רוצים גם אזור אישי? עברו לטאב ״האזור האישי שלי״ והתחברו עם
-              Google
+              {t("money.docs.wantPrivate")}
             </p>
           )}
         </>

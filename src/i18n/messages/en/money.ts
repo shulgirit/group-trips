@@ -1,5 +1,90 @@
 import type he from "../he/money";
 
-const money: typeof he = {};
+const money: typeof he = {
+  kicker: "Shared account",
+  title: "Expenses",
+  addShort: "Expense",
+  firstExpense: "First expense",
+  emptyTitle: "No expenses yet",
+  emptyDescription:
+    "Every shared expense logged here is split automatically, so in the end we know exactly who owes whom",
+  totalShared: "Total shared expenses",
+  paid: "Paid",
+  paidBy: "{name} paid",
+  owed: "Gets back",
+  owes: "Owes",
+  pays: "pays",
+  settleUp: "To settle up",
+  byPeopleList: "By people:",
+  confirmDelete: "Delete",
+  add: {
+    title: "New expense",
+    payer: "Who paid? *",
+    what: "What for?",
+    whatPlaceholder: "e.g. groceries, dinner, fuel…",
+    amount: "Amount",
+    currency: "Currency",
+    date: "Date",
+    save: "Save expense",
+    needPayer: "Choose who paid",
+    needDescription: "Say what the expense was for",
+    needAmount: "Enter an amount",
+  },
+  editSplit: {
+    title: "Edit split",
+    save: "Save split",
+  },
+  split: {
+    byPeople: "Split by number of people",
+    needPerson: "Pick at least one person for a per-person split",
+    outOf: "of {count}",
+    fewer: "Fewer people from {family}",
+    more: "More people from {family}",
+    totalPeople: {
+      one: "1 person in total",
+      other: "{count} people in total",
+    },
+    perPerson: "per person",
+  },
+  ils: {
+    title: "Settle up in shekels",
+    rateLabel: "{currency} to shekel rate",
+    rateUnavailable: "Market rate unavailable right now — enter a rate manually",
+    marketRate: "Market rate · updated {date} · editable",
+    loadingRate: "Loading the latest rate…",
+    finalTransfers: "Final transfers",
+    enterRate: "Enter a rate to calculate the shekel total",
+  },
+  docs: {
+    title: "Bookings & documents",
+    importTitle: "Import a booking to the schedule",
+    importHint: "Flight, hotel or attraction ticket — AI adds it to the schedule and map",
+    open: "Open",
+    tabShared: "Shared with everyone",
+    tabPrivate: "My private area",
+    privateNeedsSignIn: "Your private area requires signing in",
+    privateExplain:
+      "Personal documents (passports, personal tickets) are visible only to you — that needs a personal identity",
+    signInGoogle: "Sign in with Google",
+    uploading: "Uploading…",
+    uploadShared: "Upload a shared file",
+    uploadPrivate: "Upload a private file",
+    uploadHint: "PDFs, photos and any file up to {max}MB",
+    emptySharedTitle: "No shared documents yet",
+    emptySharedDescription:
+      "Boarding passes, the villa confirmation, insurance — all in one place instead of digging through chats",
+    emptyPrivateTitle: "Your private area is empty",
+    emptyPrivateDescription: "Only you can see what you upload here",
+    wantPrivate: "Want a private area too? Switch to “My private area” and sign in with Google",
+    someone: "Someone from the group",
+    errors: {
+      signIn: "Sign-in didn't complete — make sure pop-ups are allowed and try again",
+      tooLarge: "File is too large (up to {max}MB)",
+      upload: "Upload failed, please try again",
+      open: "We couldn't open the file",
+      delete: "Delete failed",
+    },
+  },
+};
 
 export default money;

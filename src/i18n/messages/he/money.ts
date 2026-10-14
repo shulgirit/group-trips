@@ -1,4 +1,89 @@
-/** Hebrew — source of truth for the "money" namespace. */
-const money = {};
+/** Hebrew — source of truth for the "money" namespace (expenses + documents). */
+const money = {
+  kicker: "חשבון משותף",
+  title: "הוצאות",
+  addShort: "הוצאה",
+  firstExpense: "הוצאה ראשונה",
+  emptyTitle: "עוד אין הוצאות",
+  emptyDescription:
+    "כל הוצאה משותפת שנרשום כאן תתחלק אוטומטית, ובסוף נדע בדיוק מי חייב למי",
+  totalShared: "סה״כ הוצאות משותפות",
+  paid: "שילמו",
+  paidBy: "{name} שילמו",
+  owed: "מגיע",
+  owes: "חייבים",
+  pays: "מעבירים ל",
+  settleUp: "כדי לסגור חשבון",
+  byPeopleList: "לפי אנשים:",
+  confirmDelete: "למחוק",
+  add: {
+    title: "הוצאה חדשה",
+    payer: "מי שילם? *",
+    what: "על מה?",
+    whatPlaceholder: "למשל: סופר, מסעדה, דלק…",
+    amount: "סכום",
+    currency: "מטבע",
+    date: "תאריך",
+    save: "שמור הוצאה",
+    needPayer: "בחרו מי שילם",
+    needDescription: "כתבו על מה ההוצאה",
+    needAmount: "הזינו סכום",
+  },
+  editSplit: {
+    title: "עריכת חלוקה",
+    save: "שמירת חלוקה",
+  },
+  split: {
+    byPeople: "חלוקה לפי מספר אנשים",
+    needPerson: "בחרו לפחות אדם אחד בחלוקה לפי אנשים",
+    outOf: "מתוך {count}",
+    fewer: "פחות אנשים מ{family}",
+    more: "יותר אנשים מ{family}",
+    totalPeople: {
+      one: "סה״כ אדם אחד",
+      other: "סה״כ {count} אנשים",
+    },
+    perPerson: "לאדם",
+  },
+  ils: {
+    title: "סגירת חשבון בשקלים",
+    rateLabel: "שער {currency} לשקל",
+    rateUnavailable: "שער השוק לא זמין כרגע — הזינו שער ידנית",
+    marketRate: "שער שוק · עדכון {date} · אפשר לערוך",
+    loadingRate: "טוען שער עדכני…",
+    finalTransfers: "העברות סופיות",
+    enterRate: "הזינו שער כדי לחשב את הסיכום בשקלים",
+  },
+  docs: {
+    title: "הזמנות ומסמכים",
+    importTitle: "ייבוא הזמנה ללו״ז",
+    importHint: "כרטיס טיסה, מלון או אטרקציה — ה-AI יוסיף ללו״ז ולמפה",
+    open: "פתיחה",
+    tabShared: "משותף לכולם",
+    tabPrivate: "האזור האישי שלי",
+    privateNeedsSignIn: "האזור האישי דורש התחברות",
+    privateExplain:
+      "מסמכים אישיים (דרכונים, כרטיסים אישיים) גלויים רק לכם — בשביל זה צריך זהות אישית",
+    signInGoogle: "התחברות עם Google",
+    uploading: "מעלה…",
+    uploadShared: "העלאת קובץ משותף",
+    uploadPrivate: "העלאת קובץ אישי",
+    uploadHint: "PDF, תמונות וכל קובץ עד {max}MB",
+    emptySharedTitle: "אין עדיין מסמכים משותפים",
+    emptySharedDescription:
+      "כרטיסי טיסה, אישור הוילה, ביטוחים — הכל במקום אחד במקום לחפש בוואטסאפ",
+    emptyPrivateTitle: "האזור האישי ריק",
+    emptyPrivateDescription: "רק אתם רואים את מה שמועלה כאן",
+    wantPrivate: "רוצים גם אזור אישי? עברו לטאב ״האזור האישי שלי״ והתחברו עם Google",
+    someone: "מישהו מהקבוצה",
+    errors: {
+      signIn: "ההתחברות לא הושלמה — ודאו שחלונות קופצים מותרים ונסו שוב",
+      tooLarge: "הקובץ גדול מדי (עד {max}MB)",
+      upload: "ההעלאה נכשלה, נסו שוב",
+      open: "לא הצלחנו לפתוח את הקובץ",
+      delete: "המחיקה נכשלה",
+    },
+  },
+};
 
 export default money;

@@ -17,7 +17,19 @@ import {
   ref as storageRef,
   uploadBytes,
 } from "firebase/storage";
-import { Paperclip, X } from "lucide-react";
+import {
+  ArrowUp,
+  Check,
+  ChevronRight,
+  Globe,
+  Heart,
+  Lock,
+  Paperclip,
+  RotateCcw,
+  Star,
+  Vote,
+  X,
+} from "lucide-react";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
@@ -25,6 +37,9 @@ import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
 import { db, storage, apiFetch } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
+import { CategoryIcon, Glyph, STROKE } from "@/components/ui/Icon";
+import { useLocale, useT } from "@/i18n";
+import { formatNumber } from "@/i18n/format";
 import {
   PLACE_CATEGORIES,
   type ChatCandidate,
@@ -39,8 +54,10 @@ export default function AiPage() {
   const trip = useTrip();
   const { path: tripPath, prefix, id: tripId } = trip;
   const { families } = useFamilies();
+  const t = useT();
+  const { locale } = useLocale();
 
-  // "מיקה ממשפחת טל" — so the servant knows who it's talking to
+  // "Mika from the Tal family" — so the servant knows who it's talking to
   const speaker = useMemo(() => {
     if (!personal) return undefined;
     const family = families?.find((f) => f.id === profile?.familyId);
@@ -49,8 +66,8 @@ export default function AiPage() {
     )?.name;
     const name = memberName ?? user?.displayName;
     if (!name) return undefined;
-    return family ? `${name} מ${family.name}` : name;
-  }, [personal, families, profile, user]);
+    return family ? t("ai.speaker", { name, family: family.name }) : name;
+  }, [personal, families, profile, user, t]);
 
   const [sessions, setSessions] = useState<ChatSession[] | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -85,7 +102,7 @@ export default function AiPage() {
       if (!blob) throw new Error("compress_failed");
       setPendingImage({ previewUrl: URL.createObjectURL(blob), blob });
     } catch {
-      setError("לא הצלחנו לקרוא את התמונה, נסו אחרת");
+      setError(t("ai.errors.photoRead"));
     }
   }
 
@@ -108,6 +125,7 @@ export default function AiPage() {
           description: candidate.description,
           why: candidate.why,
           tripId,
+          locale,
         }),
       });
       if (!response.ok) throw new Error("failed");
@@ -115,7 +133,7 @@ export default function AiPage() {
       infoCache.current.set(candidate.name, text);
       setInfoText(text);
     } catch {
-      setInfoText("לא הצלחתי להביא מידע כרגע — נסו לסגור ולפתוח שוב");
+      setInfoText(t("ai.errors.placeInfo"));
     } finally {
       setInfoLoading(false);
     }
@@ -200,7 +218,7 @@ export default function AiPage() {
       const firstUser = nextMessages.find((m) => m.role === "user");
       const ref = await addDoc(collection(db(), `${tripPath}/chatSessions`), {
         ownerUid: user.uid,
-        title: (firstUser?.content ?? "שיחה").slice(0, 40),
+        title: (firstUser?.content ?? t("ai.untitledChat")).slice(0, 40),
         messages: nextMessages,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -239,6 +257,7 @@ export default function AiPage() {
           })),
           speaker,
           tripId,
+          locale,
         }),
       });
       if (!response.ok) throw new Error("ai_failed");
@@ -256,9 +275,7 @@ export default function AiPage() {
       setMessages(withReply);
       await persist(withReply, activeSessionId);
     } catch {
-      setError(
-        "התשובה לקחה יותר מדי זמן או שהחיבור נקטע — השאלה שלכם שמורה, אפשר לנסות שוב"
-      );
+      setError(t("ai.errors.timeout"));
       setCanRetry(true);
     } finally {
       setLoading(false);
@@ -283,7 +300,7 @@ export default function AiPage() {
         });
         imageUrl = await getDownloadURL(fileRef);
       } catch {
-        setError("העלאת התמונה נכשלה, נסו שוב");
+        setError(t("ai.errors.uploadFailed"));
         return;
       }
       setPendingImage(null);
@@ -293,7 +310,7 @@ export default function AiPage() {
       ...messages,
       {
         role: "user",
-        content: trimmed || "תסתכל על התמונה הזו 📷",
+        content: trimmed || t("ai.lookAtPhoto"),
         ...(imageUrl ? { imageUrl } : {}),
       },
     ];
@@ -351,7 +368,7 @@ export default function AiPage() {
       lng: candidate.lng ?? null,
       website: candidate.website,
       imageUrl: candidate.imageUrl,
-      summary: `${candidate.description}\n\n💛 ${candidate.why}`,
+      summary: `${candidate.description}\n\n${candidate.why}`,
       priceNotes: candidate.priceNotes,
     });
     return id;
@@ -371,7 +388,7 @@ export default function AiPage() {
         savedPlaceId: placeId,
       });
     } catch {
-      setError("השמירה נכשלה, נסו שוב");
+      setError(t("common.errors.saveFailed"));
     } finally {
       setSavingKeys((current) => {
         const next = new Set(current);
@@ -402,7 +419,7 @@ export default function AiPage() {
         candidateIndex,
       });
     } catch {
-      setError("ההוספה לסקר נכשלה, נסו שוב");
+      setError(t("ai.errors.pollFailed"));
     } finally {
       setSavingKeys((current) => {
         const next = new Set(current);
@@ -414,40 +431,51 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <p className="kicker text-terra-500">{trip.ai.kicker}</p>
-      <h1 className="mb-1 font-display text-3xl font-normal text-ink-900">
+      <p className="kicker text-ink-500">{trip.ai.kicker}</p>
+      <h1 className="mb-1.5 font-display text-3xl font-light tracking-tight text-ink-900">
         {trip.ai.title}
       </h1>
-      <p className="mb-3 text-sm text-ink-500">
-        {personal
-          ? "🔒 השיחות שלכם פרטיות — רק מה שתשמרו למקומות או ללוח משותף לקבוצה"
-          : "מכיר את המקומות, הלו״ז ואת כל החבורה"}
+      <p className="mb-4 flex items-start gap-1.5 text-sm leading-relaxed text-ink-500">
+        {personal && (
+          <Lock
+            size={14}
+            strokeWidth={STROKE}
+            aria-hidden
+            className="mt-[3px] shrink-0"
+          />
+        )}
+        <span>{personal ? t("ai.privateNote") : t("ai.sharedNote")}</span>
       </p>
 
       {/* Private session bar */}
       {personal && (
-        <div className="-mx-4 mb-3 overflow-x-auto px-4">
+        <div className="-mx-4 mb-4 overflow-x-auto px-4">
           <div className="flex w-max items-center gap-2">
             <button
               type="button"
               onClick={newChat}
-              className={`whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition ${
+              className={`whitespace-nowrap rounded-full border px-3.5 py-2 text-sm transition ${
                 sessionId === null
-                  ? "bg-sea-600 text-cream-50"
-                  : "bg-cream-100 text-ink-700"
+                  ? "border-sea-700 bg-sea-700 text-cream-50"
+                  : "border-cream-200 bg-white text-ink-700"
               }`}
             >
-              + שיחה חדשה
+              {t("ai.newChat")}
             </button>
             {sessions?.map((session) => (
-              <span key={session.id} className="flex items-center">
+              <span
+                key={session.id}
+                className={`flex items-center rounded-full border ${
+                  sessionId === session.id
+                    ? "border-sea-700 bg-sea-700"
+                    : "border-cream-200 bg-white"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => openSession(session)}
-                  className={`max-w-40 truncate whitespace-nowrap rounded-s-full px-3.5 py-2 text-sm transition ${
-                    sessionId === session.id
-                      ? "bg-sea-600 font-medium text-cream-50"
-                      : "bg-cream-100 text-ink-700"
+                  className={`max-w-40 truncate whitespace-nowrap py-2 pe-1.5 ps-3.5 text-sm transition ${
+                    sessionId === session.id ? "text-cream-50" : "text-ink-700"
                   }`}
                 >
                   {session.title}
@@ -455,14 +483,12 @@ export default function AiPage() {
                 <button
                   type="button"
                   onClick={() => deleteSession(session.id)}
-                  aria-label={`מחיקת השיחה ${session.title}`}
-                  className={`rounded-e-full py-2 pe-2.5 ps-1 text-xs ${
-                    sessionId === session.id
-                      ? "bg-sea-600 text-sea-200"
-                      : "bg-cream-100 text-ink-300"
+                  aria-label={t("ai.deleteChat", { title: session.title })}
+                  className={`flex items-center py-2 pe-3 ps-1 ${
+                    sessionId === session.id ? "text-sea-200" : "text-ink-300"
                   }`}
                 >
-                  ✕
+                  <X size={13} strokeWidth={STROKE} aria-hidden />
                 </button>
               </span>
             ))}
@@ -473,20 +499,30 @@ export default function AiPage() {
       {!personal && (
         <Link
           href={`${prefix}/settings`}
-          className="mb-3 block rounded-2xl bg-lemon-100 px-4 py-2.5 text-sm font-medium text-ink-700"
+          className="mb-4 flex items-center gap-2 rounded-2xl border border-cream-200 bg-white px-4 py-3 text-sm text-ink-700"
         >
-          🔒 רוצים היסטוריית שיחות פרטית? התחברו עם Google בהגדרות ›
+          <Lock size={15} strokeWidth={STROKE} aria-hidden className="shrink-0 text-lemon-600" />
+          <span className="flex-1">{t("ai.signInForHistory")}</span>
+          <ChevronRight
+            size={16}
+            strokeWidth={STROKE}
+            aria-hidden
+            className="shrink-0 text-ink-300 rtl:rotate-180"
+          />
         </Link>
       )}
 
       <div className="flex-1 space-y-4">
         {messages.length === 0 && (
           <>
-            <div className="card relative overflow-hidden px-5 py-6 text-center">
-              <span aria-hidden className="text-4xl">
-                {trip.ai.emoji}
+            <div className="card relative overflow-hidden px-6 py-8 text-center">
+              <span
+                aria-hidden
+                className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-cream-200 text-lemon-600"
+              >
+                <Glyph value={trip.ai.emoji} size={22} />
               </span>
-              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
+              <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-ink-500">
                 {trip.ai.heroBlurb}
               </p>
             </div>
@@ -496,7 +532,7 @@ export default function AiPage() {
                   key={prompt}
                   type="button"
                   onClick={() => send(prompt)}
-                  className="rounded-2xl border border-sea-200 bg-white px-4 py-2.5 text-sm text-sea-700 transition active:scale-[0.98]"
+                  className="rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-start text-sm text-sea-700 transition active:scale-[0.98]"
                 >
                   {prompt}
                 </button>
@@ -507,11 +543,17 @@ export default function AiPage() {
 
         {messages.map((message, messageIndex) => (
           <div key={messageIndex}>
+            {message.role === "assistant" && (
+              <p className="mb-1.5 ms-auto flex w-fit items-center gap-1.5 text-xs text-ink-500">
+                <Glyph value={trip.ai.emoji} size={14} className="text-lemon-600" />
+                {trip.ai.title}
+              </p>
+            )}
             <div
               className={`max-w-[85%] whitespace-pre-wrap rounded-3xl px-4 py-3 leading-relaxed ${
                 message.role === "user"
-                  ? "me-auto rounded-bl-lg bg-sea-700 text-cream-50"
-                  : "card ms-auto w-fit rounded-br-lg text-ink-900"
+                  ? "me-auto rounded-es-md bg-sea-700 text-cream-50"
+                  : "card ms-auto w-fit rounded-ee-md text-ink-900"
               }`}
             >
               {message.imageUrl && (
@@ -530,9 +572,11 @@ export default function AiPage() {
                 {message.candidates.map((candidate, candidateIndex) => {
                   if (candidate.dismissed) return null;
                   const key = candidateKey(messageIndex, candidateIndex);
-                  const category =
-                    PLACE_CATEGORIES[candidate.category as PlaceCategory] ??
-                    PLACE_CATEGORIES.other;
+                  const categoryKey = (
+                    candidate.category in PLACE_CATEGORIES
+                      ? candidate.category
+                      : "other"
+                  ) as PlaceCategory;
                   return (
                     <li key={key} className="card overflow-hidden">
                       {candidate.imageUrl && (
@@ -544,36 +588,41 @@ export default function AiPage() {
                             className="absolute inset-0 h-full w-full object-cover"
                             loading="lazy"
                           />
-                          <div
-                            aria-hidden
-                            className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-sea-950/50 to-transparent"
-                          />
                         </div>
                       )}
                       <div className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-3">
                           {!candidate.imageUrl && (
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sea-100 to-lemon-100 text-xl">
-                              {category.emoji}
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cream-200 text-sea-700">
+                              <CategoryIcon category={categoryKey} size={20} />
                             </span>
                           )}
                           <div className="min-w-0">
-                            <p className="truncate font-display text-lg font-medium text-ink-900">
+                            <p className="truncate font-display text-lg font-normal text-ink-900">
                               {candidate.name}
                             </p>
                             <p className="text-sm text-ink-500">
-                              {category.label}
+                              {t(`trip.categories.${categoryKey}`)}
                               {candidate.area ? ` · ${candidate.area}` : ""}
                               {candidate.priceNotes
                                 ? ` · ${candidate.priceNotes}`
                                 : ""}
                             </p>
                             {candidate.rating && (
-                              <p className="mt-0.5 text-sm font-medium text-ink-700">
-                                ⭐ {candidate.rating}
+                              <p className="mt-0.5 flex items-center gap-1 text-sm text-ink-700">
+                                <Star
+                                  size={13}
+                                  strokeWidth={STROKE}
+                                  aria-hidden
+                                  className="text-lemon-600"
+                                />
+                                <span className="numerals">{candidate.rating}</span>
                                 {candidate.ratingCount
-                                  ? ` · ${candidate.ratingCount.toLocaleString("he-IL")} ביקורות בגוגל`
+                                  ? ` · ${t("ai.reviews", {
+                                      count: candidate.ratingCount,
+                                      n: formatNumber(candidate.ratingCount, locale),
+                                    })}`
                                   : ""}
                               </p>
                             )}
@@ -586,25 +635,38 @@ export default function AiPage() {
                               dismissed: true,
                             })
                           }
-                          aria-label="הסר מהתוצאות"
-                          className="px-1 text-ink-300"
+                          aria-label={t("ai.dismiss")}
+                          className="p-1 text-ink-300"
                         >
-                          ✕
+                          <X size={16} strokeWidth={STROKE} aria-hidden />
                         </button>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-ink-700">
                         {candidate.description}
                       </p>
-                      <p className="mt-1.5 text-sm text-terra-600">
-                        💛 {candidate.why}
+                      <p className="mt-2 flex items-start gap-1.5 text-sm text-terra-600">
+                        <Heart
+                          size={14}
+                          strokeWidth={STROKE}
+                          aria-hidden
+                          className="mt-[3px] shrink-0"
+                        />
+                        <span>{candidate.why}</span>
                       </p>
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
                         {candidate.savedPlaceId ? (
                           <Link
                             href={`${prefix}/places/${candidate.savedPlaceId}`}
-                            className="btn rounded-2xl bg-sea-100 px-4 py-2.5 text-sm text-sea-700"
+                            className="btn gap-1.5 rounded-2xl bg-sea-100 px-4 py-2.5 text-sm text-sea-700"
                           >
-                            ✓ נשמר · לפרטים ולשיבוץ ›
+                            <Check size={15} strokeWidth={STROKE} aria-hidden />
+                            {t("ai.saved")}
+                            <ChevronRight
+                              size={15}
+                              strokeWidth={STROKE}
+                              aria-hidden
+                              className="rtl:rotate-180"
+                            />
                           </Link>
                         ) : (
                           <button
@@ -619,7 +681,9 @@ export default function AiPage() {
                             disabled={savingKeys.has(key)}
                             className="btn-primary px-4 py-2.5 text-sm"
                           >
-                            {savingKeys.has(key) ? "שומר…" : "❤️ הוסף למקומות"}
+                            {savingKeys.has(key)
+                              ? t("common.saving")
+                              : t("ai.savePlace")}
                           </button>
                         )}
                         <button
@@ -628,29 +692,35 @@ export default function AiPage() {
                             pollCandidate(candidate, messageIndex, candidateIndex)
                           }
                           disabled={savingKeys.has(key)}
-                          className={`rounded-2xl px-3.5 py-2.5 text-sm font-medium transition active:scale-[0.98] ${
+                          className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-sm transition active:scale-[0.98] ${
                             candidate.polled
-                              ? "bg-lemon-100 text-ink-700"
-                              : "bg-cream-100 text-ink-700"
+                              ? "border-lemon-300 bg-lemon-100 text-ink-700"
+                              : "border-cream-200 bg-white text-ink-700"
                           } disabled:opacity-70`}
                         >
-                          {candidate.polled ? "🗳️ בסקר ✓" : "🗳️ לסקר…"}
+                          {candidate.polled ? (
+                            <Check size={15} strokeWidth={STROKE} aria-hidden />
+                          ) : (
+                            <Vote size={15} strokeWidth={STROKE} aria-hidden />
+                          )}
+                          {candidate.polled ? t("ai.inPoll") : t("ai.toPoll")}
                         </button>
                         <button
                           type="button"
                           onClick={() => openInfo(candidate)}
-                          className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700 transition active:scale-[0.98]"
+                          className="rounded-2xl border border-cream-200 bg-white px-3.5 py-2.5 text-sm text-ink-700 transition active:scale-[0.98]"
                         >
-                          ➕ ספרו לי עוד
+                          {t("ai.tellMore")}
                         </button>
                         {candidate.website && (
                           <a
                             href={candidate.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="rounded-2xl bg-cream-100 px-3.5 py-2.5 text-sm font-medium text-ink-700"
+                            aria-label={t("ai.website")}
+                            className="flex items-center rounded-2xl border border-cream-200 bg-white px-3 py-2.5 text-ink-700"
                           >
-                            🌐
+                            <Globe size={16} strokeWidth={STROKE} aria-hidden />
                           </a>
                         )}
                       </div>
@@ -664,9 +734,9 @@ export default function AiPage() {
         ))}
 
         {loading && (
-          <div className="ms-auto w-fit rounded-3xl border border-cream-200 bg-white px-4 py-3 text-ink-500">
+          <div className="ms-auto w-fit rounded-3xl rounded-ee-md border border-cream-200 bg-white px-4 py-3 text-ink-500">
             <span className="inline-flex gap-1">
-              חושב
+              {t("ai.thinking")}
               <span className="animate-pulse">…</span>
             </span>
           </div>
@@ -675,16 +745,17 @@ export default function AiPage() {
         {error && (
           <div
             role="alert"
-            className="rounded-2xl bg-terra-100 px-4 py-3 text-sm font-medium text-terra-600"
+            className="rounded-2xl border border-terra-200 bg-terra-100 px-4 py-3 text-sm text-terra-600"
           >
             {error}
             {canRetry && (
               <button
                 type="button"
                 onClick={retry}
-                className="btn-primary mt-2 w-full py-2.5 text-sm"
+                className="btn-primary mt-3 w-full gap-1.5 py-2.5 text-sm"
               >
-                🔄 נסו שוב
+                <RotateCcw size={15} strokeWidth={STROKE} aria-hidden />
+                {t("common.retry")}
               </button>
             )}
           </div>
@@ -695,23 +766,23 @@ export default function AiPage() {
 
       <div className="sticky bottom-24 mt-4">
         {pendingImage && (
-          <div className="mb-2 flex items-center gap-2 rounded-2xl bg-white p-2 shadow-[var(--shadow-card)]">
+          <div className="mb-2 flex items-center gap-2 rounded-2xl border border-cream-200 bg-white p-2 shadow-[var(--shadow-card)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={pendingImage.previewUrl}
-              alt="תמונה מצורפת"
+              alt={t("ai.attachedPhoto")}
               className="h-14 w-14 rounded-xl object-cover"
             />
             <span className="flex-1 text-sm text-ink-500">
-              התמונה תישלח למשרת עם ההודעה
+              {t("ai.photoWillSend")}
             </span>
             <button
               type="button"
               onClick={() => setPendingImage(null)}
-              aria-label="הסרת התמונה"
+              aria-label={t("ai.removePhoto")}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-ink-500"
             >
-              <X size={15} />
+              <X size={15} strokeWidth={STROKE} aria-hidden />
             </button>
           </div>
         )}
@@ -736,32 +807,32 @@ export default function AiPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            aria-label="צירוף תמונה"
+            aria-label={t("ai.attachPhoto")}
             className="btn-soft px-3.5 shadow-[var(--shadow-card)]"
           >
-            <Paperclip size={19} />
+            <Paperclip size={19} strokeWidth={STROKE} aria-hidden />
           </button>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={
-              activeSession ? "המשיכו את השיחה…" : trip.ai.inputPlaceholder
+              activeSession ? t("ai.continuePlaceholder") : trip.ai.inputPlaceholder
             }
             className="field min-w-0 flex-1 py-3.5 shadow-[var(--shadow-card)]"
           />
           <button
             type="submit"
             disabled={loading || (!input.trim() && !pendingImage)}
-            aria-label="שליחה"
+            aria-label={t("ai.send")}
             className="btn-primary px-5"
           >
-            ↑
+            <ArrowUp size={19} strokeWidth={STROKE} aria-hidden />
           </button>
         </form>
       </div>
 
-      {/* "ספרו לי עוד" modal — stays on top of the cards */}
+      {/* "Tell me more" sheet — stays on top of the cards */}
       {infoTarget && (
         <BottomSheet
           open
@@ -776,18 +847,26 @@ export default function AiPage() {
               className="mb-3 aspect-[16/8] w-full rounded-2xl object-cover"
             />
           )}
-          <p className="text-sm text-ink-500">
+          <p className="flex items-center gap-1 text-sm text-ink-500">
             {infoTarget.area ?? ""}
-            {infoTarget.rating
-              ? `${infoTarget.area ? " · " : ""}⭐ ${infoTarget.rating}${
-                  infoTarget.ratingCount
-                    ? ` (${infoTarget.ratingCount.toLocaleString("he-IL")})`
-                    : ""
-                }`
-              : ""}
+            {infoTarget.rating && (
+              <>
+                {infoTarget.area ? " · " : ""}
+                <Star
+                  size={13}
+                  strokeWidth={STROKE}
+                  aria-hidden
+                  className="text-lemon-600"
+                />
+                <span className="numerals">{infoTarget.rating}</span>
+                {infoTarget.ratingCount
+                  ? ` (${formatNumber(infoTarget.ratingCount, locale)})`
+                  : ""}
+              </>
+            )}
           </p>
           {infoLoading ? (
-            <div className="mt-3 space-y-2" aria-label="טוען מידע">
+            <div className="mt-3 space-y-2" aria-label={t("ai.loadingInfo")}>
               <div className="h-4 w-full animate-pulse rounded bg-cream-200" />
               <div className="h-4 w-5/6 animate-pulse rounded bg-cream-200" />
               <div className="h-4 w-2/3 animate-pulse rounded bg-cream-200" />

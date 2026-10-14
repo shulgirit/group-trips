@@ -1,9 +1,22 @@
 "use client";
 
+import { Check, Minus, Plus } from "lucide-react";
 import type { Family } from "@/types";
 import { currencySymbol, type Currency } from "@/lib/currency";
 import { activeTrip } from "@/lib/active-trip";
 import { useTrip } from "@/components/providers/TripProvider";
+import { STROKE } from "@/components/ui/Icon";
+import { useLocale, useT } from "@/i18n";
+import { tActive } from "@/i18n/active";
+import { formatNumber } from "@/i18n/format";
+
+/** Stored Hebrew family names start with "Family" (mishpachat) — drop it in tight UI. */
+const FAMILY_PREFIX = "\u05DE\u05E9\u05E4\u05D7\u05EA ";
+
+/** "The Tal family" → "Tal" for compact lists (data stays as stored). */
+export function shortFamilyName(name: string): string {
+  return name.replace(FAMILY_PREFIX, "");
+}
 
 /** Shared shape for the add/edit expense split UI. counts is sparse — a
  *  family without an entry defaults to its full size. */
@@ -49,7 +62,7 @@ export function splitError(
   if (!split.everyone && split.participantIds.length === 0)
     return activeTrip().group.splitPickLabel;
   if (split.byPeople && totalPeople(families, split) <= 0)
-    return "בחרו לפחות אדם אחד בחלוקה לפי אנשים";
+    return tActive("money.split.needPerson");
   return null;
 }
 
@@ -92,6 +105,8 @@ export function SplitEditor({
   currency: Currency;
 }) {
   const { group } = useTrip();
+  const t = useT();
+  const { locale } = useLocale();
   const participating = participatingFamilies(families, split);
   const total = totalPeople(families, split);
 
@@ -106,22 +121,22 @@ export function SplitEditor({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
         <button
           type="button"
           onClick={() => onChange({ ...split, everyone: !split.everyone })}
-          className="flex items-center gap-2 text-sm font-medium text-ink-700"
+          className="flex items-center gap-2.5 text-sm text-ink-700"
         >
           <span
             aria-hidden
-            className={`flex h-6 w-6 items-center justify-center rounded-lg border text-sm ${
+            className={`flex h-5 w-5 items-center justify-center rounded-md border ${
               split.everyone
-                ? "border-sea-600 bg-sea-600 text-cream-50"
+                ? "border-sea-700 bg-sea-700 text-cream-50"
                 : "border-cream-300 bg-white"
             }`}
           >
-            {split.everyone ? "✓" : ""}
+            {split.everyone && <Check size={13} strokeWidth={2} aria-hidden />}
           </span>
           {group.splitEveryoneLabel}
         </button>
@@ -139,13 +154,13 @@ export function SplitEditor({
                       : [...split.participantIds, family.id],
                   })
                 }
-                className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                className={`rounded-2xl border px-4 py-2.5 text-sm transition ${
                   split.participantIds.includes(family.id)
-                    ? "bg-terra-500 text-cream-50"
-                    : "bg-cream-100 text-ink-700"
+                    ? "border-sea-700 bg-sea-700 text-cream-50"
+                    : "border-cream-200 bg-white text-ink-700"
                 }`}
               >
-                {family.name.replace("משפחת ", "")}
+                {shortFamilyName(family.name)}
               </button>
             ))}
           </div>
@@ -156,77 +171,74 @@ export function SplitEditor({
         <button
           type="button"
           onClick={() => onChange({ ...split, byPeople: !split.byPeople })}
-          className="flex items-center gap-2 text-sm font-medium text-ink-700"
+          className="flex items-center gap-2.5 text-sm text-ink-700"
         >
           <span
             aria-hidden
-            className={`flex h-6 w-6 items-center justify-center rounded-lg border text-sm ${
+            className={`flex h-5 w-5 items-center justify-center rounded-md border ${
               split.byPeople
-                ? "border-sea-600 bg-sea-600 text-cream-50"
+                ? "border-sea-700 bg-sea-700 text-cream-50"
                 : "border-cream-300 bg-white"
             }`}
           >
-            {split.byPeople ? "✓" : ""}
+            {split.byPeople && <Check size={13} strokeWidth={2} aria-hidden />}
           </span>
-          חלוקה לפי מספר אנשים 👥
+          {t("money.split.byPeople")}
         </button>
         {split.byPeople && participating.length > 0 && (
-          <div className="mt-3 space-y-2.5 rounded-2xl bg-cream-100 p-3">
+          <div className="mt-3 divide-y divide-cream-200 rounded-2xl border border-cream-200 bg-cream-50 px-3">
             {participating.map((family) => (
               <div
                 key={family.id}
-                className="flex items-center justify-between"
+                className="flex items-center justify-between py-2.5"
               >
-                <span className="text-sm font-medium text-ink-700">
-                  {family.name.replace("משפחת ", "")}
+                <span className="text-sm text-ink-700">
+                  {shortFamilyName(family.name)}
                   <span className="text-ink-400">
-                    {" "}
-                    · מתוך {family.members.length}
+                    {" · "}
+                    {t("money.split.outOf", { count: family.members.length })}
                   </span>
                 </span>
                 <div
                   dir="ltr"
-                  className="flex items-center gap-1 rounded-xl bg-white p-1"
+                  className="flex items-center gap-1 rounded-xl border border-cream-200 bg-white p-1"
                 >
                   <button
                     type="button"
-                    aria-label={`פחות אנשים ממשפחת ${family.name}`}
+                    aria-label={t("money.split.fewer", { family: family.name })}
                     onClick={() =>
                       setCount(family, countFor(split, family) - 1)
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-cream-100 text-lg font-bold text-ink-700 active:scale-95"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-700 active:scale-95"
                   >
-                    −
+                    <Minus size={16} strokeWidth={STROKE} aria-hidden />
                   </button>
-                  <span className="w-8 text-center text-base font-semibold tabular-nums text-ink-900">
+                  <span className="numerals w-8 text-center text-base tabular-nums text-ink-900">
                     {countFor(split, family)}
                   </span>
                   <button
                     type="button"
-                    aria-label={`יותר אנשים ממשפחת ${family.name}`}
+                    aria-label={t("money.split.more", { family: family.name })}
                     onClick={() =>
                       setCount(family, countFor(split, family) + 1)
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-cream-100 text-lg font-bold text-ink-700 active:scale-95"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-700 active:scale-95"
                   >
-                    +
+                    <Plus size={16} strokeWidth={STROKE} aria-hidden />
                   </button>
                 </div>
               </div>
             ))}
-            <p className="pt-1 text-sm font-medium text-ink-500">
-              סה״כ {total} אנשים
+            <p className="py-2.5 text-sm text-ink-500">
+              {t("money.split.totalPeople", { count: total })}
               {amount && total > 0 ? (
                 <>
-                  {" "}
-                  · ≈{" "}
-                  <span dir="ltr" className="tabular-nums">
+                  {" · ≈ "}
+                  <span dir="ltr" className="numerals tabular-nums">
                     {currencySymbol(currency)}
-                    {(amount / total).toLocaleString("he-IL", {
-                      maximumFractionDigits: 1,
-                    })}
+                    {formatNumber(amount / total, locale, 1)}
                   </span>{" "}
-                  לאדם
+                  {t("money.split.perPerson")}
                 </>
               ) : null}
             </p>

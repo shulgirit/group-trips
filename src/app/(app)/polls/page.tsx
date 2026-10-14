@@ -3,7 +3,22 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronDown, ChevronUp, Users } from "lucide-react";
+import {
+  BookOpen,
+  CalendarPlus,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Lightbulb,
+  Lock,
+  Plus,
+  Trash2,
+  Trophy,
+  Users,
+  Vote,
+  X,
+} from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
@@ -14,8 +29,11 @@ import {
   votePoll,
 } from "@/lib/db";
 import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
-import { PLACE_CATEGORIES, type Family, type Place, type Poll } from "@/types";
+import type { Family, Place, Poll } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+import { tActive } from "@/i18n/active";
 
 interface NormalizedVote {
   voterKey: string;
@@ -28,9 +46,13 @@ function normalizeVotes(poll: Poll, families: Family[]): NormalizedVote[] {
   return Object.entries(poll.votes ?? {}).map(([voterKey, vote]) => {
     if (typeof vote === "string") {
       const family = families.find((f) => f.id === voterKey);
-      return { voterKey, optionId: vote, name: family?.name ?? "מטייל" };
+      return { voterKey, optionId: vote, name: family?.name ?? tActive("polls.traveler") };
     }
-    return { voterKey, optionId: vote.optionId, name: vote.name || "מטייל" };
+    return {
+      voterKey,
+      optionId: vote.optionId,
+      name: vote.name || tActive("polls.traveler"),
+    };
   });
 }
 
@@ -44,6 +66,7 @@ function PollCard({
   places: Place[];
 }) {
   const { prefix } = useTrip();
+  const t = useT();
   const { user, personal, profile } = useFirebase();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [removingOptionId, setRemovingOptionId] = useState<string | null>(null);
@@ -64,7 +87,7 @@ function PollCard({
     return null;
   }, [profile, families]);
   const voterName =
-    linkedMemberName ?? user?.displayName?.split(" ")[0] ?? "מטייל";
+    linkedMemberName ?? user?.displayName?.split(" ")[0] ?? t("polls.traveler");
 
   const myVote = voterUid
     ? votes.find((v) => v.voterKey === voterUid)?.optionId
@@ -85,41 +108,58 @@ function PollCard({
   }
 
   return (
-    <div className={`card p-4 ${poll.pinned ? "border-lemon-300" : ""}`}>
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-display text-xl font-medium text-ink-900">
+    <div className={`card p-5 ${poll.pinned ? "border-lemon-300" : ""}`}>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-display text-xl font-light text-ink-900">
           {poll.question}
         </h3>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+          className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs ${
             poll.closed
-              ? "bg-cream-100 text-ink-500"
-              : "bg-lemon-100 text-ink-700"
+              ? "border-cream-200 text-ink-500"
+              : "border-lemon-300 text-ink-700"
           }`}
         >
-          {poll.closed ? "נסגר" : "פתוח"}
+          {poll.closed ? t("polls.closed") : t("polls.open")}
         </span>
       </div>
 
       {/* Voting state */}
       {!poll.closed &&
         (voterUid ? (
-          <p className="mt-3 rounded-2xl bg-sea-100 px-3.5 py-2 text-sm text-sea-700">
-            {myVote
-              ? `✓ הצבעתם (${voterName}) — לחיצה על אפשרות אחרת משנה את ההצבעה`
-              : `היי ${voterName} — לחצו על אפשרות כדי להצביע`}
+          <p className="mt-3 flex items-start gap-1.5 rounded-2xl bg-sea-100 px-3.5 py-2 text-sm text-sea-700">
+            {myVote && (
+              <Check
+                size={15}
+                strokeWidth={STROKE}
+                aria-hidden
+                className="mt-[3px] shrink-0"
+              />
+            )}
+            <span>
+              {myVote
+                ? t("polls.votedHint", { name: voterName })
+                : t("polls.voteHint", { name: voterName })}
+            </span>
           </p>
         ) : (
           <Link
             href={`${prefix}/settings`}
-            className="mt-3 block rounded-2xl bg-cream-100 px-3.5 py-2 text-sm text-ink-700"
+            className="mt-3 flex items-center gap-2 rounded-2xl border border-cream-200 px-3.5 py-2 text-sm text-ink-700"
           >
-            🔐 כדי להצביע, השלימו כניסה עם Google בהגדרות ›
+            <Lock size={14} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+            <span className="flex-1">{t("polls.signInToVote")}</span>
+            <ChevronRight
+              size={15}
+              strokeWidth={STROKE}
+              aria-hidden
+              className="shrink-0 text-ink-300 rtl:rotate-180"
+            />
           </Link>
         ))}
 
       {/* Options */}
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-4 space-y-3">
         {poll.options.map((option) => {
           const count = counts.get(option.id) ?? 0;
           const percent = votes.length ? (count / votes.length) * 100 : 0;
@@ -145,19 +185,19 @@ function PollCard({
                 type="button"
                 disabled={poll.closed || !voterUid}
                 onClick={() => handleVote(option.id)}
-                className={`relative w-full overflow-hidden rounded-2xl border text-right transition ${
+                className={`relative w-full overflow-hidden rounded-2xl border text-start transition ${
                   isWinner
                     ? "border-lemon-400 bg-lemon-100"
                     : isMyVote
-                      ? "border-sea-500 bg-white ring-2 ring-sea-200"
+                      ? "border-sea-500 bg-white ring-1 ring-sea-200"
                       : voterUid && !poll.closed
-                        ? "border-sea-200 bg-white active:bg-sea-100"
+                        ? "border-cream-200 bg-white active:bg-sea-100"
                         : "border-cream-200 bg-white"
                 } disabled:opacity-100`}
               >
                 <span
                   aria-hidden
-                  className="absolute inset-y-0 right-0 bg-sea-100/70"
+                  className="absolute inset-y-0 start-0 bg-sea-100/70"
                   style={{ width: `${percent}%` }}
                 />
                 <span className="relative flex items-center gap-3">
@@ -171,19 +211,35 @@ function PollCard({
                         className="object-cover"
                       />
                     ) : (
-                      <span className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-2xl">
-                        {place
-                          ? (PLACE_CATEGORIES[place.category]?.emoji ?? "📌")
-                          : "💡"}
+                      <span className="flex h-full items-center justify-center bg-cream-100 text-sea-700">
+                        {place ? (
+                          <CategoryIcon category={place.category} size={20} />
+                        ) : (
+                          <Lightbulb size={20} strokeWidth={STROKE} aria-hidden />
+                        )}
                       </span>
                     )}
                   </span>
-                  <span className="min-w-0 flex-1 truncate py-3 font-medium text-ink-900">
-                    {isWinner ? "🏆 " : ""}
-                    {isMyVote ? "✓ " : ""}
-                    {option.label}
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5 py-3 text-ink-900">
+                    {isWinner && (
+                      <Trophy
+                        size={15}
+                        strokeWidth={STROKE}
+                        aria-label={t("polls.winner")}
+                        className="shrink-0 text-lemon-600"
+                      />
+                    )}
+                    {isMyVote && (
+                      <Check
+                        size={15}
+                        strokeWidth={STROKE}
+                        aria-label={t("polls.yourVote")}
+                        className="shrink-0 text-sea-700"
+                      />
+                    )}
+                    <span className="truncate">{option.label}</span>
                   </span>
-                  <span className="px-4 font-display text-lg font-medium tabular-nums text-sea-700">
+                  <span className="numerals px-4 font-display text-lg font-light tabular-nums text-sea-700">
                     {count}
                   </span>
                 </span>
@@ -194,17 +250,18 @@ function PollCard({
                     href={`${prefix}/places/${place.id}`}
                     className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-sea-700"
                   >
-                    <BookOpen size={13} />
-                    קראו על המקום
+                    <BookOpen size={13} strokeWidth={STROKE} aria-hidden />
+                    {t("polls.readAbout")}
                   </Link>
                 )}
                 <Link
                   href={`${prefix}/calendar/new?title=${encodeURIComponent(option.label)}${
                     place ? `&placeId=${place.id}` : ""
                   }`}
-                  className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-terra-600"
+                  className="btn-soft gap-1.5 px-3 py-1.5 text-xs text-ink-700"
                 >
-                  📅 שבץ בלוח
+                  <CalendarPlus size={13} strokeWidth={STROKE} aria-hidden />
+                  {t("polls.schedule")}
                 </Link>
                 <span className="flex-1" />
                 {!poll.closed &&
@@ -216,26 +273,27 @@ function PollCard({
                           removePollOption(poll.id, option.id);
                           setRemovingOptionId(null);
                         }}
-                        className="font-semibold text-terra-600"
+                        className="font-medium text-terra-600"
                       >
-                        להסיר?
+                        {t("polls.confirmRemove")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setRemovingOptionId(null)}
                         className="text-ink-500"
                       >
-                        ביטול
+                        {t("common.cancel")}
                       </button>
                     </>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setRemovingOptionId(option.id)}
-                      aria-label={`הסרת ${option.label} מהסקר`}
-                      className="text-ink-300"
+                      aria-label={t("polls.removeOptionLabel", { label: option.label })}
+                      className="flex items-center gap-1 text-ink-300"
                     >
-                      ✕ הסרה
+                      <X size={12} strokeWidth={STROKE} aria-hidden />
+                      {t("polls.remove")}
                     </button>
                   ))}
               </span>
@@ -248,33 +306,39 @@ function PollCard({
       <button
         type="button"
         onClick={() => setVotersOpen(!votersOpen)}
-        className="mt-3 flex w-full items-center gap-1.5 text-sm font-medium text-ink-500"
+        className="mt-4 flex w-full items-center gap-1.5 text-sm text-ink-500"
       >
-        <Users size={14} />
-        {votes.length ? `${votes.length} הצביעו` : "עוד אין הצבעות"}
+        <Users size={14} strokeWidth={STROKE} aria-hidden />
+        {votes.length
+          ? t("polls.votes", { count: votes.length })
+          : t("polls.noVotes")}
         <span className="flex-1" />
         {votes.length > 0 && (
           <>
-            מי הצביע למה?
-            {votersOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            {t("polls.whoVoted")}
+            {votersOpen ? (
+              <ChevronUp size={15} strokeWidth={STROKE} aria-hidden />
+            ) : (
+              <ChevronDown size={15} strokeWidth={STROKE} aria-hidden />
+            )}
           </>
         )}
       </button>
       {votersOpen && votes.length > 0 && (
-        <div className="mt-2 space-y-2 rounded-2xl bg-cream-100/80 p-3">
+        <div className="mt-2 space-y-2.5 rounded-2xl bg-cream-100/80 p-3">
           {poll.options.map((option) => {
             const voters = votes.filter((v) => v.optionId === option.id);
             if (!voters.length) return null;
             return (
               <div key={option.id}>
-                <p className="text-xs font-semibold text-ink-500">
+                <p className="text-xs font-medium text-ink-500">
                   {option.label}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {voters.map((vote) => (
                     <span
                       key={vote.voterKey}
-                      className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink-700"
+                      className="rounded-full bg-white px-2.5 py-1 text-xs text-ink-700"
                     >
                       {vote.name}
                     </span>
@@ -287,15 +351,16 @@ function PollCard({
       )}
 
       {/* Footer actions */}
-      <div className="mt-3 flex items-center gap-2 border-t border-cream-100 pt-3 text-sm">
+      <div className="mt-4 flex items-center gap-2 border-t border-cream-200 pt-4 text-sm">
         {poll.closed && winners.length === 1 && winners[0] && (
           <Link
             href={`${prefix}/calendar/new?title=${encodeURIComponent(winners[0].label)}${
               winners[0].placeId ? `&placeId=${winners[0].placeId}` : ""
             }`}
-            className="btn-primary px-3.5 py-2 text-sm"
+            className="btn-primary gap-1.5 px-3.5 py-2 text-sm"
           >
-            📅 קבע כפעילות
+            <CalendarPlus size={15} strokeWidth={STROKE} aria-hidden />
+            {t("polls.setAsEvent")}
           </Link>
         )}
         <span className="flex-1" />
@@ -304,7 +369,7 @@ function PollCard({
           onClick={() => setPollClosed(poll.id, !poll.closed)}
           className="btn-soft px-3.5 py-2 text-sm"
         >
-          {poll.closed ? "פתח מחדש" : "סגור סקר"}
+          {poll.closed ? t("polls.reopen") : t("polls.closePoll")}
         </button>
         {confirmDelete ? (
           <button
@@ -312,16 +377,16 @@ function PollCard({
             onClick={() => deletePoll(poll.id)}
             className="btn bg-terra-600 px-3 py-2 text-xs text-cream-50"
           >
-            למחוק
+            {t("polls.confirmDelete")}
           </button>
         ) : (
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            aria-label="מחיקת סקר"
-            className="px-1 text-ink-300"
+            aria-label={t("polls.deletePoll")}
+            className="p-1 text-ink-300"
           >
-            🗑️
+            <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
           </button>
         )}
       </div>
@@ -331,21 +396,26 @@ function PollCard({
 
 export default function PollsPage() {
   const { prefix } = useTrip();
+  const t = useT();
   const { polls, loading } = usePolls();
   const { families } = useFamilies();
   const { places } = usePlaces();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
         <div>
-          <p className="kicker text-terra-500">מחליטים ביחד</p>
-          <h1 className="font-display text-3xl font-normal text-ink-900">
-            סקרים
+          <p className="kicker text-ink-500">{t("polls.kicker")}</p>
+          <h1 className="font-display text-3xl font-light tracking-tight text-ink-900">
+            {t("polls.title")}
           </h1>
         </div>
-        <Link href={`${prefix}/polls/new`} className="btn-accent px-4 py-2.5 text-sm">
-          + סקר
+        <Link
+          href={`${prefix}/polls/new`}
+          className="btn-accent gap-1.5 px-4 py-2.5 text-sm"
+        >
+          <Plus size={16} strokeWidth={STROKE} aria-hidden />
+          {t("polls.newShort")}
         </Link>
       </div>
 
@@ -353,17 +423,21 @@ export default function PollsPage() {
         <ListSkeleton rows={2} />
       ) : !polls?.length ? (
         <EmptyState
-          emoji="🗳️"
-          title="עוד אין סקרים"
-          description="מתלבטים בין אטרקציות? פתחו סקר וכולם יצביעו"
+          icon={Vote}
+          title={t("polls.emptyTitle")}
+          description={t("polls.emptyDescription")}
           action={
-            <Link href={`${prefix}/polls/new`} className="btn-primary px-5 py-2.5 text-sm">
-              + סקר ראשון
+            <Link
+              href={`${prefix}/polls/new`}
+              className="btn-primary gap-1.5 px-5 py-2.5 text-sm"
+            >
+              <Plus size={16} strokeWidth={STROKE} aria-hidden />
+              {t("polls.firstPoll")}
             </Link>
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {polls
             .slice()
             .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))

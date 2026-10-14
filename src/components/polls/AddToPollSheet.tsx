@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Lightbulb, Plus, Vote } from "lucide-react";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import {
   GLOBAL_POLL_ID,
@@ -29,6 +31,7 @@ export function AddToPollSheet({
   onAdded?: () => void;
 }) {
   const { polls } = usePolls();
+  const t = useT();
   const [target, setTarget] = useState<string>("ideas"); // "ideas" | "new" | pollId
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,7 +44,7 @@ export function AddToPollSheet({
   async function handleConfirm() {
     if (busy) return;
     if (target === "new" && !question.trim()) {
-      setMessage("כתבו את שאלת הסקר");
+      setMessage(t("polls.sheet.needQuestion"));
       return;
     }
     setBusy(true);
@@ -56,7 +59,7 @@ export function AddToPollSheet({
         result = await addOptionToPoll(target, label, placeId);
       }
       if (result === "exists") {
-        setMessage("״" + label + "״ כבר נמצא בסקר הזה");
+        setMessage(t("polls.sheet.exists", { label }));
         setBusy(false);
         return;
       }
@@ -65,17 +68,18 @@ export function AddToPollSheet({
       setQuestion("");
       setTarget("ideas");
     } catch {
-      setMessage("ההוספה נכשלה, נסו שוב");
+      setMessage(t("polls.sheet.failed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="🗳️ לאיזה סקר להוסיף?">
+    <BottomSheet open={open} onClose={onClose} title={t("polls.sheet.title")}>
       <div className="space-y-4">
-        <p className="rounded-2xl bg-cream-100 px-4 py-2.5 text-sm text-ink-700">
-          מוסיפים את: <b>{label}</b>
+        <p className="rounded-2xl bg-cream-100 px-4 py-3 text-sm text-ink-700">
+          {t("polls.sheet.adding")}{" "}
+          <b className="font-medium text-ink-900">{label}</b>
         </p>
 
         <div className="space-y-2">
@@ -83,19 +87,19 @@ export function AddToPollSheet({
           <button
             type="button"
             onClick={() => setTarget("ideas")}
-            className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-right transition ${
+            className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start transition ${
               target === "ideas"
                 ? "border-sea-500 bg-sea-100 ring-1 ring-sea-200"
                 : "border-cream-200 bg-white"
             }`}
           >
-            <Lightbulb size={18} className="shrink-0 text-lemon-500" />
+            <Lightbulb size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-lemon-600" />
             <span className="min-w-0 flex-1">
               <span className="block font-medium text-ink-900">
-                סקר הרעיונות הפתוח
+                {t("polls.sheet.ideasTitle")}
               </span>
               <span className="block text-xs text-ink-500">
-                מאגר קבוע של רעיונות שכולם מצביעים עליהם
+                {t("polls.sheet.ideasHint")}
               </span>
             </span>
           </button>
@@ -106,19 +110,19 @@ export function AddToPollSheet({
               key={poll.id}
               type="button"
               onClick={() => setTarget(poll.id)}
-              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-right transition ${
+              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start transition ${
                 target === poll.id
                   ? "border-sea-500 bg-sea-100 ring-1 ring-sea-200"
                   : "border-cream-200 bg-white"
               }`}
             >
-              <Vote size={18} className="shrink-0 text-sea-600" />
+              <Vote size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-600" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium text-ink-900">
                   {poll.question}
                 </span>
                 <span className="block text-xs text-ink-500">
-                  {poll.options.length} אפשרויות
+                  {t("polls.sheet.optionsCount", { count: poll.options.length })}
                 </span>
               </span>
             </button>
@@ -128,19 +132,19 @@ export function AddToPollSheet({
           <button
             type="button"
             onClick={() => setTarget("new")}
-            className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-right transition ${
+            className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start transition ${
               target === "new"
-                ? "border-terra-400 bg-terra-100 ring-1 ring-terra-100"
+                ? "border-sea-500 bg-sea-100 ring-1 ring-sea-200"
                 : "border-cream-200 bg-white"
             }`}
           >
-            <Plus size={18} className="shrink-0 text-terra-500" />
+            <Plus size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
             <span className="min-w-0 flex-1">
               <span className="block font-medium text-ink-900">
-                סקר חדש עם שאלה משלו
+                {t("polls.sheet.newTitle")}
               </span>
               <span className="block text-xs text-ink-500">
-                למשל: ״מה עושים ביום שלישי?״ — כולם יקבלו התראה
+                {t("polls.sheet.newHint")}
               </span>
             </span>
           </button>
@@ -151,14 +155,14 @@ export function AddToPollSheet({
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               autoFocus
-              placeholder="מה שאלת הסקר?"
+              placeholder={t("polls.sheet.questionPlaceholder")}
               className="field"
             />
           )}
         </div>
 
         {message && (
-          <p role="alert" className="text-sm font-medium text-terra-600">
+          <p role="alert" className="text-sm text-terra-600">
             {message}
           </p>
         )}
@@ -170,10 +174,10 @@ export function AddToPollSheet({
           className="btn-primary w-full py-3.5"
         >
           {busy
-            ? "מוסיף…"
+            ? t("polls.sheet.busy")
             : target === "new"
-              ? "צור סקר והוסף 🗳️"
-              : "הוסף לסקר 🗳️"}
+              ? t("polls.sheet.createAndAdd")
+              : t("polls.sheet.add")}
         </button>
       </div>
     </BottomSheet>

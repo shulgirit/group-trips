@@ -5,13 +5,20 @@ import { calcCombinedBalances, calcSettlement } from "@/lib/settlement";
 import type { Expense, Family } from "@/types";
 import { apiFetch } from "@/lib/firebase/client";
 import { currencyName, currencySymbol } from "@/lib/currency";
+import { ArrowRight } from "lucide-react";
+import { STROKE } from "@/components/ui/Icon";
+import { shortFamilyName } from "@/components/expenses/SplitEditor";
+import { useLocale, useT } from "@/i18n";
+import { activeLocale } from "@/i18n/active";
+import { formatNumber, intlLocale } from "@/i18n/format";
 
 function familyName(families: Family[], id: string): string {
-  return families.find((f) => f.id === id)?.name.replace("משפחת ", "") ?? id;
+  const name = families.find((f) => f.id === id)?.name;
+  return name ? shortFamilyName(name) : id;
 }
 
 function formatIls(amount: number): string {
-  return `₪${amount.toLocaleString("he-IL", { maximumFractionDigits: 0 })}`;
+  return `₪${formatNumber(amount, activeLocale())}`;
 }
 
 /** Sensible precision for "1 X = ? ₪" (₪0.0011 per VND, ₪4.02 per €). */
@@ -37,6 +44,8 @@ export function IlsSettlement({
   >(null);
   /** Per-currency rate text the user may override */
   const [rateText, setRateText] = useState<Record<string, string>>({});
+  const t = useT();
+  const { locale } = useLocale();
 
   const foreign = useMemo(
     () => [...new Set(expenses.map((e) => e.currency))].filter((c) => c !== "ILS"),
@@ -94,16 +103,14 @@ export function IlsSettlement({
   if (!combined) return null;
 
   return (
-    <div className="mt-4 rounded-2xl bg-sea-950/45 p-3.5 backdrop-blur">
-      <p className="mb-2 text-sm font-semibold text-lemon-200">
-        🇮🇱 סגירת חשבון בשקלים
-      </p>
+    <div className="mt-5 border-t border-white/15 pt-4">
+      <p className="kicker mb-2 text-lemon-200">{t("money.ils.title")}</p>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
         {foreign.map((code) => {
           const current = rateFor(code);
           return (
-            <label key={code} className="flex items-center gap-1.5">
-              <span dir="ltr">{currencySymbol(code)}1 =</span>
+            <label key={code} dir="ltr" className="flex items-center gap-1.5">
+              <span>{currencySymbol(code)}1 =</span>
               <input
                 dir="ltr"
                 inputMode="decimal"
@@ -111,29 +118,29 @@ export function IlsSettlement({
                 onChange={(e) =>
                   setRateText((all) => ({ ...all, [code]: e.target.value }))
                 }
-                aria-label={`שער ${currencyName(code)} לשקל`}
-                className="w-20 rounded-lg bg-white/15 px-2 py-1 text-center tabular-nums text-white outline-none focus:bg-white/25"
+                aria-label={t("money.ils.rateLabel", { currency: currencyName(code) })}
+                className="numerals w-20 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-center tabular-nums text-white outline-none focus:bg-white/20"
               />
               <span>₪</span>
             </label>
           );
         })}
       </div>
-      <p className="mb-2 text-xs text-sea-100">
+      <p className="mb-3 text-xs text-sea-100">
         {fetchedRates === "error"
-          ? "שער השוק לא זמין כרגע — הזינו שער ידנית"
+          ? t("money.ils.rateUnavailable")
           : fetchedRates
-            ? `שער שוק · עדכון ${new Date(
-                fetchedRates.updatedAt
-              ).toLocaleDateString("he-IL", {
-                day: "numeric",
-                month: "numeric",
-              })} · אפשר לערוך`
-            : "טוען שער עדכני…"}
+            ? t("money.ils.marketRate", {
+                date: new Date(fetchedRates.updatedAt).toLocaleDateString(
+                  intlLocale(locale),
+                  { day: "numeric", month: "numeric" }
+                ),
+              })
+            : t("money.ils.loadingRate")}
       </p>
       {combined.ready ? (
         <>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {combined.balances
               .filter((balance) => Math.abs(balance.balance) >= 1)
               .map((balance) => (
@@ -141,36 +148,46 @@ export function IlsSettlement({
                   key={balance.familyId}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="font-medium">
-                    {familyName(families, balance.familyId)}
-                  </span>
+                  <span>{familyName(families, balance.familyId)}</span>
                   {balance.balance >= 0 ? (
-                    <span className="font-semibold text-lemon-200">
-                      מגיע {formatIls(balance.balance)}
+                    <span className="text-lemon-200">
+                      {t("money.owed")}{" "}
+                      <bdi dir="ltr" className="numerals tabular-nums">
+                        {formatIls(balance.balance)}
+                      </bdi>
                     </span>
                   ) : (
-                    <span className="font-semibold text-terra-100">
-                      חייבים {formatIls(-balance.balance)}
+                    <span className="text-terra-100">
+                      {t("money.owes")}{" "}
+                      <bdi dir="ltr" className="numerals tabular-nums">
+                        {formatIls(-balance.balance)}
+                      </bdi>
                     </span>
                   )}
                 </p>
               ))}
           </div>
           {combined.transfers.length > 0 && (
-            <div className="mt-2 border-t border-white/15 pt-2">
-              <p className="mb-1 text-sm font-semibold text-lemon-200">
-                ✓ העברות סופיות
+            <div className="mt-3 border-t border-white/15 pt-3">
+              <p className="kicker mb-1.5 text-lemon-200">
+                {t("money.ils.finalTransfers")}
               </p>
               {combined.transfers.map((transfer, i) => (
                 <p
                   key={i}
                   className="flex items-center justify-between py-0.5 text-sm"
                 >
-                  <span>
-                    {familyName(families, transfer.fromFamilyId)} ←{" "}
+                  <span className="flex items-center gap-1.5">
+                    {familyName(families, transfer.fromFamilyId)}
+                    <ArrowRight
+                      size={14}
+                      strokeWidth={STROKE}
+                      aria-label={t("money.pays")}
+                      className="rtl:rotate-180"
+                    />
                     {familyName(families, transfer.toFamilyId)}
                   </span>
-                  <b dir="ltr" className="tabular-nums">
+                  <b dir="ltr" className="numerals font-medium tabular-nums">
                     {formatIls(transfer.amount)}
                   </b>
                 </p>
@@ -179,7 +196,7 @@ export function IlsSettlement({
           )}
         </>
       ) : (
-        <p className="text-sm text-sea-100">הזינו שער כדי לחשב את הסיכום בשקלים</p>
+        <p className="text-sm text-sea-100">{t("money.ils.enterRate")}</p>
       )}
     </div>
   );
