@@ -1,4 +1,92 @@
 /** Hebrew — source of truth for the "settings" namespace. */
-const settings = {};
+const settings = {
+  title: "הגדרות",
+  account: {
+    title: "החשבון שלי",
+    legacyHint: "המכשיר הזה מחובר בכניסה הישנה. השלימו פעם אחת עם Google",
+    complete: "השלמה",
+    wait: "רגע…",
+    signOut: "התנתקות",
+    linkedTo: "מקושר ל: {member} · {family}",
+    whoAreYou: "מי אתם מבין המטיילים?",
+    signInFailed: "ההתחברות לא הושלמה. ודאו שחלונות קופצים מותרים ונסו שוב",
+  },
+  trip: {
+    title: "הטיול",
+    dates: "תאריכים",
+    days: { one: "יום אחד", two: "יומיים", other: "{count} ימים" },
+    homeBase: "מקום הלינה",
+    currency: "מטבעות",
+  },
+  app: {
+    title: "האפליקציה",
+    install: "להתקנה על מסך הבית: פתחו את האתר בספארי או בכרום, לחצו על שיתוף ואז על ״הוסף למסך הבית״",
+    replayTour: "הפעלת סיור ההיכרות מחדש",
+  },
+  more: {
+    title: "עוד",
+    aiDescription: "ה-AI הפרטי שלנו, מכיר את כל הטיול",
+    polls: "סקרים",
+    pollsDescription: "מחליטים ביחד",
+    expenses: "הוצאות",
+    expensesDescription: "מי שילם ומי חייב",
+    documents: "הזמנות ומסמכים",
+    documentsDescription: "כרטיסים, אישורים ואזור אישי",
+    photos: "תמונות",
+    photosDescription: "הגלריה של הטיול",
+    settingsDescription: "החשבון שלי, הזהות שלי ופרטי הטיול",
+    soon: "בקרוב",
+  },
+  families: {
+    travelers: { one: "מטייל אחד", other: "{count} מטיילים" },
+  },
+  notifications: {
+    title: "התראות",
+    checking: "בודק…",
+    unsupported: "הדפדפן הזה לא תומך בהתראות דחיפה. נסו מהטלפון",
+    installFirst:
+      "באייפון, התראות עובדות רק מהאפליקציה המותקנת: שיתוף ואז ״הוסף למסך הבית״, ואז הפעילו כאן את ההתראות מתוך האפליקציה",
+    description:
+      "נעדכן על סקרים חדשים, אירועים שנוספים ללוח, ותזכורת כ-45 דקות לפני כל פעילות",
+    enable: "הפעלת התראות במכשיר הזה",
+    enabling: "מפעיל…",
+    disable: "כיבוי התראות במכשיר הזה",
+    wait: "רגע…",
+    welcomeSent: "נשלחה אליכם התראת ברוכים הבאים",
+    denied: "ההרשאה נדחתה. אפשר לאשר התראות מחדש דרך הגדרות הדפדפן או המכשיר",
+    failed: "לא הצלחנו להפעיל התראות במכשיר הזה",
+  },
+  identity: {
+    title: "מי אתם מהחבורה?",
+    body: "בחרו את השם שלכם, וכך הצבעות, הוצאות והוספות ללוח יירשמו על שמכם. לוקח שנייה, עושים פעם אחת.",
+  },
+  logout: {
+    title: "התנתקות",
+    busy: "מתנתקים…",
+    description: "יציאה מהחשבון וחזרה למסך הכניסה",
+  },
+  gate: {
+    title: "כניסה",
+    hi: "היי {name}",
+    joinHint: "פעם ראשונה כאן? הזינו את קוד ההצטרפות מקבוצת הוואטסאפ. רק הפעם, לא תצטרכו אותו שוב",
+    joinCode: "קוד הצטרפות",
+    joinTrip: "הצטרפות לטיול",
+    tripCode: "קוד הטיול",
+    wait: "רק רגע…",
+    back: "חזרה",
+    backToGoogle: "חזרה להתחברות עם Google",
+    password: "סיסמת הטיול",
+    enter: "כניסה",
+    google: "התחברות עם Google",
+    connecting: "מתחברים…",
+    remember: "נכנסים פעם אחת, והאפליקציה זוכרת אתכם",
+    passwordFallback: "בעיה עם Google? כניסה עם סיסמת הטיול",
+    wrongCode: "קוד לא נכון, נסו שוב",
+    wrongPassword: "הסיסמה לא נכונה",
+    signInIncomplete: "ההתחברות לא הושלמה, נסו שוב",
+    signInFailed: "ההתחברות נכשלה, נסו שוב",
+    tryLater: "משהו השתבש, נסו שוב עוד רגע",
+  },
+};
 
 export default settings;

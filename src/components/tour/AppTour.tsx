@@ -2,232 +2,182 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Citrus,
+  House,
+  ListChecks,
+  Map as MapIcon,
+  MapPin,
+  Plane,
+  Vote,
+  Wallet,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { activeTrip } from "@/lib/active-trip";
 import type { TripConfig } from "@/lib/trips";
 import { useTrip } from "@/components/providers/TripProvider";
+import { Glyph, STROKE } from "@/components/ui/Icon";
+import { useT, type TKey } from "@/i18n";
+
+type Translate = ReturnType<typeof useT>;
 
 interface TourStep {
-  emoji: string;
+  /** Lucide icon, or a stored glyph value (the AI persona) */
+  icon: LucideIcon | string;
   kicker: string;
   title: string;
   lines: string[];
   chips?: string[];
-  accent: string;
 }
 
-const SICILY_STEPS: TourStep[] = [
-  {
-    emoji: "🍋",
-    kicker: "חבורת מיחא · סיציליה 2026",
-    title: "ברוכים הבאים לאפליקציה שלנו!",
-    lines: [
-      "כל הטיול במקום אחד — במקום לחפש כתובות והחלטות בוואטסאפ",
-      "כל מה שמישהו מוסיף — כולם רואים מיד, בזמן אמת",
-      "דקה של הסבר, ותהיו אלופים. מוכנים? קדימה 👇",
-    ],
-    accent: "bg-lemon-400",
-  },
-  {
-    emoji: "🏠",
-    kicker: "המסך הראשי",
-    title: "עכשיו — מה קורה ומה הבא?",
-    lines: [
-      "לפני הטיול: ספירה לאחור לטיסה ✈️",
-      "בזמן הטיול: הפעילות הבאה — עם שעה, מי מגיע, וכפתור נווט שפותח Waze",
-      "מתחת: הלו״ז של כל היום, עם סימון איפה אנחנו עכשיו",
-    ],
-    accent: "bg-sea-400",
-  },
-  {
-    emoji: "📍",
-    kicker: "טאב מקומות",
-    title: "האטרקציות, המסעדות והחופים שלנו",
-    lines: [
-      "להוסיף מקום? כותבים את השם בחופשיות (״אצטדיון ברברה פלרמו״) — והאפליקציה מוצאת אותו לבד, כולל תמונה ומיקום",
-      "יש קישור לאתר? מדביקים — וה-AI ממלא תיאור, שעות ומחירים",
-      "בכל דף מקום יש כפתור ✨ שמוסיף עוד תוכן — ככה לא צריך לצאת לאתרים חיצוניים",
-    ],
-    accent: "bg-terra-400",
-  },
-  {
-    emoji: "📅",
-    kicker: "טאב לוח",
-    title: "לוח הטיול — יום אחרי יום",
-    lines: [
-      "לוחצים על כל אירוע כדי לשנות שעה, משתתפים או טקסט",
-      "הקבוצה מתפצלת? אין בעיה — חלק לכדורגל ⚽ וחלק למסעדה 🍝, והלוח מסמן זאת",
-      "כ-45 דקות לפני כל פעילות — כולם מקבלים תזכורת לנייד ⏰",
-    ],
-    accent: "bg-sea-500",
-  },
-  {
-    emoji: "🗺️",
-    kicker: "טאב מפה",
-    title: "הכל על מפה אחת",
-    lines: [
-      "הוילה שלנו מסומנת בסיכה כתומה גדולה 🏡 — אי אפשר לפספס",
-      "לוחצים על כל סיכה — רואים תמונה ופרטים, ומנווטים בקליק",
-    ],
-    accent: "bg-olive-500",
-  },
-  {
-    emoji: "🗳️",
-    kicker: "סקרים (בתפריט עוד)",
-    title: "מחליטים ביחד — בלי ויכוחים",
-    lines: [
-      "כל אחד מצביע בלחיצה אחת, ואפשר לראות מי הצביע למה",
-      "ליד כל אפשרות: ״קראו על המקום״ — כל המידע בפנים",
-      "כשההחלטה נפלה: ״קבע כפעילות״ מכניס ישר ללוח",
-    ],
-    accent: "bg-lemon-400",
-  },
-  {
-    emoji: "💶",
-    kicker: "הוצאות (בתפריט עוד)",
-    title: "מי שילם ומי חייב",
-    lines: [
-      "קניתם בסופר? רושמים בשניות — האפליקציה מחלקת בין המשפחות",
-      "בסוף הטיול: חשבון סגור אוטומטית — מי מעביר למי וכמה",
-    ],
-    accent: "bg-terra-400",
-  },
-  {
-    emoji: "🦻",
-    kicker: "הקסם האמיתי",
-    title: "המשרת של חבורת מיחא ✨",
-    lines: [
-      "עוזר AI שמכיר את כל הטיול שלנו — פשוט דברו איתו חופשי:",
-    ],
-    chips: [
-      "״תמליץ על מסעדה לילדים בפלרמו״",
-      "״תוסיף למחר ב-14:00 את המעיינות החמים״",
-      "״תעשה סקר לכולם — מה עושים ביום שלישי?״",
-      "״מה הלו״ז של מחר?״",
-    ],
-    accent: "bg-lemon-400",
-  },
-  {
-    emoji: "🎯",
-    kicker: "שלושה צעדים אחרונים",
-    title: "כדי לקבל את המקסימום",
-    lines: [
-      "1️⃣ הוסיפו למסך הבית: כפתור שיתוף ← ״הוסף למסך הבית״ — וזו אפליקציה אמיתית 📲",
-      "2️⃣ בהגדרות: הפעילו התראות 🔔 — סקרים חדשים ותזכורות",
-      "3️⃣ בהגדרות: קשרו את עצמכם למשפחה 👤 — ותצביעו בקליק אחד",
-    ],
-    accent: "bg-sea-400",
-  },
-];
+function step(
+  t: Translate,
+  icon: LucideIcon | string,
+  kicker: TKey,
+  title: TKey,
+  lines: TKey[],
+  chips?: TKey[]
+): TourStep {
+  return {
+    icon,
+    kicker: t(kicker),
+    title: t(title),
+    lines: lines.map((key) => t(key)),
+    chips: chips?.map((key) => t(key)),
+  };
+}
 
-const SARDINIA_STEPS: TourStep[] = [
-  {
-    emoji: "🎉",
-    kicker: "טייסת סרדיניה · חוגגים 60",
-    title: "ברוכים הבאים לאפליקציית הטיול!",
-    lines: [
-      "כל הטיול במקום אחד — במקום לחפש כתובות והחלטות בוואטסאפ",
-      "כל מה שמישהו מוסיף — כולם רואים מיד, בזמן אמת",
-      "דקה של הסבר ואתם באוויר. מוכנים? קדימה 👇",
-    ],
-    accent: "bg-lemon-400",
-  },
-  {
-    emoji: "🏠",
-    kicker: "המסך הראשי",
-    title: "עכשיו — מה קורה ומה הבא?",
-    lines: [
-      "ספירה לאחור להמראה, הפעילות הבאה והלו״ז של היום",
-      "אחרי שנקבע בסיס — כפתור בית כחול 🏠 ינווט אליו בוויז מכל מסך",
-    ],
-    accent: "bg-sea-500",
-  },
-  {
-    emoji: "📍",
-    kicker: "טאב מקומות",
-    title: "כל ההמלצות במקום אחד",
-    lines: [
-      "מסעדות, תצפיות, חופים ויקבים — עם תמונות, דירוגים וניווט",
-      "מצאתם משהו שווה? מוסיפים בשניות והשאר רואים מיד",
-    ],
-    accent: "bg-terra-400",
-  },
-  {
-    emoji: "📅",
-    kicker: "טאב לו״ז",
-    title: "התוכנית של כל יום",
-    lines: [
-      "משבצים פעילויות ורואים מי משתתף",
-      "תזכורת אוטומטית לכולם ~45 דקות לפני כל פעילות",
-    ],
-    accent: "bg-olive-500",
-  },
-  {
-    emoji: "🗺️",
-    kicker: "טאב מפה",
-    title: "כל המקומות על מפה אחת",
-    lines: [
-      "רואים מה קרוב למה ומתכננים ימים חכמים",
-      "לחיצה על סיכה — פרטים וניווט מיידי",
-    ],
-    accent: "bg-sea-400",
-  },
-  {
-    emoji: "💶",
-    kicker: "הוצאות",
-    title: "מי שילם ומי חייב",
-    lines: [
-      "רושמים כל הוצאה בשניות — האפליקציה מחלקת בין החברים",
-      "בסוף הטיול: סיכום אחד בשקלים וסוגרים חשבון",
-    ],
-    accent: "bg-lemon-400",
-  },
-  {
-    emoji: "✈️",
-    kicker: "הקסם האמיתי",
-    title: "הטייס ✨",
-    lines: [
-      "ה-AI הפרטי של החבורה — מכיר את כל הטיול",
-      "מדברים אליו חופשי:",
-    ],
-    chips: [
-      "״תמליץ על נקודת תצפית בדרך לאלגרו״",
-      "״תוסיף למחר ב-19:00 מסעדת דגים בקליארי״",
-      "״תעשה סקר — יקב או שייט מחר?״",
-      "״מה הלו״ז של מחר?״",
-    ],
-    accent: "bg-terra-400",
-  },
-  {
-    emoji: "🎯",
-    kicker: "שלושה צעדים ואתם מסודרים",
-    title: "מה עושים עכשיו?",
-    lines: [
-      "1️⃣ אשרו התראות 🔔 — כדי לקבל תזכורות וסקרים",
-      "2️⃣ הוסיפו המלצה ראשונה למקומות 📍",
-      "3️⃣ בהגדרות: קשרו את עצמכם לשם שלכם 👤 — ותצביעו בקליק",
-    ],
-    accent: "bg-sea-400",
-  },
-];
+function sicilySteps(t: Translate, trip: TripConfig): TourStep[] {
+  return [
+    step(t, Citrus, "tour.sicily.welcome.kicker", "tour.sicily.welcome.title", [
+      "tour.sicily.welcome.a",
+      "tour.sicily.welcome.b",
+      "tour.sicily.welcome.c",
+    ]),
+    step(t, House, "tour.sicily.home.kicker", "tour.sicily.home.title", [
+      "tour.sicily.home.a",
+      "tour.sicily.home.b",
+      "tour.sicily.home.c",
+    ]),
+    step(t, MapPin, "tour.sicily.places.kicker", "tour.sicily.places.title", [
+      "tour.sicily.places.a",
+      "tour.sicily.places.b",
+      "tour.sicily.places.c",
+    ]),
+    step(t, CalendarDays, "tour.sicily.calendar.kicker", "tour.sicily.calendar.title", [
+      "tour.sicily.calendar.a",
+      "tour.sicily.calendar.b",
+      "tour.sicily.calendar.c",
+    ]),
+    step(t, MapIcon, "tour.sicily.map.kicker", "tour.sicily.map.title", [
+      "tour.sicily.map.a",
+      "tour.sicily.map.b",
+    ]),
+    step(t, Vote, "tour.sicily.polls.kicker", "tour.sicily.polls.title", [
+      "tour.sicily.polls.a",
+      "tour.sicily.polls.b",
+      "tour.sicily.polls.c",
+    ]),
+    step(t, Wallet, "tour.sicily.expenses.kicker", "tour.sicily.expenses.title", [
+      "tour.sicily.expenses.a",
+      "tour.sicily.expenses.b",
+    ]),
+    step(
+      t,
+      trip.ai.emoji,
+      "tour.sicily.ai.kicker",
+      "tour.sicily.ai.title",
+      ["tour.sicily.ai.a"],
+      [
+        "tour.sicily.ai.chips.a",
+        "tour.sicily.ai.chips.b",
+        "tour.sicily.ai.chips.c",
+        "tour.sicily.ai.chips.d",
+      ]
+    ),
+    step(t, ListChecks, "tour.sicily.final.kicker", "tour.sicily.final.title", [
+      "tour.sicily.final.a",
+      "tour.sicily.final.b",
+      "tour.sicily.final.c",
+    ]),
+  ];
+}
 
-/** Self-serve trips: Sardinia's generic flow with the trip's own AI. */
-function genericSteps(trip: TripConfig): TourStep[] {
-  return SARDINIA_STEPS.map((step) =>
-    step.title === "הטייס ✨"
-      ? {
-          ...step,
-          emoji: trip.ai.emoji,
-          title: `${trip.aiName} ✨`,
-          chips: [
-            "״תמליץ על אטרקציה שווה ליד הבית״",
-            "״תוסיף למחר ב-19:00 ארוחת ערב טובה״",
-            "״תעשה סקר — ים או טיול מחר?״",
-            "״מה הלו״ז של מחר?״",
-          ],
-        }
-      : step
-  );
+/** Sardinia and self-serve trips share one flow; Sardinia keeps its own voice. */
+function tripSteps(t: Translate, trip: TripConfig): TourStep[] {
+  const sardinia = trip.key === "sardinia";
+  const welcome: TourStep = sardinia
+    ? step(t, Plane, "tour.sardinia.welcome.kicker", "tour.sardinia.welcome.title", [
+        "tour.sardinia.welcome.a",
+        "tour.sardinia.welcome.b",
+        "tour.sardinia.welcome.c",
+      ])
+    : {
+        ...step(t, trip.emoji, "tour.trip.welcome.title", "tour.trip.welcome.title", [
+          "tour.trip.welcome.a",
+          "tour.trip.welcome.b",
+          "tour.trip.welcome.c",
+        ]),
+        kicker: trip.name,
+      };
+  const places = step(t, MapPin, "tour.trip.places.kicker", "tour.trip.places.title", [
+    sardinia ? "tour.sardinia.places.a" : "tour.trip.places.a",
+    "tour.trip.places.b",
+  ]);
+  const expenses = step(t, Wallet, "tour.trip.expenses.kicker", "tour.trip.expenses.title", [
+    sardinia ? "tour.sardinia.expenses.a" : "tour.trip.expenses.a",
+    sardinia ? "tour.sardinia.expenses.b" : "tour.trip.expenses.b",
+  ]);
+  const ai: TourStep = {
+    ...step(
+      t,
+      trip.ai.emoji,
+      "tour.trip.ai.kicker",
+      "tour.sardinia.ai.title",
+      ["tour.trip.ai.a", "tour.trip.ai.b"],
+      sardinia
+        ? [
+            "tour.sardinia.ai.chips.a",
+            "tour.sardinia.ai.chips.b",
+            "tour.sardinia.ai.chips.c",
+            "tour.sardinia.ai.chips.d",
+          ]
+        : [
+            "tour.trip.ai.chips.a",
+            "tour.trip.ai.chips.b",
+            "tour.trip.ai.chips.c",
+            "tour.trip.ai.chips.d",
+          ]
+    ),
+    ...(sardinia ? {} : { title: trip.aiName }),
+  };
+  return [
+    welcome,
+    step(t, House, "tour.trip.home.kicker", "tour.trip.home.title", [
+      "tour.trip.home.a",
+      "tour.trip.home.b",
+    ]),
+    places,
+    step(t, CalendarDays, "tour.trip.calendar.kicker", "tour.trip.calendar.title", [
+      "tour.trip.calendar.a",
+      "tour.trip.calendar.b",
+    ]),
+    step(t, MapIcon, "tour.trip.map.kicker", "tour.trip.map.title", [
+      "tour.trip.map.a",
+      "tour.trip.map.b",
+    ]),
+    expenses,
+    ai,
+    step(t, ListChecks, "tour.trip.final.kicker", "tour.trip.final.title", [
+      "tour.trip.final.a",
+      "tour.trip.final.b",
+      "tour.trip.final.c",
+    ]),
+  ];
 }
 
 export function markTourSeen() {
@@ -254,12 +204,8 @@ export function AppTour({
   onClose: () => void;
 }) {
   const trip = useTrip();
-  const steps =
-    trip.key === "sicily"
-      ? SICILY_STEPS
-      : trip.key === "sardinia"
-        ? SARDINIA_STEPS
-        : genericSteps(trip);
+  const t = useT();
+  const steps = trip.key === "sicily" ? sicilySteps(t, trip) : tripSteps(t, trip);
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
@@ -274,9 +220,10 @@ export function AppTour({
 
   if (!open) return null;
 
-  const step = steps[stepIndex];
+  const current = steps[stepIndex];
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === steps.length - 1;
+  const StepIcon = typeof current.icon === "string" ? null : current.icon;
 
   function finish() {
     markTourSeen();
@@ -285,14 +232,14 @@ export function AppTour({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex flex-col bg-gradient-to-b from-sea-900 to-sea-950"
+      className="fixed inset-0 z-[70] flex flex-col bg-sea-950"
       role="dialog"
       aria-modal="true"
-      aria-label="סיור היכרות באפליקציה"
+      aria-label={t("tour.dialogLabel")}
     >
       {/* Welcome photo on the first step */}
       {isFirst && trip.heroImage && (
-        <div aria-hidden className="absolute inset-0 opacity-25">
+        <div aria-hidden className="absolute inset-0 opacity-20">
           <Image
             src={trip.heroImage}
             alt=""
@@ -309,7 +256,7 @@ export function AppTour({
           {steps.map((_, i) => (
             <span
               key={i}
-              className={`h-1 flex-1 rounded-full transition ${
+              className={`h-px flex-1 transition ${
                 i <= stepIndex ? "bg-lemon-400" : "bg-white/20"
               }`}
             />
@@ -318,41 +265,45 @@ export function AppTour({
         <button
           type="button"
           onClick={finish}
-          aria-label="דילוג על הסיור"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-cream-50"
+          aria-label={t("tour.skip")}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-cream-50/80"
         >
-          <X size={18} />
+          <X size={18} strokeWidth={STROKE} aria-hidden />
         </button>
       </div>
 
       {/* Step content */}
       <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto px-7 text-center">
         <span
-          className={`flex h-24 w-24 items-center justify-center rounded-[2rem] text-5xl shadow-[var(--shadow-float)] ${step.accent}`}
+          className="flex h-20 w-20 items-center justify-center rounded-full border border-lemon-400/60 text-lemon-300"
           aria-hidden
         >
-          {step.emoji}
+          {StepIcon ? (
+            <StepIcon size={30} strokeWidth={STROKE} />
+          ) : (
+            <Glyph value={current.icon as string} size={30} />
+          )}
         </span>
-        <p className="kicker mt-6 text-lemon-300">{step.kicker}</p>
-        <h2 className="mt-2 font-display text-3xl font-normal leading-tight text-cream-50">
-          {step.title}
+        <p className="kicker mt-7 text-lemon-300">{current.kicker}</p>
+        <h2 className="mt-3 font-display text-3xl font-light leading-tight text-cream-50">
+          {current.title}
         </h2>
-        <div className="mt-5 max-w-sm space-y-3">
-          {step.lines.map((line) => (
+        <div className="mt-6 max-w-sm space-y-3">
+          {current.lines.map((line) => (
             <p
               key={line}
-              className="text-[15px] leading-relaxed text-cream-50/85"
+              className="text-[15px] leading-relaxed text-cream-50/80"
             >
               {line}
             </p>
           ))}
         </div>
-        {step.chips && (
-          <div className="mt-4 flex max-w-sm flex-wrap justify-center gap-2">
-            {step.chips.map((chip) => (
+        {current.chips && (
+          <div className="mt-5 flex max-w-sm flex-wrap justify-center gap-2">
+            {current.chips.map((chip) => (
               <span
                 key={chip}
-                className="rounded-2xl border border-white/15 bg-white/10 px-3.5 py-2 text-sm text-cream-50"
+                className="rounded-full border border-white/15 px-3.5 py-1.5 text-sm text-cream-50/90"
               >
                 {chip}
               </span>
@@ -367,10 +318,10 @@ export function AppTour({
           <button
             type="button"
             onClick={() => setStepIndex(stepIndex - 1)}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-cream-50"
-            aria-label="הקודם"
+            className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/15 text-cream-50"
+            aria-label={t("tour.previous")}
           >
-            <ChevronRight size={22} />
+            <ChevronLeft size={22} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
           </button>
         ) : (
           <span className="w-12" />
@@ -378,14 +329,16 @@ export function AppTour({
         <button
           type="button"
           onClick={() => (isLast ? finish() : setStepIndex(stepIndex + 1))}
-          className={`btn flex-1 py-4 text-lg font-bold ${
+          className={`btn flex-1 py-4 text-base ${
             isLast
-              ? "bg-lemon-400 text-sea-950"
+              ? "bg-cream-50 text-sea-950 ring-1 ring-inset ring-lemon-400"
               : "bg-cream-50 text-sea-900"
           }`}
         >
-          {isLast ? `${trip.emoji} יאללה, מתחילים!` : "הבא"}
-          {!isLast && <ChevronLeft size={20} />}
+          {isLast ? t("tour.start") : t("common.next")}
+          {!isLast && (
+            <ChevronRight size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
+          )}
         </button>
       </div>
     </div>

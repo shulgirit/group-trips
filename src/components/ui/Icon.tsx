@@ -127,6 +127,8 @@ const EVENT_GLYPHS: Record<string, LucideIcon> = {
   dining: Utensils,
   pin: MapPin,
   luggage: Luggage,
+  users: Users,
+  heart: Heart,
 };
 
 const KEY_TO_ICON: Record<string, LucideIcon> = {

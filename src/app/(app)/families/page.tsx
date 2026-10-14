@@ -3,21 +3,26 @@
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useFamilies } from "@/lib/hooks";
 import { useTrip } from "@/components/providers/TripProvider";
+import { useLocale, useT } from "@/i18n";
 
-const FAMILY_COLORS: Record<string, string> = {
-  sea: "from-sea-500 to-sea-700",
-  terra: "from-terra-400 to-terra-600",
-  lemon: "from-lemon-400 to-lemon-500",
-  olive: "from-olive-500 to-sea-700",
+const FAMILY_DOT: Record<string, string> = {
+  sea: "bg-sea-700",
+  terra: "bg-terra-500",
+  lemon: "bg-lemon-400",
+  olive: "bg-olive-500",
 };
 
 export default function FamiliesPage() {
   const { families, loading } = useFamilies();
   const trip = useTrip();
+  const t = useT();
+  const { locale } = useLocale();
+
+  const travelers = families?.reduce((sum, f) => sum + f.members.length, 0) ?? 0;
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-display text-2xl font-normal text-ink-900">
+    <div className="space-y-5">
+      <h1 className="font-display text-2xl font-light text-ink-900">
         {trip.group.pageTitle}
       </h1>
       {loading ? (
@@ -27,23 +32,25 @@ export default function FamiliesPage() {
           {families?.map((family) => (
             <div
               key={family.id}
-              className="overflow-hidden rounded-3xl border border-cream-200 bg-white"
+              className="rounded-2xl border border-cream-200 bg-white"
             >
-              <div
-                className={`bg-gradient-to-l px-4 py-3 ${
-                  FAMILY_COLORS[family.color] ?? FAMILY_COLORS.sea
-                }`}
-              >
-                <h2 className="text-lg font-bold text-cream-50">
+              <div className="flex items-center gap-2.5 border-b border-cream-200 px-4 py-3">
+                <span
+                  aria-hidden
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    FAMILY_DOT[family.color] ?? FAMILY_DOT.sea
+                  }`}
+                />
+                <h2 className="font-display text-lg font-normal text-ink-900">
                   {family.name}
                 </h2>
+                <span className="ms-auto text-sm text-ink-500">
+                  {family.members.length}
+                </span>
               </div>
-              <div className="flex flex-wrap gap-2 px-4 py-3">
+              <div className="flex flex-wrap gap-2 px-4 py-3.5">
                 {family.members.map((member) => (
-                  <span
-                    key={member.id}
-                    className="rounded-full bg-cream-100 px-3.5 py-1.5 text-sm font-medium text-ink-700"
-                  >
+                  <span key={member.id} className="chip text-ink-700">
                     {member.name}
                   </span>
                 ))}
@@ -54,7 +61,9 @@ export default function FamiliesPage() {
       )}
       <p className="text-center text-sm text-ink-500">
         {families
-          ? `${families.reduce((sum, f) => sum + f.members.length, 0)} מטיילים · ${families.length} ${trip.group.unitLabel}${trip.group.summarySuffix}`
+          ? `${t("settings.families.travelers", { count: travelers })} · ${
+              families.length
+            } ${trip.group.unitLabel.toLocaleLowerCase(locale)}${trip.group.summarySuffix}`
           : ""}
       </p>
     </div>

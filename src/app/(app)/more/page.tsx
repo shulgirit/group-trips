@@ -1,109 +1,139 @@
 "use client";
 
 import Link from "next/link";
+import {
+  ChevronRight,
+  Images,
+  Settings,
+  Ticket,
+  Users,
+  Vote,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { LogoutRow } from "@/components/tour/LogoutRow";
 import { TourRow } from "@/components/tour/TourRow";
 import { useTrip } from "@/components/providers/TripProvider";
+import { Glyph, STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+
+interface MoreSection {
+  icon: LucideIcon | null;
+  label: string;
+  description: string;
+  href: string | null;
+}
 
 export default function MorePage() {
   const trip = useTrip();
+  const t = useT();
   const aiHref = `${trip.prefix}/ai`;
 
-  const sections = [
+  const sections: MoreSection[] = [
     {
-      emoji: trip.ai.moreEmoji,
+      icon: null, // the trip's AI persona glyph
       label: trip.ai.moreLabel,
-      description: "ה-AI הפרטי שלנו — מכיר את כל הטיול",
+      description: t("settings.more.aiDescription"),
       href: aiHref,
     },
     {
-      emoji: "🗳️",
-      label: "סקרים",
-      description: "מחליטים ביחד",
+      icon: Vote,
+      label: t("settings.more.polls"),
+      description: t("settings.more.pollsDescription"),
       href: `${trip.prefix}/polls`,
     },
     {
-      emoji: "💶",
-      label: "הוצאות",
-      description: "מי שילם ומי חייב",
+      icon: Wallet,
+      label: t("settings.more.expenses"),
+      description: t("settings.more.expensesDescription"),
       href: `${trip.prefix}/expenses`,
     },
     {
-      emoji: trip.group.groupEmoji,
+      icon: Users,
       label: trip.group.moreLabel,
       description: trip.group.moreDescription,
       href: `${trip.prefix}/families`,
     },
     {
-      emoji: "🎟️",
-      label: "הזמנות ומסמכים",
-      description: "כרטיסים, אישורים ואזור אישי",
+      icon: Ticket,
+      label: t("settings.more.documents"),
+      description: t("settings.more.documentsDescription"),
       href: `${trip.prefix}/documents`,
     },
     {
-      emoji: "📸",
-      label: "תמונות",
-      description: "הגלריה של הטיול",
+      icon: Images,
+      label: t("settings.more.photos"),
+      description: t("settings.more.photosDescription"),
       href: null,
     },
     {
-      emoji: "⚙️",
-      label: "הגדרות",
-      description: "החשבון שלי, הזהות שלי ופרטי הטיול",
+      icon: Settings,
+      label: t("settings.title"),
+      description: t("settings.more.settingsDescription"),
       href: `${trip.prefix}/settings`,
     },
-  ] as const;
+  ];
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-display text-2xl font-normal text-ink-900">עוד</h1>
+    <div className="space-y-5">
+      <h1 className="font-display text-2xl font-light text-ink-900">
+        {t("settings.more.title")}
+      </h1>
       <ul className="space-y-2">
-        {sections.map(({ emoji, label, description, href }) => (
-          <li key={label}>
-            {href ? (
-              <Link
-                href={href}
-                className={`flex items-center gap-4 rounded-3xl border px-4 py-4 transition active:scale-[0.99] ${
-                  href === aiHref
-                    ? "border-lemon-300 bg-gradient-to-l from-lemon-300/70 via-lemon-100 to-lemon-100 shadow-sm"
-                    : "border-cream-200 bg-white active:bg-cream-100"
-                }`}
-              >
-                <span className="text-2xl" aria-hidden>
-                  {emoji}
-                </span>
-                <span className="flex-1">
-                  <span className="block font-semibold text-ink-900">
-                    {label}
+        {sections.map(({ icon: Icon, label, description, href }) => {
+          const isAi = href === aiHref;
+          const glyph = (
+            <span
+              aria-hidden
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                isAi
+                  ? "border-lemon-400/70 text-lemon-500"
+                  : "border-cream-200 text-ink-700"
+              }`}
+            >
+              {Icon ? (
+                <Icon size={18} strokeWidth={STROKE} />
+              ) : (
+                <Glyph value={trip.ai.moreEmoji} size={18} />
+              )}
+            </span>
+          );
+          const text = (
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-ink-900">{label}</span>
+              <span className="block text-sm text-ink-500">{description}</span>
+            </span>
+          );
+          return (
+            <li key={href ?? label}>
+              {href ? (
+                <Link
+                  href={href}
+                  className={`flex items-center gap-4 rounded-2xl border bg-white px-4 py-3.5 transition active:bg-cream-100 ${
+                    isAi ? "border-lemon-300" : "border-cream-200"
+                  }`}
+                >
+                  {glyph}
+                  {text}
+                  <ChevronRight
+                    size={16}
+                    strokeWidth={STROKE}
+                    aria-hidden
+                    className="shrink-0 text-ink-300 rtl:rotate-180"
+                  />
+                </Link>
+              ) : (
+                <div className="flex items-center gap-4 rounded-2xl border border-cream-200 bg-white px-4 py-3.5 opacity-60">
+                  {glyph}
+                  {text}
+                  <span className="kicker shrink-0 text-ink-500">
+                    {t("settings.more.soon")}
                   </span>
-                  <span className="block text-sm text-ink-500">
-                    {description}
-                  </span>
-                </span>
-                <span aria-hidden className="text-ink-300">
-                  ‹
-                </span>
-              </Link>
-            ) : (
-              <div className="flex items-center gap-4 rounded-3xl border border-cream-200 bg-white px-4 py-4 opacity-70">
-                <span className="text-2xl" aria-hidden>
-                  {emoji}
-                </span>
-                <span className="flex-1">
-                  <span className="block font-semibold text-ink-900">
-                    {label}
-                  </span>
-                  <span className="block text-sm text-ink-500">
-                    {description}
-                  </span>
-                </span>
-                <span className="rounded-full bg-lemon-100 px-2.5 py-1 text-xs font-medium text-ink-700">
-                  בקרוב
-                </span>
-              </div>
-            )}
-          </li>
-        ))}
+                </div>
+              )}
+            </li>
+          );
+        })}
         <li>
           <TourRow />
         </li>

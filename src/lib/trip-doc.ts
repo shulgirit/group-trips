@@ -9,6 +9,9 @@
  */
 
 import type { TripConfig } from "@/lib/trips";
+import { activeLocale } from "@/i18n/active";
+import type { Locale } from "@/i18n/config";
+import { translate } from "@/i18n/translate";
 
 export type GroupKind = "families" | "friends" | "couple" | "other";
 export type TripStatus = "draft" | "active" | "archived";
@@ -150,32 +153,32 @@ export const AI_PRESETS: Record<
   butler: {
     label: "משרת אישי",
     name: "המשרת",
-    emoji: "🎩",
-    sample: "לשירותכם! הזמנתי לכם שולחן מול השקיעה — רק תגידו מתי 🎩",
+    emoji: "butler",
+    sample: "לשירותכם! הזמנתי לכם שולחן מול השקיעה — רק תגידו מתי",
     persona:
       "דבר כמו משרת אישי מנומס ושנון — אדיב, מסור, עם הומור עדין. אתה דואג לכל פרט.",
   },
   pilot: {
     label: "טייס / נווט",
     name: "הטייס",
-    emoji: "✈️",
-    sample: "כאן הקברניט. מזג אוויר מצוין, היעד הבא — חוף שווה במיוחד ✈️",
+    emoji: "pilot",
+    sample: "כאן הקברניט. מזג אוויר מצוין, היעד הבא — חוף שווה במיוחד",
     persona:
       "דבר כמו נווט ותיק בקבינה — ישיר, חברי, עם קריצה. הומור יבש מותר.",
   },
   buddy: {
     label: "חבר מהחבורה",
     name: "החבר",
-    emoji: "😎",
-    sample: "אחי, יש פה מקום גלידה שאתם חייבים לנסות היום 😎",
+    emoji: "buddy",
+    sample: "אחי, יש פה מקום גלידה שאתם חייבים לנסות היום",
     persona:
       "דבר כמו חבר טוב מהחבורה — קליל, מצחיק, בגובה העיניים, בלי רשמיות.",
   },
   guide: {
     label: "מדריך מקומי",
     name: "המדריך",
-    emoji: "🧭",
-    sample: "בבוקר מגיעים לפני 9 — ככה נמנעים מהתורים ומהחום 🧭",
+    emoji: "guide",
+    sample: "בבוקר מגיעים לפני 9 — ככה נמנעים מהתורים ומהחום",
     persona:
       "דבר כמו מדריך טיולים מקומי ומנוסה — מדויק, בקיא בהיסטוריה ובטיפים מעשיים, חם ומקצועי.",
   },
@@ -184,47 +187,47 @@ export const AI_PRESETS: Record<
 export const AI_RULES: { id: string; label: string; rule: string }[] = [
   {
     id: "kids",
-    label: "👧 מתאים לילדים",
+    label: "מתאים לילדים",
     rule: "יש ילדים בטיול — העדף פעילויות ומסעדות ידידותיות לילדים וציין התאמה לגילאים.",
   },
   {
     id: "adults",
-    label: "🍷 מבוגרים בלבד",
+    label: "מבוגרים בלבד",
     rule: "אין ילדים בטיול — אל תציע פעילויות ילדים. העדף נופים, אוכל טוב ויין.",
   },
   {
     id: "accessible",
-    label: "♿ נגישות",
+    label: "נגישות",
     rule: "חלק מהמטיילים זקוקים לנגישות — ציין נגישות, מדרגות, חניה קרובה ומרחקי הליכה.",
   },
   {
     id: "hearing",
-    label: "🦻 רגישות שמיעה",
+    label: "רגישות שמיעה",
     rule: "חלק מהמטיילים לקויי שמיעה / עם שתלים — העדף חוויות ויזואליות, שים לב לרעש, ובפעילויות מים הזכר הגנה על המעבדים. בטבעיות ורק כשזה רלוונטי.",
   },
   {
     id: "kosher",
-    label: "✡️ כשרות",
+    label: "כשרות",
     rule: "חלק מהחבורה שומרים כשרות — כשאפשר ציין אפשרויות כשרות או צמחוניות/דגים.",
   },
   {
     id: "veggie",
-    label: "🥗 צמחוני/טבעוני",
+    label: "צמחוני/טבעוני",
     rule: "יש צמחונים/טבעונים בחבורה — ודא שיש להם מה לאכול בכל המלצה.",
   },
   {
     id: "budget",
-    label: "💰 חסכוני",
+    label: "חסכוני",
     rule: "החבורה מעדיפה תקציב שפוי — ציין טווחי מחירים והעדף תמורה טובה לכסף.",
   },
   {
     id: "short",
-    label: "⚡ תשובות קצרות",
+    label: "תשובות קצרות",
     rule: "תשובות קצרות מאוד ולעניין — שורה או שתיים.",
   },
   {
     id: "nature",
-    label: "🌿 טבע ומסלולים",
+    label: "טבע ומסלולים",
     rule: "החבורה אוהבת טבע — הצע מסלולים, תצפיות וחופים פחות מוכרים.",
   },
 ];
@@ -263,15 +266,15 @@ export function stopForDay<T extends { startDate: string; endDate: string }>(
   return past[past.length - 1] ?? stops[stops.length - 1];
 }
 
-/** 🇮🇹 from "IT". */
+/** Regional-indicator flag from "IT" (data only — never rendered in UI chrome). */
 export function flagEmoji(country: string | undefined): string {
-  if (!country || !/^[A-Za-z]{2}$/.test(country)) return "📍";
+  if (!country || !/^[A-Za-z]{2}$/.test(country)) return "";
   return String.fromCodePoint(
     ...[...country.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)
   );
 }
 
-/** "איטליה · צרפת" or "איטליה +2" */
+/** "Italy · France" or "Italy +2" */
 export function itineraryName(stops: { label: string }[]): string {
   const labels = stops.map((s) => s.label).filter((label, i, all) => all.indexOf(label) === i);
   if (labels.length <= 2) return labels.join(" · ");
@@ -295,7 +298,7 @@ export function composePersona(trip: TripDoc): string {
   const stops = stopsOf(trip);
   const where = itineraryName(stops);
   const lines = [
-    `אתה ״${ai.name}״ ${ai.emoji} — העוזר האישי של ${trip.groupName || "החבורה"}: ${group.aiDescription} בטיול ל${where} (${trip.startDate} עד ${trip.endDate}).`,
+    `אתה ״${ai.name}״ — העוזר האישי של ${trip.groupName || "החבורה"}: ${group.aiDescription} בטיול ל${where} (${trip.startDate} עד ${trip.endDate}).`,
     ...(stops.length > 1
       ? [
           "",
@@ -336,34 +339,34 @@ export const GROUP_KINDS: Record<
 > = {
   families: {
     label: "כמה משפחות",
-    emoji: "👨‍👩‍👧‍👦",
+    emoji: "users",
     unitLabel: "משפחות",
     unitSingular: "משפחה",
-    pageTitle: "👨‍👩‍👧‍👦 המשפחות",
+    pageTitle: "המשפחות",
     aiDescription: "כמה משפחות שמטיילות יחד",
   },
   friends: {
     label: "חברים",
-    emoji: "🥂",
+    emoji: "wine",
     unitLabel: "חברים",
     unitSingular: "חבר/ה",
-    pageTitle: "🥂 החבורה",
+    pageTitle: "החבורה",
     aiDescription: "חבורת חברים שמטיילים יחד",
   },
   couple: {
     label: "זוג",
-    emoji: "💑",
+    emoji: "heart",
     unitLabel: "אנחנו",
     unitSingular: "בן/בת זוג",
-    pageTitle: "💑 אנחנו",
+    pageTitle: "אנחנו",
     aiDescription: "זוג שמטייל יחד",
   },
   other: {
     label: "קבוצה",
-    emoji: "🧳",
+    emoji: "luggage",
     unitLabel: "קבוצות",
     unitSingular: "קבוצה",
-    pageTitle: "🧳 הקבוצה",
+    pageTitle: "הקבוצה",
     aiDescription: "קבוצת מטיילים",
   },
 };
@@ -378,15 +381,27 @@ function shortDate(iso: string): string {
   return `${Number(day)}.${Number(month)}`;
 }
 
-/** Turns a stored trip doc into the TripConfig every page already reads. */
-export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
-  const group = GROUP_KINDS[trip.groupKind] ?? GROUP_KINDS.other;
+/**
+ * Turns a stored trip doc into the TripConfig every page already reads.
+ * UI copy follows `locale` (defaults to the active UI language); the
+ * organizer's own text (names, notes) is passed through untouched.
+ */
+export function tripConfigFromDoc(
+  id: string,
+  trip: TripDoc,
+  locale: Locale = activeLocale()
+): TripConfig {
+  const kind = GROUP_KINDS[trip.groupKind] ? trip.groupKind : "other";
+  const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) =>
+    translate(locale, key, vars);
   const ai = trip.ai;
-  const aiTitle = `${ai.emoji} ${ai.name}`;
-  const groupName = trip.groupName || "החבורה";
+  const groupName = trip.groupName || t("config.groupFallback");
   const stops = stopsOf(trip);
   const current = stopForDay(stops, localToday());
   const place = itineraryName(stops);
+  const unitLabel = t(`config.kinds.${kind}.unitLabel`);
+  // Hebrew prefixes "to" onto the name and drops its definite article (he-)
+  const bareName = locale === "he" ? ai.name.replace(/^\u05D4/, "") : ai.name;
   return {
     key: "custom",
     id,
@@ -396,20 +411,23 @@ export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
     name: trip.name,
     shortName: place,
     kicker: place.toUpperCase(),
-    tagline: `${trip.emoji} ${trip.name}`,
+    tagline: trip.name,
     groupLine: `${groupName} · ${place}`,
-    signature: `${trip.emoji} ${trip.name} · ${groupName}`,
+    signature: t("config.signature", { trip: trip.name, group: groupName }),
     emoji: trip.emoji,
-    flag: trip.emoji,
-    dayLabelSuffix: `${current.label} ${flagEmoji(current.country)}`,
-    heroTitle: `${place} מחכה לנו ${trip.emoji}`,
+    flag: "",
+    dayLabelSuffix: current.label,
+    heroTitle: t("config.heroTitle", { place }),
     heroImage: trip.coverImage,
     heroArt: null,
     countdownTarget:
       trip.departureAt || `${trip.startDate}T08:00:00`,
     departureNote:
       trip.departureNote ||
-      `✈️ יוצאים · ${shortDate(trip.startDate)} – ${shortDate(trip.endDate)}`,
+      t("config.departureNote", {
+        start: shortDate(trip.startDate),
+        end: shortDate(trip.endDate),
+      }),
     startDate: trip.startDate,
     endDate: trip.endDate,
     timezone: current.timezone || trip.timezone || "UTC",
@@ -432,54 +450,49 @@ export function tripConfigFromDoc(id: string, trip: TripDoc): TripConfig {
     })),
     homeBase: trip.homeBase
       ? {
-          navAria: `נווט הביתה — ${trip.homeBase.name}`,
+          navAria: t("config.navHome", { name: trip.homeBase.name }),
           name: trip.homeBase.name,
           address: trip.homeBase.address,
           lat: trip.homeBase.lat,
           lng: trip.homeBase.lng,
         }
       : null,
-    pushTitle: `${trip.name} ${trip.emoji}`,
+    pushTitle: trip.name,
     tourKey: "trip-tour-seen-v1",
     aiName: ai.name,
     ai: {
       navLabel: ai.name,
-      title: aiTitle,
+      title: ai.name,
       kicker: groupName,
       emoji: ai.emoji,
-      heroBlurb: `${ai.name} לשירותכם — המלצות, שיבוצים בלוח, סקרים ועדכון מקומות. מחובר לכל נתוני הטיול`,
-      subtitle: "מכיר את המקומות, הלו״ז ואת כל החבורה",
-      quickAddLabel: `שאלו את ${ai.name} ${ai.emoji}`,
+      heroBlurb: t("config.ai.heroBlurb", { name: ai.name }),
+      subtitle: t("config.ai.subtitle"),
+      quickAddLabel: t("config.ai.quickAdd", { name: ai.name }),
       moreEmoji: ai.emoji,
       moreLabel: ai.name,
-      suggestedPrompts: [
-        "תמליץ לנו על אטרקציה",
-        "מה כדאי לעשות מחר?",
-        "תמצא מסעדה טובה לידנו",
-        "תכנן לנו יום מושלם",
-        "תמצא Plan B אם יורד גשם",
-        "מה עוד לא שובץ בלוח?",
-      ],
-      aboutTitle: `${ai.emoji} ספרו ל${ai.name.replace(/^ה/, "")} עלינו`,
-      aboutDescription: `כל מה שתכתבו כאן נכנס לידע של ${ai.name}: מי זה מי, גילאים, מה כל אחד אוהב, בדיחות פנימיות — והוא ישתמש בזה בשיחות ובהמלצות`,
-      aboutPlaceholder: "למשל: נועה בת 9 ואוהבת חיות. דני משוגע על אוכל רחוב...",
-      aboutSaved: `✓ נשמר — ${ai.name} כבר מכיר את זה`,
-      inputPlaceholder: "שאלו אותי כל דבר על הטיול…",
+      suggestedPrompts: (["a", "b", "c", "d", "e", "f"] as const).map((k) =>
+        t(`config.ai.prompts.${k}`)
+      ),
+      aboutTitle: t("config.ai.aboutTitle", { name: ai.name, bare: bareName }),
+      aboutDescription: t("config.ai.aboutDescription", { name: ai.name }),
+      aboutPlaceholder: t("config.ai.aboutPlaceholder"),
+      aboutSaved: t("config.ai.aboutSaved", { name: ai.name }),
+      inputPlaceholder: t("config.ai.inputPlaceholder"),
     },
     group: {
-      unitLabel: group.unitLabel,
-      pageTitle: group.pageTitle,
-      summarySuffix: ` · ${groupName}`,
-      moreLabel: group.unitLabel === "אנחנו" ? "אנחנו" : group.unitLabel,
+      unitLabel,
+      pageTitle: t(`config.kinds.${kind}.pageTitle`),
+      summarySuffix: t("config.summarySuffix", { group: groupName }),
+      moreLabel: unitLabel,
       moreDescription: groupName,
-      groupEmoji: group.emoji,
-      splitEveryoneLabel: `כולם השתתפו (כל ה${group.unitLabel})`,
-      splitPickLabel: "בחרו מי השתתף",
-      loadingLabel: "טוען…",
-      quickLoginTitle: "🧒 כניסה מהירה",
-      quickLoginHint: "בקשו מההורים לסרוק את קוד ההזמנה",
-      pickUnitPrompt: `מאיזו ${group.unitSingular} אתם?`,
-      pickNamePrompt: "ועכשיו — מי אתם? 👋",
+      groupEmoji: GROUP_KINDS[kind].emoji,
+      splitEveryoneLabel: t(`config.kinds.${kind}.splitEveryone`),
+      splitPickLabel: t("config.group.splitPick"),
+      loadingLabel: t("config.group.loading"),
+      quickLoginTitle: t("config.group.quickLoginTitle"),
+      quickLoginHint: t("config.group.quickLoginHint"),
+      pickUnitPrompt: t(`config.kinds.${kind}.pickUnit`),
+      pickNamePrompt: t("config.group.pickName"),
     },
   };
 }

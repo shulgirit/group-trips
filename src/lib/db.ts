@@ -18,6 +18,7 @@ import { wazeUrl } from "@/lib/nav";
 import { notifyGroup } from "@/lib/push-client";
 import { formatDayLabel } from "@/lib/trip";
 import { activeTrip, activeTripPath } from "@/lib/active-trip";
+import { tActive } from "@/i18n/active";
 import {
   PlaceInputSchema,
   EventInputSchema,
@@ -296,7 +297,7 @@ export async function addOptionToGlobalPoll(
     await updateDoc(ref, { options: arrayUnion(option) });
   } else {
     await setDoc(ref, {
-      question: "🗳️ סקר הרעיונות של הקבוצה",
+      question: tActive("config.ideasPoll"),
       options: [option],
       votes: {},
       closed: false,

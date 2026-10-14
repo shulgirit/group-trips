@@ -1,5 +1,93 @@
 import type he from "../he/settings";
 
-const settings: typeof he = {};
+const settings: typeof he = {
+  title: "Settings",
+  account: {
+    title: "My account",
+    legacyHint: "This device uses the old sign-in. Complete it once with Google.",
+    complete: "Complete",
+    wait: "One moment…",
+    signOut: "Sign out",
+    linkedTo: "Linked to {member} · {family}",
+    whoAreYou: "Which traveler are you?",
+    signInFailed: "Sign-in didn't finish. Make sure pop-ups are allowed and try again.",
+  },
+  trip: {
+    title: "The trip",
+    dates: "Dates",
+    days: { one: "1 day", two: "2 days", other: "{count} days" },
+    homeBase: "Where we stay",
+    currency: "Currencies",
+  },
+  app: {
+    title: "The app",
+    install: "To install on your home screen: open the site in Safari or Chrome, tap Share, then “Add to Home Screen”.",
+    replayTour: "Replay the intro tour",
+  },
+  more: {
+    title: "More",
+    aiDescription: "Our private AI. It knows the whole trip.",
+    polls: "Polls",
+    pollsDescription: "Decide together",
+    expenses: "Expenses",
+    expensesDescription: "Who paid and who owes",
+    documents: "Bookings & documents",
+    documentsDescription: "Tickets, confirmations and a private space",
+    photos: "Photos",
+    photosDescription: "The trip gallery",
+    settingsDescription: "Account, identity and trip details",
+    soon: "Soon",
+  },
+  families: {
+    travelers: { one: "1 traveler", other: "{count} travelers" },
+  },
+  notifications: {
+    title: "Notifications",
+    checking: "Checking…",
+    unsupported: "This browser doesn't support push notifications. Try from your phone.",
+    installFirst:
+      "On iPhone, notifications only work from the installed app: tap Share, then “Add to Home Screen”, and turn notifications on here from inside the app.",
+    description:
+      "We'll let you know about new polls, events added to the schedule, and remind you about 45 minutes before each activity.",
+    enable: "Turn on notifications on this device",
+    enabling: "Turning on…",
+    disable: "Turn off notifications on this device",
+    wait: "One moment…",
+    welcomeSent: "We sent you a welcome notification",
+    denied: "Permission was denied. You can allow notifications again in your browser or device settings.",
+    failed: "We couldn't turn on notifications on this device",
+  },
+  identity: {
+    title: "Which one are you?",
+    body: "Pick your name so votes, expenses and schedule changes are recorded as yours. It takes a second, and you only do it once.",
+  },
+  logout: {
+    title: "Sign out",
+    busy: "Signing out…",
+    description: "Leave your account and return to the sign-in screen",
+  },
+  gate: {
+    title: "Sign in",
+    hi: "Hi {name}",
+    joinHint: "First time here? Enter the join code from the group chat. Just this once — you won't need it again.",
+    joinCode: "Join code",
+    joinTrip: "Join the trip",
+    tripCode: "Trip code",
+    wait: "One moment…",
+    back: "Back",
+    backToGoogle: "Back to Google sign-in",
+    password: "Trip password",
+    enter: "Enter",
+    google: "Continue with Google",
+    connecting: "Signing in…",
+    remember: "Sign in once and the app remembers you",
+    passwordFallback: "Trouble with Google? Use the trip password",
+    wrongCode: "That code isn't right. Try again.",
+    wrongPassword: "Incorrect password",
+    signInIncomplete: "Sign-in didn't finish. Try again.",
+    signInFailed: "Sign-in failed. Try again.",
+    tryLater: "Something went wrong. Try again in a moment.",
+  },
+};
 
 export default settings;

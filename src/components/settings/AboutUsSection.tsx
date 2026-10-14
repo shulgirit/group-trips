@@ -5,6 +5,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useDocData } from "@/lib/hooks";
 import { useTrip } from "@/components/providers/TripProvider";
+import { useT } from "@/i18n";
 
 /**
  * Free-text knowledge the families write about themselves — fed straight
@@ -12,6 +13,7 @@ import { useTrip } from "@/components/providers/TripProvider";
  */
 export function AboutUsSection() {
   const trip = useTrip();
+  const t = useT();
   const { path: tripPath } = trip;
   const { data } = useDocData<{ aboutUs?: string }>(tripPath);
   const [text, setText] = useState("");
@@ -33,7 +35,7 @@ export function AboutUsSection() {
       await updateDoc(doc(db(), tripPath), { aboutUs: text.trim() });
       setMessage(trip.ai.aboutSaved);
     } catch {
-      setMessage("השמירה נכשלה, נסו שוב");
+      setMessage(t("common.errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -41,7 +43,7 @@ export function AboutUsSection() {
 
   return (
     <section>
-      <h2 className="section-title mb-3 text-lg">{trip.ai.aboutTitle}</h2>
+      <h2 className="section-title mb-3 font-normal">{trip.ai.aboutTitle}</h2>
       <div className="card px-4 py-4">
         <p className="text-sm leading-relaxed text-ink-500">
           {trip.ai.aboutDescription}
@@ -59,10 +61,12 @@ export function AboutUsSection() {
           disabled={saving}
           className="btn-primary mt-3 w-full py-3"
         >
-          {saving ? "שומר…" : "שמירה"}
+          {saving ? t("common.saving") : t("common.save")}
         </button>
         {message && (
-          <p className="mt-2 text-sm font-medium text-ink-700">{message}</p>
+          <p role="status" className="mt-2 text-sm text-ink-700">
+            {message}
+          </p>
         )}
       </div>
     </section>

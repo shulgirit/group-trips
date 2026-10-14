@@ -18,7 +18,7 @@ export interface TripAiConfig {
   heroBlurb: string;
   subtitle: string;
   quickAddLabel: string;
-  /** עוד page row */
+  /** More page row */
   moreEmoji: string;
   moreLabel: string;
   suggestedPrompts: string[];
@@ -30,15 +30,15 @@ export interface TripAiConfig {
 }
 
 export interface TripGroupConfig {
-  /** "משפחות" | "חברים" — generic unit word */
+  /** Generic unit word ("Families" / "Friends") */
   unitLabel: string;
-  /** Emoji for the group row on the עוד page */
+  /** Glyph key for the group row on the More page */
   groupEmoji: string;
   /** Families page h1 */
   pageTitle: string;
-  /** Families-page summary suffix, e.g. " · וילה אחת 🏡" */
+  /** Families-page summary suffix, e.g. " · one villa" */
   summarySuffix: string;
-  /** עוד page row */
+  /** More page row */
   moreLabel: string;
   moreDescription: string;
   /** Expenses split labels */
@@ -87,7 +87,7 @@ export interface TripConfig {
   signature: string;
   emoji: string;
   flag: string;
-  /** Home "יום X מתוך N · <suffix>" */
+  /** Home "Day X of N · <suffix>" */
   dayLabelSuffix: string;
   heroTitle: string;
   /** null → designed CSS hero (no photo) */
@@ -133,17 +133,17 @@ const SICILY: TripConfig = {
   name: "סיציליה 2026",
   shortName: "סיציליה",
   kicker: "Sicily Together",
-  tagline: "הטיול המשפחתי הפרטי שלנו 🇮🇹",
-  groupLine: "חבורת מיחא 🦻 · ארבע משפחות · ים תיכון",
-  signature: "🍋 סיציליה 2026 · חבורת מיחא",
-  emoji: "🍋",
-  flag: "🇮🇹",
-  dayLabelSuffix: "סיציליה 🇮🇹",
-  heroTitle: "סיציליה מחכה לנו 🇮🇹",
+  tagline: "הטיול המשפחתי הפרטי שלנו",
+  groupLine: "חבורת מיחא · ארבע משפחות · ים תיכון",
+  signature: "סיציליה 2026 · חבורת מיחא",
+  emoji: "sun",
+  flag: "",
+  dayLabelSuffix: "סיציליה",
+  heroTitle: "סיציליה מחכה לנו",
   heroImage: "/images/hero.jpg",
   heroArt: null,
   countdownTarget: "2026-08-15T21:35:00+03:00",
-  departureNote: "✈️ ההמראה מנתב״ג · שבת 15.8 · 21:35",
+  departureNote: "ההמראה מנתב״ג · שבת 15.8 · 21:35",
   startDate: "2026-08-15",
   endDate: "2026-08-24",
   timezone: "Europe/Rome",
@@ -158,7 +158,7 @@ const SICILY: TripConfig = {
       endDate: "2026-08-24",
       lat: 37.55,
       lng: 14.25,
-      flag: "🇮🇹",
+      flag: "",
     },
   ],
   mapCenter: { lat: 37.55, lng: 14.25 },
@@ -171,19 +171,19 @@ const SICILY: TripConfig = {
     lat: 38.0070196,
     lng: 12.887506,
   },
-  pushTitle: "סיציליה 2026 🍋",
+  pushTitle: "סיציליה 2026",
   tourKey: "micha-tour-seen-v1",
   aiName: "המשרת של החבורה",
   ai: {
     navLabel: "המשרת",
-    title: "🦻✨ המשרת של חבורת מיחא",
+    title: "המשרת של חבורת מיחא",
     kicker: "חבורת מיחא",
-    emoji: "🦻✨",
+    emoji: "sparkles",
     heroBlurb:
       "המשרת של החבורה לשירותכם — המלצות, שיבוצים בלוח, סקרים ועדכון מקומות. מחובר לכל נתוני הטיול",
     subtitle: "מכיר את המקומות, הלו״ז ואת כל החבורה",
-    quickAddLabel: "שאל את המשרת של החבורה 🦻",
-    moreEmoji: "🦻",
+    quickAddLabel: "שאל את המשרת של החבורה",
+    moreEmoji: "sparkles",
     moreLabel: "המשרת של חבורת מיחא",
     suggestedPrompts: [
       "תמליץ לנו על אטרקציה",
@@ -193,29 +193,29 @@ const SICILY: TripConfig = {
       "תמצא Plan B אם יורד גשם",
       "מה עוד לא שובץ בלוח?",
     ],
-    aboutTitle: "🦻 ספרו למשרת עלינו",
+    aboutTitle: "ספרו למשרת עלינו",
     aboutDescription:
       "כל מה שתכתבו כאן נכנס לידע של המשרת: מי זה מי, גילאים, סיפורים, מה הילדים אוהבים, בדיחות פנימיות — והוא ישתמש בזה בשיחות ובהמלצות",
     aboutPlaceholder:
       "למשל: מיקה בת 10 ואוהבת פארקי מים. אורי משוגע על כדורגל...",
-    aboutSaved: "✓ נשמר — המשרת כבר מכיר את זה",
+    aboutSaved: "נשמר — המשרת כבר מכיר את זה",
     inputPlaceholder: "שאלו אותי כל דבר על הטיול…",
   },
   group: {
     unitLabel: "משפחות",
-    groupEmoji: "👨‍👩‍👧‍👦",
-    pageTitle: "👨‍👩‍👧‍👦 המשפחות",
-    summarySuffix: " · וילה אחת 🏡",
+    groupEmoji: "users",
+    pageTitle: "המשפחות",
+    summarySuffix: " · וילה אחת",
     moreLabel: "משפחות",
     moreDescription: "ארבע המשפחות שלנו",
     splitEveryoneLabel: "כולם השתתפו (כל המשפחות)",
     splitPickLabel: "בחרו אילו משפחות השתתפו",
     loadingLabel: "טוען משפחות…",
-    quickLoginTitle: "🧒 כניסה לילדים — בלי אימייל",
+    quickLoginTitle: "כניסה לילדים — בלי אימייל",
     quickLoginHint:
-      "הזינו את קוד הטיול (תשאלו את ההורים 😉), ואז תבחרו את השם שלכם",
+      "הזינו את קוד הטיול (תשאלו את ההורים), ואז תבחרו את השם שלכם",
     pickUnitPrompt: "מאיזו משפחה אתם?",
-    pickNamePrompt: "ועכשיו — מי אתם? 👋",
+    pickNamePrompt: "ועכשיו — מי אתם?",
   },
 };
 
@@ -228,17 +228,17 @@ const SARDINIA: TripConfig = {
   name: "סרדיניה 2026",
   shortName: "סרדיניה",
   kicker: "SARDINIA 60",
-  tagline: "חוגגים 60 בסרדיניה ✈️",
+  tagline: "חוגגים 60 בסרדיניה",
   groupLine: "חמישה חברים אחים · יום הולדת 60 · ים תיכון",
-  signature: "✈️ סרדיניה 2026 · חוגגים 60",
-  emoji: "🎉",
-  flag: "🇮🇹",
-  dayLabelSuffix: "סרדיניה 🇮🇹",
+  signature: "סרדיניה 2026 · חוגגים 60",
+  emoji: "plane",
+  flag: "",
+  dayLabelSuffix: "סרדיניה",
   heroTitle: "סרדיניה, אנחנו באים",
   heroImage: "/images/sardinia-hero.jpg",
-  heroArt: { big: "60", icon: "✈️" },
+  heroArt: { big: "60", icon: "plane" },
   countdownTarget: "2026-09-03T07:00:00+03:00",
-  departureNote: "✈️ ההמראה מנתב״ג · יום חמישי 3.9 · 07:00 · טרמינל 3",
+  departureNote: "ההמראה מנתב״ג · יום חמישי 3.9 · 07:00 · טרמינל 3",
   startDate: "2026-09-03",
   endDate: "2026-09-10",
   timezone: "Europe/Rome",
@@ -253,25 +253,25 @@ const SARDINIA: TripConfig = {
       endDate: "2026-09-10",
       lat: 40.05,
       lng: 9.05,
-      flag: "🇮🇹",
+      flag: "",
     },
   ],
   mapCenter: { lat: 40.05, lng: 9.05 },
   searchRegionHint: "Sardinia",
   homeBase: null,
-  pushTitle: "סרדיניה 2026 ✈️",
+  pushTitle: "סרדיניה 2026",
   tourKey: "sardinia-tour-seen-v1",
   aiName: "הטייס",
   ai: {
     navLabel: "הטייס",
-    title: "✈️✨ הטייס",
+    title: "הטייס",
     kicker: "טייסת סרדיניה",
-    emoji: "✈️✨",
+    emoji: "pilot",
     heroBlurb:
       "הטייס בקבינה לשירותכם — המלצות, נופים, מסעדות ושיבוצים בלוח. מחובר לכל נתוני הטיול",
     subtitle: "מכיר את המקומות, הלו״ז ואת כל החבורה",
-    quickAddLabel: "שאל את הטייס ✈️",
-    moreEmoji: "✈️",
+    quickAddLabel: "שאל את הטייס",
+    moreEmoji: "pilot",
     moreLabel: "הטייס",
     suggestedPrompts: [
       "תמליץ לנו על נקודת תצפית מטורפת",
@@ -281,28 +281,28 @@ const SARDINIA: TripConfig = {
       "תכנן לנו יום של חופים",
       "מה עוד לא שובץ בלוח?",
     ],
-    aboutTitle: "✈️ ספרו לטייס עלינו",
+    aboutTitle: "ספרו לטייס עלינו",
     aboutDescription:
       "כל מה שתכתבו כאן נכנס לידע של הטייס: מי זה מי, מה כל אחד אוהב, סיפורים מהטייסת — והוא ישתמש בזה בשיחות ובהמלצות",
     aboutPlaceholder:
       "למשל: אורן חובב יין. נדב מגיע מחו״ל ומצטרף אלינו בקליארי...",
-    aboutSaved: "✓ נשמר — הטייס כבר מכיר את זה",
+    aboutSaved: "נשמר — הטייס כבר מכיר את זה",
     inputPlaceholder: "שאלו אותי כל דבר על הטיול…",
   },
   group: {
     unitLabel: "חברים",
-    groupEmoji: "👨‍✈️",
-    pageTitle: "👨‍✈️ החבורה",
-    summarySuffix: " · חוגגים 60 🎉",
+    groupEmoji: "users",
+    pageTitle: "החבורה",
+    summarySuffix: " · חוגגים 60",
     moreLabel: "החבורה",
     moreDescription: "חמשת החברים",
     splitEveryoneLabel: "כולם השתתפו (כל החברים)",
     splitPickLabel: "בחרו מי השתתף",
     loadingLabel: "טוען חברים…",
-    quickLoginTitle: "🪖 כניסה מהירה — בלי אימייל",
+    quickLoginTitle: "כניסה מהירה — בלי אימייל",
     quickLoginHint: "הזינו את קוד הטיול ובחרו את השם שלכם",
     pickUnitPrompt: "מי אתם?",
-    pickNamePrompt: "ועכשיו — בחרו את השם 👋",
+    pickNamePrompt: "ועכשיו — בחרו את השם",
   },
 };
 

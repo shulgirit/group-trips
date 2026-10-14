@@ -35,7 +35,7 @@ export async function loadTrip(
   if (!snapshot.exists) return null;
   const doc = snapshot.data() as TripDoc;
   if (!doc.destination || !doc.ai) return null;
-  return { config: tripConfigFromDoc(tripId, doc), doc };
+  return { config: tripConfigFromDoc(tripId, doc, "he"), doc };
 }
 
 /**

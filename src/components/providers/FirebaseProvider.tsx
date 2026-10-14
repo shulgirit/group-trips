@@ -17,6 +17,7 @@ import {
   waitForAuth,
 } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
+import { useT } from "@/i18n";
 import type { UserProfile } from "@/types";
 
 interface FirebaseState {
@@ -53,6 +54,7 @@ export function FirebaseProvider({
   const provisionedTripsRef = useRef<Set<string>>(new Set());
 
   const trip = useTrip();
+  const t = useT();
   const tripPath = trip.path;
   const legacy = trip.legacy;
 
@@ -156,8 +158,11 @@ export function FirebaseProvider({
     >
       {error && (
         <div className="mx-auto max-w-lg px-4 pt-3">
-          <p className="rounded-2xl bg-terra-100 px-4 py-3 text-sm text-terra-600">
-            בעיה בהתחברות לנתונים — בדקו את החיבור לרשת ונסו לרענן
+          <p
+            role="alert"
+            className="rounded-2xl border border-terra-100 bg-white px-4 py-3 text-sm text-terra-600"
+          >
+            {t("common.errors.connection")}
           </p>
         </div>
       )}

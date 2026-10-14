@@ -1,23 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import { TripAppShell } from "@/components/layout/TripAppShell";
+import { TRIPS } from "@/lib/trips";
+
+const SARDINIA = TRIPS.sardinia;
 
 export const metadata: Metadata = {
   title: {
-    default: "סרדיניה 2026",
-    template: "%s · סרדיניה 2026",
+    default: SARDINIA.name,
+    template: `%s · ${SARDINIA.name}`,
   },
-  description: "אפליקציית הטיול הפרטית שלנו בסרדיניה — חוגגים 60",
-  applicationName: "סרדיניה 2026",
+  description: SARDINIA.tagline,
+  applicationName: SARDINIA.name,
   manifest: "/sardinia/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "סרדיניה 2026",
+    title: SARDINIA.name,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbf8f1",
+  themeColor: "#f7f5f0",
 };
 
 export default function SardiniaLayout({

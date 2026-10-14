@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
+import { TRIPS } from "@/lib/trips";
 
-/** Installable PWA manifest for the Sardinia trip (its own start_url). */
+const SARDINIA = TRIPS.sardinia;
+
+/** Installable PWA manifest for the Sardinia trip (its own start_url).
+ *  A legacy Hebrew-speaking group, so the manifest stays he/rtl. */
 export function GET() {
   return NextResponse.json(
     {
-      name: "סרדיניה 2026",
-      short_name: "סרדיניה",
-      description: "אפליקציית הטיול הפרטית שלנו בסרדיניה — חוגגים 60",
+      name: SARDINIA.name,
+      short_name: SARDINIA.shortName,
+      description: SARDINIA.tagline,
       lang: "he",
       dir: "rtl",
       id: "/sardinia",
       start_url: "/sardinia",
       scope: "/sardinia",
       display: "standalone",
-      background_color: "#fbf8f1",
-      theme_color: "#fbf8f1",
+      background_color: "#f7f5f0",
+      theme_color: "#f7f5f0",
       icons: [
         {
           src: "/icons/sardinia-icon-192.png",

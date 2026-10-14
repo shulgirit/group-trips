@@ -9,8 +9,11 @@ import {
   updateProfile,
   type User,
 } from "firebase/auth";
+import { ChevronLeft } from "lucide-react";
 import { auth, signInWithGoogle } from "@/lib/firebase/client";
 import { TRIPS, type TripKey } from "@/lib/trips";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 
 type Step =
   | "idle"
@@ -29,6 +32,7 @@ interface KidFamily {
 
 export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
   const trip = TRIPS[tripKey];
+  const t = useT();
   const home = trip.prefix || "/";
   const [step, setStep] = useState<Step>("idle");
   const [googleUser, setGoogleUser] = useState<User | null>(null);
@@ -52,7 +56,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       });
       if (!response.ok) {
         setErrorMessage(
-          response.status === 401 ? "קוד לא נכון — נסו שוב" : "משהו השתבש"
+          response.status === 401 ? t("settings.gate.wrongCode") : t("common.errors.generic")
         );
         return;
       }
@@ -60,7 +64,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       setKidFamilies(families);
       setStep("kids-pick");
     } catch {
-      setErrorMessage("אין חיבור לרשת, נסו שוב");
+      setErrorMessage(t("common.errors.network"));
     } finally {
       setKidBusy(false);
     }
@@ -77,7 +81,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
         body: JSON.stringify({ joinCode, familyId, memberId, tripId: trip.id }),
       });
       if (!response.ok) {
-        setErrorMessage("משהו השתבש, נסו שוב");
+        setErrorMessage(t("common.errors.generic"));
         return;
       }
       const { token, displayName } = await response.json();
@@ -87,7 +91,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       );
       window.location.replace(home);
     } catch {
-      setErrorMessage("ההתחברות נכשלה, נסו שוב");
+      setErrorMessage(t("settings.gate.signInFailed"));
       setKidBusy(false);
     }
   }
@@ -115,14 +119,14 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       if (error === "wrong_code") {
         setGoogleUser(user);
         setStep("join");
-        setErrorMessage("קוד לא נכון — נסו שוב");
+        setErrorMessage(t("settings.gate.wrongCode"));
         return;
       }
       setStep("idle");
-      setErrorMessage("משהו השתבש, נסו שוב עוד רגע");
+      setErrorMessage(t("settings.gate.tryLater"));
     } catch {
       setStep(googleUser ? "join" : "idle");
-      setErrorMessage("אין חיבור לרשת, נסו שוב");
+      setErrorMessage(t("common.errors.network"));
     }
   }
 
@@ -148,13 +152,13 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       if (code.includes("popup-blocked") || code.includes("operation-not-supported")) {
         await signInWithRedirect(auth(), new GoogleAuthProvider()).catch(() => {
           setStep("idle");
-          setErrorMessage("ההתחברות לא הושלמה, נסו שוב");
+          setErrorMessage(t("settings.gate.signInIncomplete"));
         });
         return;
       }
       setStep("idle");
       if (!code.includes("popup-closed") && !code.includes("cancelled")) {
-        setErrorMessage("ההתחברות לא הושלמה, נסו שוב");
+        setErrorMessage(t("settings.gate.signInIncomplete"));
       }
     }
   }
@@ -182,51 +186,65 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
       }
       setStep("password");
       setErrorMessage(
-        response.status === 401 ? "הסיסמה לא נכונה" : "משהו השתבש, נסו שוב"
+        response.status === 401 ? t("settings.gate.wrongPassword") : t("common.errors.generic")
       );
     } catch {
       setStep("password");
-      setErrorMessage("אין חיבור לרשת, נסו שוב");
+      setErrorMessage(t("common.errors.network"));
     }
   }
 
   const busy = step === "googling" || step === "establishing";
 
+  const fieldClass =
+    "mt-3 w-full rounded-xl border border-cream-300 bg-white px-4 py-3.5 text-center text-lg tracking-wide text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200";
+  const backButton = (onClick: () => void, label: string = t("settings.gate.back")) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-4 inline-flex w-full items-center justify-center gap-1 text-sm text-ink-500"
+    >
+      <ChevronLeft size={16} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
+      {label}
+    </button>
+  );
+
   return (
     <div className="mt-10">
-      <div className="rounded-3xl bg-cream-50/95 p-5 shadow-2xl shadow-sea-900/40 backdrop-blur">
+      <div className="rounded-2xl border border-white/40 bg-cream-50/95 p-6 text-start shadow-2xl shadow-sea-950/40 backdrop-blur">
         {step === "join" ? (
           <form onSubmit={handleJoinSubmit}>
-            <p className="text-right font-semibold text-ink-900">
-              היי {googleUser?.displayName?.split(" ")[0] ?? ""} 👋
+            <p className="font-display text-lg font-normal text-ink-900">
+              {t("settings.gate.hi", {
+                name: googleUser?.displayName?.split(" ")[0] ?? "",
+              })}
             </p>
-            <p className="mt-1 text-right text-sm text-ink-500">
-              פעם ראשונה כאן — הזינו את קוד ההצטרפות מקבוצת הוואטסאפ (רק
-              הפעם, לא תצטרכו אותו שוב)
+            <p className="mt-1 text-sm leading-relaxed text-ink-500">
+              {t("settings.gate.joinHint")}
             </p>
             <input
               type="text"
               value={joinCode}
               onChange={(event) => setJoinCode(event.target.value)}
               autoFocus
-              className="mt-3 w-full rounded-2xl border border-cream-300 bg-white px-4 py-3.5 text-center text-lg tracking-wide text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200"
-              placeholder="קוד הצטרפות"
-              aria-label="קוד הצטרפות"
+              className={fieldClass}
+              placeholder={t("settings.gate.joinCode")}
+              aria-label={t("settings.gate.joinCode")}
             />
             <button
               type="submit"
               disabled={busy || !joinCode.trim()}
-              className="mt-3 w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+              className="btn-primary mt-3 w-full py-3.5 text-base"
             >
-              {busy ? "רק רגע…" : "הצטרפות לטיול"}
+              {busy ? t("settings.gate.wait") : t("settings.gate.joinTrip")}
             </button>
           </form>
         ) : step === "kids-code" ? (
           <form onSubmit={handleKidsCode}>
-            <p className="text-right font-semibold text-ink-900">
+            <p className="font-display text-lg font-normal text-ink-900">
               {trip.group.quickLoginTitle}
             </p>
-            <p className="mt-1 text-right text-sm text-ink-500">
+            <p className="mt-1 text-sm leading-relaxed text-ink-500">
               {trip.group.quickLoginHint}
             </p>
             <input
@@ -234,34 +252,28 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
               value={joinCode}
               onChange={(event) => setJoinCode(event.target.value)}
               autoFocus
-              className="mt-3 w-full rounded-2xl border border-cream-300 bg-white px-4 py-3.5 text-center text-lg tracking-wide text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200"
-              placeholder="קוד הטיול"
-              aria-label="קוד הטיול"
+              className={fieldClass}
+              placeholder={t("settings.gate.tripCode")}
+              aria-label={t("settings.gate.tripCode")}
             />
             <button
               type="submit"
               disabled={kidBusy || !joinCode.trim()}
-              className="mt-3 w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+              className="btn-primary mt-3 w-full py-3.5 text-base"
             >
-              {kidBusy ? "רק רגע…" : "המשך"}
+              {kidBusy ? t("settings.gate.wait") : t("common.continue")}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep("idle");
-                setErrorMessage("");
-              }}
-              className="mt-3 w-full text-center text-sm text-sea-600"
-            >
-              › חזרה
-            </button>
+            {backButton(() => {
+              setStep("idle");
+              setErrorMessage("");
+            })}
           </form>
         ) : step === "kids-pick" ? (
           <div>
-            <p className="text-right font-semibold text-ink-900">
+            <p className="font-display text-lg font-normal text-ink-900">
               {kidFamilyId ? trip.group.pickNamePrompt : trip.group.pickUnitPrompt}
             </p>
-            <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {kidFamilies.map((family) => (
                 <button
                   key={family.id}
@@ -269,10 +281,10 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
                   onClick={() =>
                     setKidFamilyId(kidFamilyId === family.id ? null : family.id)
                   }
-                  className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                  className={`rounded-full border px-4 py-2 text-sm transition ${
                     kidFamilyId === family.id
-                      ? "bg-sea-600 text-cream-50"
-                      : "bg-cream-100 text-ink-700"
+                      ? "border-sea-900 bg-sea-900 text-cream-50"
+                      : "border-cream-300 bg-white text-ink-700"
                   }`}
                 >
                   {family.name}
@@ -280,7 +292,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
               ))}
             </div>
             {kidFamilyId && (
-              <div className="mt-3 flex flex-wrap justify-end gap-2 rounded-2xl bg-cream-100 p-3">
+              <div className="mt-3 flex flex-wrap gap-2 rounded-xl bg-cream-100 p-3">
                 {kidFamilies
                   .find((f) => f.id === kidFamilyId)
                   ?.members.map((member) => (
@@ -289,32 +301,26 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
                       type="button"
                       disabled={kidBusy}
                       onClick={() => handleKidPick(kidFamilyId, member.id)}
-                      className="rounded-full bg-white px-4 py-2.5 text-sm font-medium text-ink-900 transition active:scale-[0.97] disabled:opacity-50"
+                      className="rounded-full bg-white px-4 py-2 text-sm text-ink-900 transition active:scale-[0.97] disabled:opacity-50"
                     >
                       {kidBusy ? "…" : member.name}
                     </button>
                   ))}
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setStep("idle");
-                setKidFamilyId(null);
-                setErrorMessage("");
-              }}
-              className="mt-3 w-full text-center text-sm text-sea-600"
-            >
-              › חזרה
-            </button>
+            {backButton(() => {
+              setStep("idle");
+              setKidFamilyId(null);
+              setErrorMessage("");
+            })}
           </div>
         ) : step === "password" ? (
           <form onSubmit={handlePasswordSubmit}>
             <label
               htmlFor="trip-password"
-              className="block text-right text-sm font-medium text-ink-700"
+              className="block text-sm text-ink-700"
             >
-              סיסמת הטיול
+              {t("settings.gate.password")}
             </label>
             <input
               id="trip-password"
@@ -322,26 +328,21 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 w-full rounded-2xl border border-cream-300 bg-white px-4 py-3.5 text-lg text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200"
+              dir="ltr"
+              className="mt-2 w-full rounded-xl border border-cream-300 bg-white px-4 py-3.5 text-lg text-ink-900 outline-none transition focus:border-sea-500 focus:ring-2 focus:ring-sea-200"
               placeholder="••••••••"
             />
             <button
               type="submit"
               disabled={busy || !password.trim()}
-              className="mt-3 w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+              className="btn-primary mt-3 w-full py-3.5 text-base"
             >
-              {busy ? "רק רגע…" : "כניסה"}
+              {busy ? t("settings.gate.wait") : t("settings.gate.enter")}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep("idle");
-                setErrorMessage("");
-              }}
-              className="mt-3 w-full text-center text-sm text-sea-600"
-            >
-              › חזרה להתחברות עם Google
-            </button>
+            {backButton(() => {
+              setStep("idle");
+              setErrorMessage("");
+            }, t("settings.gate.backToGoogle"))}
           </form>
         ) : (
           <>
@@ -349,13 +350,13 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
               type="button"
               onClick={handleGoogle}
               disabled={busy}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-sea-600 py-4 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-60"
+              className="btn-primary w-full gap-3 py-3.5 text-base"
             >
               <GoogleLogo />
-              {busy ? "מתחברים…" : "התחברות עם Google"}
+              {busy ? t("settings.gate.connecting") : t("settings.gate.google")}
             </button>
             <p className="mt-3 text-center text-xs text-ink-500">
-              נכנסים פעם אחת — והאפליקציה זוכרת אתכם
+              {t("settings.gate.remember")}
             </p>
             <button
               type="button"
@@ -363,7 +364,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
                 setStep("kids-code");
                 setErrorMessage("");
               }}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-lemon-300 bg-lemon-100/80 py-3 text-sm font-semibold text-ink-900 transition active:scale-[0.98]"
+              className="btn-outline mt-5 w-full py-3 text-sm"
             >
               {trip.group.quickLoginTitle}
             </button>
@@ -373,9 +374,9 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
                 setStep("password");
                 setErrorMessage("");
               }}
-              className="mt-3 w-full text-center text-sm text-ink-500 underline-offset-2 hover:underline"
+              className="mt-4 w-full text-center text-sm text-ink-500 underline-offset-4 hover:underline"
             >
-              בעיה עם Google? כניסה עם סיסמת הטיול
+              {t("settings.gate.passwordFallback")}
             </button>
           </>
         )}
@@ -383,7 +384,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
         {errorMessage && (
           <p
             role="alert"
-            className="mt-3 text-center text-sm font-medium text-terra-600"
+            className="mt-3 text-center text-sm text-terra-600"
           >
             {errorMessage}
           </p>
@@ -397,7 +398,7 @@ function GoogleLogo() {
   return (
     <span
       aria-hidden
-      className="flex h-7 w-7 items-center justify-center rounded-full bg-white"
+      className="flex h-6 w-6 items-center justify-center rounded-full bg-white"
     >
       <svg width="16" height="16" viewBox="0 0 48 48">
         <path
