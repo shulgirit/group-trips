@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarPlus,
+  Check,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Compass,
@@ -14,8 +16,10 @@ import {
   Heart,
   Hourglass,
   Lightbulb,
+  Link2,
   Map as MapIcon,
   MapPin,
+  MapPinOff,
   Pencil,
   Sparkles,
   Star,
@@ -34,9 +38,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { deletePlace, updatePlace } from "@/lib/db";
 import { useEvents, usePlace } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import { formatDayLabel } from "@/lib/trip";
-import { PLACE_CATEGORIES } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useDayLabel, useT } from "@/i18n";
 
 export default function PlaceDetailPage({
   params,
@@ -44,6 +48,8 @@ export default function PlaceDetailPage({
   params: Promise<{ placeId: string }>;
 }) {
   const { prefix, id: tripId } = useTrip();
+  const t = useT();
+  const formatDayLabel = useDayLabel();
   const { placeId } = use(params);
   const router = useRouter();
   const { user } = useFirebase();
@@ -54,7 +60,7 @@ export default function PlaceDetailPage({
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  // Arriving from "מקום חדש" with ?schedule=1 → jump straight to scheduling
+  // Arriving from "new place" with ?schedule=1 → jump straight to scheduling
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("schedule") === "1") {
       setScheduleOpen(true);
@@ -98,16 +104,16 @@ export default function PlaceDetailPage({
       });
       const result = await response.json();
       if (result.ok) {
-        setEnrichMessage("✓ המקום הועשר — התוכן החדש כבר מופיע כאן");
+        setEnrichMessage(t("trip.place.enrichDone"));
         setShowUrlInput(false);
         setEnrichUrl("");
       } else {
-        setEnrichMessage(result.message ?? "לא נמצא מידע נוסף");
+        setEnrichMessage(result.message ?? t("trip.place.enrichNothing"));
         // Nothing found automatically — offer the manual link right here
         setShowUrlInput(true);
       }
     } catch {
-      setEnrichMessage("ההעשרה נכשלה, נסו שוב");
+      setEnrichMessage(t("trip.place.enrichFailed"));
     } finally {
       setEnriching(false);
     }
@@ -126,67 +132,67 @@ export default function PlaceDetailPage({
   if (!place) {
     return (
       <EmptyState
-        emoji="🤷"
-        title="המקום לא נמצא"
-        description="אולי הוא נמחק"
+        icon={MapPinOff}
+        title={t("trip.place.notFoundTitle")}
+        description={t("trip.place.notFoundDescription")}
         action={
           <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
-            לכל המקומות
+            {t("trip.place.allPlaces")}
           </Link>
         }
       />
     );
   }
 
-  const category = PLACE_CATEGORIES[place.category] ?? PLACE_CATEGORIES.other;
+  const categoryLabel = t(`trip.categories.${place.category}`);
   const placeEvents = (events ?? []).filter((e) => e.placeId === place.id);
 
   const detailRows = [
     place.address && {
       icon: MapPin,
-      label: "כתובת",
+      label: t("trip.place.fields.address"),
       value: place.address,
       field: "address",
     },
     place.openingHours && {
       icon: Clock,
-      label: "שעות פתיחה",
+      label: t("trip.place.fields.openingHours"),
       value: place.openingHours,
       field: "openingHours",
     },
     place.priceNotes && {
       icon: Euro,
-      label: "מחיר",
+      label: t("trip.place.fields.price"),
       value: place.priceNotes,
       field: "priceNotes",
     },
     place.recommendedDurationMin && {
       icon: Hourglass,
-      label: "זמן מומלץ",
-      value: `כ-${Math.round(place.recommendedDurationMin / 60)} שעות`,
+      label: t("trip.place.fields.recommendedTime"),
+      value: t("trip.place.aboutHours", { count: Math.round(place.recommendedDurationMin / 60) }),
       field: null,
     },
     place.tips && {
       icon: Lightbulb,
-      label: "טיפים",
+      label: t("trip.place.fields.tips"),
       value: place.tips,
       field: "tips",
     },
     place.popularDishes && {
       icon: UtensilsCrossed,
-      label: "מנות מומלצות",
+      label: t("trip.place.fields.dishes"),
       value: place.popularDishes,
       field: "popularDishes",
     },
     place.reviewsSummary && {
       icon: Star,
-      label: "מה אומרים בביקורות",
+      label: t("trip.place.fields.reviews"),
       value: place.reviewsSummary,
       field: "reviewsSummary",
     },
     place.createdByName && {
       icon: UserRound,
-      label: "נוסף על ידי",
+      label: t("trip.place.fields.addedBy"),
       value: place.createdByName,
       field: null,
     },
@@ -216,9 +222,9 @@ export default function PlaceDetailPage({
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-sea-500 to-sea-900">
-            <span className="absolute inset-0 flex items-center justify-center text-8xl opacity-70">
-              {category.emoji}
+          <div className="absolute inset-0 bg-sea-900">
+            <span className="absolute inset-0 flex items-center justify-center pb-10 text-cream-50/40">
+              <CategoryIcon category={place.category} size={64} strokeWidth={1} />
             </span>
           </div>
         )}
@@ -228,19 +234,22 @@ export default function PlaceDetailPage({
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="חזרה"
-          className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 text-ink-700 shadow-sm backdrop-blur"
+          aria-label={t("common.back")}
+          className="absolute start-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 text-ink-700 backdrop-blur"
         >
-          <ChevronRight size={22} />
+          <ChevronLeft size={22} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
         </button>
         <button
           type="button"
           onClick={() => updatePlace(placeId, { favorite: !place.favorite })}
-          aria-label={place.favorite ? "הסר ממועדפים" : "הוסף למועדפים"}
-          className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 shadow-sm backdrop-blur"
+          aria-label={place.favorite ? t("trip.place.unfavorite") : t("trip.place.favorite")}
+          aria-pressed={Boolean(place.favorite)}
+          className="absolute end-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-cream-50/90 backdrop-blur"
         >
           <Heart
             size={19}
+            strokeWidth={STROKE}
+            aria-hidden
             className={
               place.favorite ? "fill-terra-500 text-terra-500" : "text-ink-500"
             }
@@ -249,11 +258,11 @@ export default function PlaceDetailPage({
 
         {/* Title over image */}
         <div className="absolute inset-x-0 bottom-0 px-5 pb-5">
-          <p className="kicker text-lemon-300">
-            {category.label}
+          <p className="kicker text-lemon-200">
+            {categoryLabel}
             {place.area ? ` · ${place.area}` : ""}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-normal leading-tight text-cream-50">
+          <h1 className="mt-2 font-display text-3xl font-light leading-tight text-cream-50">
             {place.name}
           </h1>
         </div>
@@ -267,25 +276,25 @@ export default function PlaceDetailPage({
           rel="noopener noreferrer"
           className="btn-primary flex-1 py-3.5"
         >
-          <Compass size={19} />
-          נווט
+          <Compass size={19} strokeWidth={STROKE} aria-hidden />
+          {t("trip.home.navigate")}
         </a>
         <button
           type="button"
           onClick={() => setScheduleOpen(true)}
           className="btn-accent flex-1 py-3.5"
         >
-          <CalendarPlus size={19} />
-          הוסף ללוח
+          <CalendarPlus size={19} strokeWidth={STROKE} aria-hidden />
+          {t("trip.place.addToSchedule")}
         </button>
         <a
           href={googleMapsUrl(place)}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Google Maps"
-          className="btn-soft px-4 py-3.5"
+          className="btn-outline px-4 py-3.5"
         >
-          <MapIcon size={19} />
+          <MapIcon size={19} strokeWidth={STROKE} aria-hidden />
         </a>
       </div>
 
@@ -294,12 +303,16 @@ export default function PlaceDetailPage({
         onClick={() => setPollSheetOpen(true)}
         className={`w-full py-3 ${
           pollAdded
-            ? "btn border border-lemon-300 bg-lemon-100 font-medium text-ink-700"
+            ? "btn border border-lemon-300 bg-white text-ink-700"
             : "btn-outline"
         }`}
       >
-        <Vote size={18} />
-        {pollAdded ? "נוסף לסקר ✓ · להוסיף לעוד סקר?" : "הוסף לסקר…"}
+        {pollAdded ? (
+          <Check size={18} strokeWidth={STROKE} aria-hidden />
+        ) : (
+          <Vote size={18} strokeWidth={STROKE} aria-hidden />
+        )}
+        {pollAdded ? t("trip.place.pollAdded") : t("trip.place.addToPoll")}
       </button>
 
       {/* ── AI enrichment ── */}
@@ -314,15 +327,15 @@ export default function PlaceDetailPage({
               : "btn-outline py-3"
           }`}
         >
-          <Sparkles size={18} />
+          <Sparkles size={18} strokeWidth={STROKE} aria-hidden />
           {enriching
-            ? "המשרת קורא על המקום… עד דקה ☕"
+            ? t("trip.place.enriching")
             : !place.summary && detailRows.length < 2
-              ? "הוסיפו תוכן עם AI — המשרת יחפש באינטרנט"
-              : "רענון והרחבת התוכן עם AI"}
+              ? t("trip.place.enrichAdd")
+              : t("trip.place.enrichRefresh")}
         </button>
         {enrichMessage && (
-          <p className="mt-2 rounded-2xl bg-cream-100 px-4 py-2.5 text-sm font-medium text-ink-700">
+          <p className="mt-2 rounded-xl border border-cream-200 px-4 py-2.5 text-sm text-ink-700">
             {enrichMessage}
           </p>
         )}
@@ -330,9 +343,11 @@ export default function PlaceDetailPage({
           <button
             type="button"
             onClick={() => setShowUrlInput(true)}
-            className="mt-2 block w-full text-center text-sm text-sea-600"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 text-sm text-sea-700"
           >
-            🔗 יש לכם קישור לאתר של המקום? הדביקו אותו כאן ›
+            <Link2 size={15} strokeWidth={STROKE} aria-hidden />
+            {t("trip.place.pasteLink")}
+            <ChevronRight size={15} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
           </button>
         ) : (
           <div className="mt-2 flex gap-2">
@@ -349,7 +364,7 @@ export default function PlaceDetailPage({
               onClick={() => {
                 const url = enrichUrl.trim();
                 if (!/^https?:\/\//.test(url)) {
-                  setEnrichMessage("הדביקו קישור מלא שמתחיל ב-https://");
+                  setEnrichMessage(t("trip.place.fullLinkNeeded"));
                   return;
                 }
                 handleEnrich(url);
@@ -357,7 +372,7 @@ export default function PlaceDetailPage({
               disabled={enriching || !enrichUrl.trim()}
               className="btn-primary whitespace-nowrap px-4 py-2.5 text-sm"
             >
-              {enriching ? "קורא…" : "קרא מהקישור"}
+              {enriching ? t("trip.place.reading") : t("trip.place.readLink")}
             </button>
           </div>
         )}
@@ -365,7 +380,7 @@ export default function PlaceDetailPage({
 
       {/* ── Editorial summary ── */}
       {place.summary && (
-        <div className="relative rounded-3xl bg-cream-100/80 px-5 py-4">
+        <div className="relative rounded-2xl border border-cream-200 bg-white px-5 py-5">
           {editing?.field === "summary" ? (
             <div>
               <textarea
@@ -382,20 +397,20 @@ export default function PlaceDetailPage({
                   disabled={savingField}
                   className="btn-primary px-4 py-2 text-sm"
                 >
-                  {savingField ? "שומר…" : "שמירה"}
+                  {savingField ? t("common.saving") : t("common.save")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
                   className="btn-soft px-4 py-2 text-sm"
                 >
-                  ביטול
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>
           ) : (
             <>
-              <p className="whitespace-pre-line border-s-2 border-lemon-400 ps-4 leading-relaxed text-ink-700">
+              <p className="whitespace-pre-line border-s border-lemon-400 pe-6 ps-4 leading-relaxed text-ink-700">
                 {place.summary}
               </p>
               <button
@@ -403,10 +418,10 @@ export default function PlaceDetailPage({
                 onClick={() =>
                   setEditing({ field: "summary", value: place.summary ?? "" })
                 }
-                aria-label="עריכת התיאור"
-                className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-ink-500"
+                aria-label={t("trip.place.editSummary")}
+                className="absolute end-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-ink-300"
               >
-                <Pencil size={14} />
+                <Pencil size={14} strokeWidth={STROKE} aria-hidden />
               </button>
             </>
           )}
@@ -415,14 +430,14 @@ export default function PlaceDetailPage({
 
       {/* ── Details ── */}
       {detailRows.length > 0 && (
-        <div className="card divide-y divide-cream-100">
+        <div className="card divide-y divide-cream-200">
           {detailRows.map(({ icon: Icon, label, value, field }) => (
             <div key={label} className="flex gap-3.5 px-5 py-3.5">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sea-100 text-sea-700">
-                <Icon size={16} />
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center text-sea-700">
+                <Icon size={17} strokeWidth={STROKE} aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-300">
+                <p className="text-xs tracking-wide text-ink-500">
                   {label}
                 </p>
                 {editing && field && editing.field === field ? (
@@ -443,14 +458,14 @@ export default function PlaceDetailPage({
                         disabled={savingField}
                         className="btn-primary px-4 py-1.5 text-sm"
                       >
-                        {savingField ? "שומר…" : "שמירה"}
+                        {savingField ? t("common.saving") : t("common.save")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditing(null)}
                         className="btn-soft px-4 py-1.5 text-sm"
                       >
-                        ביטול
+                        {t("common.cancel")}
                       </button>
                     </div>
                   </div>
@@ -464,10 +479,10 @@ export default function PlaceDetailPage({
                 <button
                   type="button"
                   onClick={() => setEditing({ field, value })}
-                  aria-label={`עריכת ${label}`}
+                  aria-label={t("trip.place.editField", { label })}
                   className="self-start p-1 text-ink-300"
                 >
-                  <Pencil size={14} />
+                  <Pencil size={14} strokeWidth={STROKE} aria-hidden />
                 </button>
               )}
             </div>
@@ -484,8 +499,8 @@ export default function PlaceDetailPage({
               rel="noopener noreferrer"
               className="btn-outline flex-1 py-3"
             >
-              <Globe size={17} />
-              אתר רשמי
+              <Globe size={17} strokeWidth={STROKE} aria-hidden />
+              {t("trip.place.website")}
             </a>
           )}
           {place.bookingUrl && (
@@ -495,8 +510,8 @@ export default function PlaceDetailPage({
               rel="noopener noreferrer"
               className="btn-outline flex-1 py-3"
             >
-              <Ticket size={17} />
-              הזמנת כרטיסים
+              <Ticket size={17} strokeWidth={STROKE} aria-hidden />
+              {t("trip.place.tickets")}
             </a>
           )}
         </div>
@@ -505,17 +520,17 @@ export default function PlaceDetailPage({
       {/* ── Scheduled ── */}
       {placeEvents.length > 0 && (
         <div>
-          <h2 className="section-title mb-2 text-lg">בלוח שלנו</h2>
+          <h2 className="section-title mb-3 text-lg">{t("trip.place.onSchedule")}</h2>
           <ul className="space-y-2">
             {placeEvents.map((event) => (
               <li
                 key={event.id}
-                className="flex items-center justify-between rounded-2xl bg-sea-100 px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-cream-200 bg-white px-4 py-3"
               >
-                <span className="font-medium text-sea-700">
+                <span className="text-ink-900">
                   {formatDayLabel(event.day)}
                 </span>
-                <span dir="ltr" className="font-semibold tabular-nums text-sea-700">
+                <span dir="ltr" className="numerals text-sea-700">
                   {event.startTime}
                 </span>
               </li>
@@ -530,7 +545,7 @@ export default function PlaceDetailPage({
         {confirmDelete ? (
           <div className="card border-terra-400 p-4 text-center">
             <p className="mb-3 text-sm font-medium text-ink-700">
-              להסיר את ״{place.name}״ מהמקומות של הקבוצה?
+              {t("trip.place.confirmDelete", { name: place.name })}
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
@@ -538,14 +553,14 @@ export default function PlaceDetailPage({
                 onClick={handleDelete}
                 className="btn bg-terra-600 px-6 py-2.5 text-sm text-cream-50"
               >
-                כן, להסיר
+                {t("trip.place.confirmDeleteYes")}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 className="btn-soft px-6 py-2.5 text-sm"
               >
-                ביטול
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -553,10 +568,10 @@ export default function PlaceDetailPage({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="btn w-full border border-terra-100 py-3 font-medium text-terra-600"
+            className="btn w-full border border-cream-200 py-3 text-terra-600"
           >
-            <Trash2 size={17} />
-            הסרת המקום מהרשימה
+            <Trash2 size={17} strokeWidth={STROKE} aria-hidden />
+            {t("trip.place.delete")}
           </button>
         )}
       </div>

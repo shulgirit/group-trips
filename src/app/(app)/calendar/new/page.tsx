@@ -3,16 +3,18 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
+import { EventGlyphPicker } from "@/components/events/EventGlyphPicker";
+import { useDayLabel, useT } from "@/i18n";
 import { addEvent } from "@/lib/db";
 import { useFamilies, usePlaces } from "@/lib/hooks";
-import { formatDayLabel, todayIso, tripDays } from "@/lib/trip";
+import { todayIso, tripDays } from "@/lib/trip";
 import type { Participants } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
 
-const EMOJI_OPTIONS = ["🍝", "🏖️", "🏊", "⚽", "🛒", "🚗", "🏡", "🎉", "☕", "✈️"];
-
 function NewEventForm() {
   const { prefix } = useTrip();
+  const t = useT();
+  const formatDayLabel = useDayLabel();
   const router = useRouter();
   const searchParams = useSearchParams();
   const days = tripDays(useTrip());
@@ -63,60 +65,47 @@ function NewEventForm() {
       });
       router.replace(`${prefix}/calendar`);
     } catch {
-      setError("השמירה נכשלה, נסו שוב");
+      setError(t("common.errors.saveFailed"));
       setSaving(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <h1 className="font-display text-2xl font-normal text-ink-900">
-        אירוע חדש
+      <h1 className="font-display text-2xl font-light text-ink-900">
+        {t("trip.eventForm.newTitle")}
       </h1>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          מה עושים? *
+          {t("trip.eventForm.what")}
         </span>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="למשל: ארוחת ערב בעיר"
+          placeholder={t("trip.eventForm.whatPlaceholder")}
           required
-          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-lg text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+          className="field py-3.5 text-lg"
         />
       </label>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">אימוג׳י</p>
-        <div className="flex flex-wrap gap-2">
-          {EMOJI_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setEmoji(emoji === option ? "" : option)}
-              className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl transition ${
-                emoji === option ? "bg-sea-600" : "bg-cream-100"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.eventForm.icon")}</p>
+        <EventGlyphPicker value={emoji} onChange={setEmoji} />
       </div>
 
       {(places?.length ?? 0) > 0 && (
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            קשור למקום? (לא חובה)
+            {t("trip.eventForm.placeOptional")}
           </span>
           <select
             value={placeId}
             onChange={(e) => setPlaceId(e.target.value)}
-            className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none focus:border-sea-500"
+            className="field"
           >
-            <option value="">בלי מקום</option>
+            <option value="">{t("trip.eventForm.noPlace")}</option>
             {places!.map((place) => (
               <option key={place.id} value={place.id}>
                 {place.name}
@@ -127,22 +116,18 @@ function NewEventForm() {
       )}
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">באיזה יום?</p>
-        <div className="-mx-4 overflow-x-auto px-4">
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whichDay")}</p>
+        <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
           <div className="flex w-max gap-2 pb-1">
             {days.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setDay(d)}
-                className={`whitespace-nowrap rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
-                  day === d
-                    ? "bg-sea-600 text-cream-50"
-                    : "bg-cream-100 text-ink-700"
-                }`}
+                className={`chip ${day === d ? "chip-active" : ""}`}
               >
                 {formatDayLabel(d)}
-                {d === today && " · היום"}
+                {d === today && ` · ${t("common.today")}`}
               </button>
             ))}
           </div>
@@ -152,18 +137,18 @@ function NewEventForm() {
       <div className="flex gap-3">
         <label className="flex-1">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            שעה
+            {t("trip.schedule.time")}
           </span>
           <input
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none focus:border-sea-500"
+            className="field"
           />
         </label>
         <label className="flex-1">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            משך (דקות)
+            {t("trip.eventForm.durationMinutes")}
           </span>
           <input
             type="number"
@@ -173,14 +158,14 @@ function NewEventForm() {
             onChange={(e) =>
               setDurationMin(e.target.value ? Number(e.target.value) : null)
             }
-            placeholder="פתוח"
-            className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+            placeholder={t("trip.eventForm.open")}
+            className="field"
           />
         </label>
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">מי מגיע?</p>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whoComes")}</p>
         {families ? (
           <ParticipantsPicker
             value={participants}
@@ -188,19 +173,19 @@ function NewEventForm() {
             families={families}
           />
         ) : (
-          <p className="text-sm text-ink-500">טוען משפחות…</p>
+          <p className="text-sm text-ink-500">{t("common.loading")}</p>
         )}
       </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          הערות (לא חובה)
+          {t("trip.schedule.notes")}
         </span>
         <input
           type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none focus:border-sea-500"
+          className="field"
         />
       </label>
 
@@ -213,9 +198,9 @@ function NewEventForm() {
       <button
         type="submit"
         disabled={saving || !title.trim() || participantsInvalid}
-        className="w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+        className="btn-primary w-full py-3.5 text-base"
       >
-        {saving ? "שומר…" : "הוסף ללוח 📅"}
+        {saving ? t("common.saving") : t("trip.schedule.submit")}
       </button>
     </form>
   );

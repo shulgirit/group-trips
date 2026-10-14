@@ -3,13 +3,13 @@
 export function normalizePlaceName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[—–\-·.,'"׳״!?()]/g, " ")
+    .replace(/[—–\-·.,'"\u05F3\u05F4!?()]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /** True when two names refer to the same place ("Terme Segestane" vs
- *  "Terme Segestane — מעיינות חמים"). Single-word names never absorb
+ *  "Terme Segestane — <Hebrew description>"). Single-word names never absorb
  *  longer ones — "Erice" (the town) is not "Erice Adventure Park". */
 export function samePlaceName(a: string, b: string): boolean {
   const na = normalizePlaceName(a);

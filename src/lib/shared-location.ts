@@ -7,6 +7,7 @@ import { useTrip } from "@/components/providers/TripProvider";
 import { db } from "@/lib/firebase/client";
 import { useCollectionData } from "@/lib/hooks";
 import type { Fix } from "@/lib/location";
+import type { TKey } from "@/i18n";
 
 /** A member's opt-in, time-boxed live location (trips/{id}/locations/{uid}). */
 export interface SharedLocation {
@@ -21,10 +22,10 @@ export interface SharedLocation {
 }
 
 export const SHARE_DURATIONS = [
-  { id: "1h", label: "שעה", ms: 60 * 60_000 },
-  { id: "4h", label: "4 שעות", ms: 4 * 60 * 60_000 },
-  { id: "day", label: "עד סוף היום", ms: 0 },
-] as const;
+  { id: "1h", labelKey: "trip.share.durations.1h", ms: 60 * 60_000 },
+  { id: "4h", labelKey: "trip.share.durations.4h", ms: 4 * 60 * 60_000 },
+  { id: "day", labelKey: "trip.share.durations.day", ms: 0 },
+] as const satisfies readonly { id: string; labelKey: TKey; ms: number }[];
 
 function endOfDay(): number {
   const end = new Date();

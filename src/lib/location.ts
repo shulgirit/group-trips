@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { tActive } from "@/i18n/active";
 
 /**
  * Device location — native GPS inside the Capacitor app (better accuracy,
@@ -78,9 +79,9 @@ export function distanceMeters(
 }
 
 export function formatDistance(meters: number): string {
-  if (meters < 950) return `${Math.round(meters / 10) * 10} מ׳`;
+  if (meters < 950) return tActive("trip.units.meters", { value: Math.round(meters / 10) * 10 });
   const km = meters / 1000;
-  return `${km < 10 ? km.toFixed(1) : Math.round(km)} ק״מ`;
+  return tActive("trip.units.km", { value: km < 10 ? km.toFixed(1) : Math.round(km) });
 }
 
 /**

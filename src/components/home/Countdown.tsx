@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n";
 
 type TimeLeft = { days: number; hours: number; minutes: number; seconds: number };
 
@@ -16,6 +17,7 @@ function calcTimeLeft(target: Date): TimeLeft | null {
 }
 
 export function Countdown({ targetIso }: { targetIso: string }) {
+  const t = useT();
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null | "pending">(
     "pending"
   );
@@ -31,12 +33,11 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 
   if (timeLeft === "pending") {
     return (
-      <div dir="ltr" className="flex justify-center gap-2.5" aria-hidden>
+      <div dir="ltr" className="flex justify-center divide-x divide-white/20" aria-hidden>
         {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-[68px] w-[66px] animate-pulse rounded-2xl bg-white/10"
-          />
+          <div key={i} className="w-[72px] px-2">
+            <div className="mx-auto h-10 w-10 animate-pulse rounded bg-white/10" />
+          </div>
         ))}
       </div>
     );
@@ -48,26 +49,20 @@ export function Countdown({ targetIso }: { targetIso: string }) {
   // dir="ltr" on the row + days first in source = days on the left,
   // regardless of the page's RTL direction.
   const units = [
-    { value: timeLeft.days, label: "ימים" },
-    { value: timeLeft.hours, label: "שעות" },
-    { value: timeLeft.minutes, label: "דקות" },
-    { value: timeLeft.seconds, label: "שניות" },
+    { id: "days", value: timeLeft.days, label: t("trip.countdown.days") },
+    { id: "hours", value: timeLeft.hours, label: t("trip.countdown.hours") },
+    { id: "minutes", value: timeLeft.minutes, label: t("trip.countdown.minutes") },
+    { id: "seconds", value: timeLeft.seconds, label: t("trip.countdown.seconds") },
   ];
 
   return (
-    <div dir="ltr" className="flex justify-center gap-2.5">
-      {units.map(({ value, label }) => (
-        <div
-          key={label}
-          className="w-[66px] rounded-2xl border border-white/15 bg-white/10 py-2.5 text-center backdrop-blur-md"
-        >
-          <div
-            dir="ltr"
-            className="font-display text-[1.75rem] font-light leading-8 tabular-nums text-cream-50"
-          >
-            {value}
+    <div dir="ltr" className="flex justify-center divide-x divide-white/20">
+      {units.map(({ id, value, label }) => (
+        <div key={id} className="w-[72px] px-2 text-center">
+          <div dir="ltr" className="numerals text-[2.25rem] leading-10 text-cream-50">
+            {String(value).padStart(id === "days" ? 1 : 2, "0")}
           </div>
-          <div className="mt-0.5 text-[11px] font-medium text-cream-50/75">
+          <div className="kicker mt-1.5 text-[9px]! tracking-[0.22em]! text-cream-50/70">
             {label}
           </div>
         </div>

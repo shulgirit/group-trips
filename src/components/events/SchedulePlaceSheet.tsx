@@ -6,18 +6,19 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { useFamilies } from "@/lib/hooks";
 import { addEvent } from "@/lib/db";
-import { tripDays, todayIso, formatDayLabel } from "@/lib/trip";
-import { PLACE_CATEGORIES, type Participants, type Place } from "@/types";
+import { tripDays, todayIso } from "@/lib/trip";
+import type { Participants, Place } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { useDayLabel, useT, type TKey } from "@/i18n";
 
-const DURATIONS = [
-  { minutes: null, label: "בלי הגבלה" },
-  { minutes: 60, label: "שעה" },
-  { minutes: 90, label: "שעה וחצי" },
-  { minutes: 120, label: "שעתיים" },
-  { minutes: 180, label: "3 שעות" },
-  { minutes: 300, label: "5 שעות" },
-] as const;
+const DURATIONS: { minutes: number | null; labelKey: TKey }[] = [
+  { minutes: null, labelKey: "trip.durations.none" },
+  { minutes: 60, labelKey: "trip.durations.60" },
+  { minutes: 90, labelKey: "trip.durations.90" },
+  { minutes: 120, labelKey: "trip.durations.120" },
+  { minutes: 180, labelKey: "trip.durations.180" },
+  { minutes: 300, labelKey: "trip.durations.300" },
+];
 
 export function SchedulePlaceSheet({
   place,
@@ -29,6 +30,8 @@ export function SchedulePlaceSheet({
   onClose: () => void;
 }) {
   const { prefix } = useTrip();
+  const t = useT();
+  const formatDayLabel = useDayLabel();
   const router = useRouter();
   const { families } = useFamilies();
   const days = tripDays(useTrip());
@@ -55,7 +58,6 @@ export function SchedulePlaceSheet({
     try {
       await addEvent({
         title: place.name,
-        emoji: PLACE_CATEGORIES[place.category]?.emoji,
         placeId: place.id,
         day,
         startTime,
@@ -66,16 +68,16 @@ export function SchedulePlaceSheet({
       onClose();
       router.push(`${prefix}/calendar`);
     } catch {
-      setError("השמירה נכשלה, נסו שוב");
+      setError(t("common.errors.saveFailed"));
       setSaving(false);
     }
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={`מתי הולכים ל${place.name}?`}>
+    <BottomSheet open={open} onClose={onClose} title={t("trip.schedule.title", { name: place.name })}>
       <div className="space-y-5">
         <div>
-          <p className="mb-2 text-sm font-medium text-ink-700">באיזה יום?</p>
+          <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whichDay")}</p>
           <div className="-mx-5 overflow-x-auto px-5">
             <div className="flex w-max gap-2 pb-1">
               {days.map((d) => (
@@ -83,14 +85,14 @@ export function SchedulePlaceSheet({
                   key={d}
                   type="button"
                   onClick={() => setDay(d)}
-                  className={`whitespace-nowrap rounded-2xl px-3.5 py-2.5 text-sm font-medium transition ${
+                  className={`whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-sm transition ${
                     day === d
-                      ? "bg-sea-600 text-cream-50"
-                      : "bg-cream-100 text-ink-700"
+                      ? "border-sea-900 bg-sea-900 text-cream-50"
+                      : "border-cream-200 bg-white text-ink-700"
                   }`}
                 >
                   {formatDayLabel(d)}
-                  {d === today && " · היום"}
+                  {d === today && ` · ${t("common.today")}`}
                 </button>
               ))}
             </div>
@@ -100,29 +102,29 @@ export function SchedulePlaceSheet({
         <div className="flex gap-3">
           <label className="flex-1">
             <span className="mb-2 block text-sm font-medium text-ink-700">
-              שעה
+              {t("trip.schedule.time")}
             </span>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none focus:border-sea-500"
+              className="field"
             />
           </label>
           <label className="flex-1">
             <span className="mb-2 block text-sm font-medium text-ink-700">
-              כמה זמן?
+              {t("trip.schedule.howLong")}
             </span>
             <select
               value={durationMin ?? ""}
               onChange={(e) =>
                 setDurationMin(e.target.value ? Number(e.target.value) : null)
               }
-              className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none focus:border-sea-500"
+              className="field"
             >
-              {DURATIONS.map(({ minutes, label }) => (
-                <option key={label} value={minutes ?? ""}>
-                  {label}
+              {DURATIONS.map(({ minutes, labelKey }) => (
+                <option key={labelKey} value={minutes ?? ""}>
+                  {t(labelKey)}
                 </option>
               ))}
             </select>
@@ -130,7 +132,7 @@ export function SchedulePlaceSheet({
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-medium text-ink-700">מי מגיע?</p>
+          <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whoComes")}</p>
           {families ? (
             <ParticipantsPicker
               value={participants}
@@ -138,20 +140,20 @@ export function SchedulePlaceSheet({
               families={families}
             />
           ) : (
-            <p className="text-sm text-ink-500">טוען משפחות…</p>
+            <p className="text-sm text-ink-500">{t("common.loading")}</p>
           )}
         </div>
 
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            הערות (לא חובה)
+            {t("trip.schedule.notes")}
           </span>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="למשל: להזמין כרטיסים מראש"
-            className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+            placeholder={t("trip.schedule.notesPlaceholder")}
+            className="field"
           />
         </label>
 
@@ -165,9 +167,9 @@ export function SchedulePlaceSheet({
           type="button"
           onClick={handleSave}
           disabled={saving || participantsInvalid}
-          className="w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+          className="btn-primary w-full py-3.5 text-base"
         >
-          {saving ? "שומר…" : "הוסף ללוח 📅"}
+          {saving ? t("common.saving") : t("trip.schedule.submit")}
         </button>
       </div>
     </BottomSheet>

@@ -2,24 +2,27 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { CloudOff, LocateFixed, MapPin, Plus } from "lucide-react";
 import { PlaceCard } from "@/components/places/PlaceCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import type { Place } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
 
 const FILTERS = [
-  { id: "all", label: "הכל" },
-  { id: "near", label: "📍 קרוב אליי" },
-  { id: "attractions", label: "אטרקציות" },
-  { id: "food", label: "אוכל" },
-  { id: "beach", label: "חופים" },
-  { id: "shopping", label: "קניות" },
-  { id: "unscheduled", label: "לא שובץ" },
-  { id: "scheduled", label: "שובץ" },
-  { id: "favorites", label: "מועדפים" },
+  { id: "all" },
+  { id: "near" },
+  { id: "attractions" },
+  { id: "food" },
+  { id: "beach" },
+  { id: "shopping" },
+  { id: "unscheduled" },
+  { id: "scheduled" },
+  { id: "favorites" },
 ] as const;
 
 type FilterId = (typeof FILTERS)[number]["id"];
@@ -53,6 +56,7 @@ function matchesFilter(
 export default function PlacesPage() {
   const trip = useTrip();
   const { prefix } = trip;
+  const t = useT();
   const { places, loading, error } = usePlaces();
   const { events } = useEvents();
   const [search, setSearch] = useState("");
@@ -94,16 +98,17 @@ export default function PlacesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-end justify-between">
         <div>
-          <p className="kicker text-terra-500">{trip.kicker}</p>
-          <h1 className="font-display text-3xl font-normal text-ink-900">
-            מקומות
+          <p className="kicker text-ink-500">{trip.kicker}</p>
+          <h1 className="mt-1 font-display text-3xl font-light text-ink-900">
+            {t("trip.places.title")}
           </h1>
         </div>
-        <Link href={`${prefix}/places/new`} className="btn-accent px-4 py-2.5 text-sm">
-          + הוסף מקום
+        <Link href={`${prefix}/places/new`} className="btn-primary px-4 py-2.5 text-sm">
+          <Plus size={16} strokeWidth={STROKE} aria-hidden />
+          {t("trip.places.add")}
         </Link>
       </div>
 
@@ -111,14 +116,14 @@ export default function PlacesPage() {
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="חיפוש מקום…"
+        placeholder={t("trip.places.searchPlaceholder")}
         className="field"
-        aria-label="חיפוש מקום"
+        aria-label={t("trip.places.searchAria")}
       />
 
       <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
-          {FILTERS.map(({ id, label }) => (
+          {FILTERS.map(({ id }) => (
             <button
               key={id}
               type="button"
@@ -128,19 +133,21 @@ export default function PlacesPage() {
               }}
               className={`chip ${filter === id ? "chip-active" : ""}`}
             >
-              {label}
+              {id === "near" && <LocateFixed size={14} strokeWidth={STROKE} aria-hidden />}
+              {t(`trip.places.filters.${id}`)}
             </button>
           ))}
         </div>
       </div>
 
       {filter === "near" && !fix && (
-        <p className="rounded-2xl bg-sea-100/60 px-4 py-3 text-sm text-ink-700">
+        <p className="flex items-center gap-2 rounded-xl border border-cream-200 px-4 py-3 text-sm text-ink-700">
+          <LocateFixed size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
           {locationStatus === "denied"
-            ? "אין הרשאת מיקום — אפשרו אותה בהגדרות הטלפון כדי למיין לפי מרחק"
+            ? t("trip.places.locationDenied")
             : locationStatus === "unavailable"
-              ? "לא הצלחנו לאתר את המיקום שלכם"
-              : "📍 מאתרים את המיקום שלכם…"}
+              ? t("trip.places.locationUnavailable")
+              : t("trip.places.locating")}
         </p>
       )}
 
@@ -148,18 +155,18 @@ export default function PlacesPage() {
         <ListSkeleton rows={4} />
       ) : error ? (
         <EmptyState
-          emoji="😕"
-          title="לא הצלחנו לטעון את המקומות"
-          description="בדקו את החיבור לרשת ונסו שוב"
+          icon={CloudOff}
+          title={t("trip.places.loadErrorTitle")}
+          description={t("common.errors.network")}
         />
       ) : visiblePlaces.length === 0 ? (
         <EmptyState
-          emoji="📍"
-          title={places?.length ? "אין תוצאות לסינון הזה" : "עוד אין מקומות שמורים"}
+          icon={MapPin}
+          title={places?.length ? t("trip.places.noResultsTitle") : t("trip.places.emptyTitle")}
           description={
             places?.length
-              ? "נסו סינון או חיפוש אחר"
-              : "הוסיפו את האטרקציה, המסעדה או החוף הראשונים שלנו"
+              ? t("trip.places.noResultsDescription")
+              : t("trip.places.emptyDescription")
           }
           action={
             !places?.length && (
@@ -167,7 +174,8 @@ export default function PlacesPage() {
                 href={`${prefix}/places/new`}
                 className="btn-primary px-5 py-2.5 text-sm"
               >
-                + הוסף מקום ראשון
+                <Plus size={16} strokeWidth={STROKE} aria-hidden />
+                {t("trip.places.addFirst")}
               </Link>
             )
           }

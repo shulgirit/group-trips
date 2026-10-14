@@ -3,11 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Check, ChevronRight, Search, Sparkles, Star, TriangleAlert } from "lucide-react";
 import { addPlace, samePlaceName } from "@/lib/db";
 import { usePlaces } from "@/lib/hooks";
 import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { apiFetch } from "@/lib/firebase/client";
+import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 
 interface ImportedDraft {
   name: string;
@@ -43,6 +46,7 @@ interface SearchResult {
 
 export default function NewPlacePage() {
   const { prefix, id: tripId } = useTrip();
+  const t = useT();
   const router = useRouter();
   const { places } = usePlaces();
 
@@ -123,9 +127,7 @@ export default function NewPlacePage() {
       setDurationMin(draft.recommendedDurationMin);
       setImported(true);
     } catch {
-      setImportError(
-        "הייבוא נכשל — אפשר לנסות שוב, או פשוט למלא ידנית למטה"
-      );
+      setImportError(t("trip.newPlace.importFailed"));
     } finally {
       setImporting(false);
     }
@@ -146,12 +148,12 @@ export default function NewPlacePage() {
       if (!response.ok) throw new Error("search_failed");
       const { results }: { results: SearchResult[] } = await response.json();
       if (!results.length) {
-        setSearchError("לא נמצא — נסו ניסוח אחר, או מלאו ידנית למטה");
+        setSearchError(t("trip.newPlace.notFound"));
       } else {
         setSearchResults(results);
       }
     } catch {
-      setSearchError("החיפוש נכשל, נסו שוב");
+      setSearchError(t("trip.newPlace.searchFailed"));
     } finally {
       setSearching(false);
     }
@@ -207,10 +209,10 @@ export default function NewPlacePage() {
       });
       // Land on the place with the schedule sheet already open (skippable)
       router.replace(
-        existed ? `/places/${placeId}` : `/places/${placeId}?schedule=1`
+        existed ? `${prefix}/places/${placeId}` : `${prefix}/places/${placeId}?schedule=1`
       );
     } catch {
-      setError("השמירה נכשלה — בדקו את הפרטים ונסו שוב");
+      setError(t("trip.newPlace.saveFailed"));
       setSaving(false);
     }
   }
@@ -228,16 +230,16 @@ export default function NewPlacePage() {
           value={value}
           onChange={(e) => setter(e.target.value)}
           rows={3}
-          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+          className="field py-2.5"
         />
       ) : (
         <input
           type="text"
-          dir={options?.ltr ? "ltr" : "rtl"}
+          dir={options?.ltr ? "ltr" : undefined}
           value={value}
           onChange={(e) => setter(e.target.value)}
           placeholder={options?.placeholder}
-          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+          className="field py-2.5"
         />
       )}
     </label>
@@ -245,14 +247,15 @@ export default function NewPlacePage() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <h1 className="font-display text-2xl font-normal text-ink-900">
-        מקום חדש
+      <h1 className="font-display text-2xl font-light text-ink-900">
+        {t("trip.newPlace.title")}
       </h1>
 
       {/* URL import */}
-      <div className="rounded-3xl border border-sea-200 bg-sea-100/50 p-4">
-        <p className="mb-2 text-sm font-medium text-ink-700">
-          ✨ יש קישור? הדביקו אותו וה-AI ימלא הכל — כולל ביקורות מהרשת
+      <div className="rounded-2xl border border-cream-200 bg-white p-5">
+        <p className="mb-3 flex items-start gap-2 text-sm text-ink-700">
+          <Sparkles size={16} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-lemon-500" />
+          {t("trip.newPlace.importHint")}
         </p>
         <div className="flex gap-2">
           <input
@@ -261,20 +264,21 @@ export default function NewPlacePage() {
             value={importUrl}
             onChange={(e) => setImportUrl(e.target.value)}
             placeholder="https://…"
-            className="min-w-0 flex-1 rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+            className="field min-w-0 flex-1"
           />
           <button
             type="button"
             onClick={handleImport}
             disabled={importing || !importUrl.trim()}
-            className="whitespace-nowrap rounded-2xl bg-sea-600 px-4 py-3 text-sm font-semibold text-cream-50 disabled:opacity-50"
+            className="btn-accent whitespace-nowrap px-4 py-3 text-sm"
           >
-            {importing ? "קורא את הדף…" : "✨ ייבא עם AI"}
+            {!importing && <Sparkles size={15} strokeWidth={STROKE} aria-hidden />}
+            {importing ? t("trip.newPlace.importing") : t("trip.newPlace.importButton")}
           </button>
         </div>
         {importing && (
           <p className="mt-2 text-sm text-ink-500">
-            זה לוקח עד דקה — קוראים את האתר, מחפשים ביקורות ומתרגמים לעברית ☕
+            {t("trip.newPlace.importWait")}
           </p>
         )}
         {importError && (
@@ -283,16 +287,18 @@ export default function NewPlacePage() {
           </p>
         )}
         {imported && (
-          <p className="mt-2 text-sm font-medium text-sea-700">
-            ✓ יובא! בדקו את הפרטים למטה, ערכו אם צריך — ואז שמרו
+          <p className="mt-2 flex items-start gap-1.5 text-sm text-sea-700">
+            <Check size={16} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0" />
+            {t("trip.newPlace.imported")}
           </p>
         )}
       </div>
 
       {/* Free-text search */}
-      <div className="card p-4">
-        <p className="mb-2 text-sm font-medium text-ink-700">
-          🔍 אין קישור? כתבו את שם המקום בחופשיות — ונמצא אותו
+      <div className="card p-5">
+        <p className="mb-3 flex items-start gap-2 text-sm text-ink-700">
+          <Search size={16} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-500" />
+          {t("trip.newPlace.searchHint")}
         </p>
         <div className="flex gap-2">
           <input
@@ -305,7 +311,7 @@ export default function NewPlacePage() {
                 handleSearch();
               }
             }}
-            placeholder="למשל: אצטדיון ברברה פלרמו"
+            placeholder={t("trip.newPlace.searchPlaceholder")}
             className="field min-w-0 flex-1"
           />
           <button
@@ -314,7 +320,7 @@ export default function NewPlacePage() {
             disabled={searching || !searchQuery.trim()}
             className="btn-primary whitespace-nowrap px-4 text-sm"
           >
-            {searching ? "מחפש…" : "חפש"}
+            {searching ? t("trip.newPlace.searching") : t("common.search")}
           </button>
         </div>
         {searchError && (
@@ -329,7 +335,7 @@ export default function NewPlacePage() {
                 <button
                   type="button"
                   onClick={() => applyResult(result)}
-                  className="flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-sea-200 bg-white text-right transition active:bg-sea-100"
+                  className="flex w-full items-center gap-3 overflow-hidden rounded-xl border border-cream-200 bg-white text-start transition active:bg-cream-100"
                 >
                   <span className="relative h-14 w-16 shrink-0 overflow-hidden bg-cream-100">
                     {result.imageUrl ? (
@@ -340,17 +346,21 @@ export default function NewPlacePage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="flex h-full items-center justify-center text-xl">
-                        {PLACE_CATEGORIES[
-                          result.category as PlaceCategory
-                        ]?.emoji ?? "📌"}
+                      <span className="flex h-full items-center justify-center text-sea-700">
+                        <CategoryIcon category={result.category} size={20} />
                       </span>
                     )}
                   </span>
                   <span className="min-w-0 flex-1 py-2">
-                    <span className="block truncate font-semibold text-ink-900">
-                      {result.name}
-                      {result.rating ? ` · ${result.rating}★` : ""}
+                    <span className="flex items-center gap-1 truncate font-medium text-ink-900">
+                      <span className="truncate">{result.name}</span>
+                      {result.rating ? (
+                        <span className="flex shrink-0 items-center gap-0.5 text-sm font-normal text-ink-500">
+                          {" · "}
+                          {result.rating}
+                          <Star size={12} strokeWidth={STROKE} aria-hidden className="fill-lemon-400 text-lemon-500" />
+                        </span>
+                      ) : null}
                     </span>
                     <span className="block truncate text-xs text-ink-500">
                       {result.address}
@@ -362,60 +372,58 @@ export default function NewPlacePage() {
           </ul>
         )}
         {found && (
-          <p className="mt-2 text-sm font-medium text-sea-700">
-            ✓ נמצא! הפרטים מולאו כולל תמונה ומיקום — בדקו ושמרו
-            {importUrl ? "; רוצים עוד פרטים? לחצו ✨ ייבא עם AI למעלה" : ""}
+          <p className="mt-2 flex items-start gap-1.5 text-sm text-sea-700">
+            <Check size={16} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0" />
+            <span>
+              {t("trip.newPlace.found")}
+              {importUrl ? t("trip.newPlace.foundMore") : ""}
+            </span>
           </p>
         )}
       </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          איך קוראים למקום? *
+          {t("trip.newPlace.name")}
         </span>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="למשל: Isola Bella"
+          placeholder={t("trip.newPlace.namePlaceholder")}
           required
-          className="w-full rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-lg text-ink-900 outline-none placeholder:text-ink-300 focus:border-sea-500"
+          className="field py-3.5 text-lg"
         />
       </label>
 
       {duplicateOf && (
         <Link
           href={`${prefix}/places/${duplicateOf.id}`}
-          className="block rounded-2xl border border-lemon-300 bg-lemon-100 px-4 py-3 text-sm font-medium text-ink-700"
+          className="flex items-center gap-2 rounded-xl border border-lemon-300 bg-white px-4 py-3 text-sm text-ink-700"
         >
-          ⚠️ ״{duplicateOf.name}״ כבר קיים ברשימה — לחצו לפתיחה במקום להוסיף
-          שוב ›
+          <TriangleAlert size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-lemon-500" />
+          <span className="flex-1">{t("trip.newPlace.duplicate", { name: duplicateOf.name })}</span>
+          <ChevronRight size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-300 rtl:rotate-180" />
         </Link>
       )}
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">קטגוריה *</p>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.newPlace.category")}</p>
         <div className="grid grid-cols-4 gap-2">
-          {(
-            Object.entries(PLACE_CATEGORIES) as [
-              PlaceCategory,
-              (typeof PLACE_CATEGORIES)[PlaceCategory],
-            ][]
-          ).map(([id, { label, emoji }]) => (
+          {(Object.keys(PLACE_CATEGORIES) as PlaceCategory[]).map((id) => (
             <button
               key={id}
               type="button"
               onClick={() => setCategory(id)}
-              className={`flex flex-col items-center gap-1 rounded-2xl py-2.5 text-sm transition ${
+              aria-pressed={category === id}
+              className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 text-xs transition ${
                 category === id
-                  ? "bg-sea-600 font-medium text-cream-50"
-                  : "bg-cream-100 text-ink-700"
+                  ? "border-sea-900 bg-sea-900 text-cream-50"
+                  : "border-cream-200 bg-white text-ink-700"
               }`}
             >
-              <span className="text-xl" aria-hidden>
-                {emoji}
-              </span>
-              {label}
+              <CategoryIcon category={id} size={20} />
+              {t(`trip.categories.${id}`)}
             </button>
           ))}
         </div>
@@ -423,14 +431,14 @@ export default function NewPlacePage() {
 
       {imported && summary && (
         <div className="space-y-3">
-          {textField("תיאור", summary, setSummary, { multiline: true })}
+          {textField(t("trip.newPlace.fields.summary"), summary, setSummary, { multiline: true })}
           {reviewsSummary &&
-            textField("מה אומרים בביקורות", reviewsSummary, setReviewsSummary, {
+            textField(t("trip.place.fields.reviews"), reviewsSummary, setReviewsSummary, {
               multiline: true,
             })}
           {popularDishes &&
-            textField("מנות מומלצות", popularDishes, setPopularDishes)}
-          {tips && textField("טיפים", tips, setTips, { multiline: true })}
+            textField(t("trip.place.fields.dishes"), popularDishes, setPopularDishes)}
+          {tips && textField(t("trip.place.fields.tips"), tips, setTips, { multiline: true })}
         </div>
       )}
 
@@ -439,19 +447,21 @@ export default function NewPlacePage() {
         className="rounded-2xl border border-cream-200 bg-white px-4 py-3"
       >
         <summary className="cursor-pointer text-sm font-medium text-ink-700">
-          פרטים נוספים {imported ? "" : "(לא חובה)"}
+          {imported ? t("trip.newPlace.moreDetails") : t("trip.newPlace.moreDetailsOptional")}
         </summary>
         <div className="mt-3 space-y-3">
-          {textField("אזור", area, setArea, { placeholder: "למשל: טאורמינה" })}
-          {textField("כתובת", address, setAddress)}
-          {textField("שעות פתיחה", openingHours, setOpeningHours)}
-          {textField("מחירים", priceNotes, setPriceNotes)}
-          {textField("אתר", website, setWebsite, {
+          {textField(t("trip.newPlace.fields.area"), area, setArea, {
+            placeholder: t("trip.newPlace.fields.areaPlaceholder"),
+          })}
+          {textField(t("trip.place.fields.address"), address, setAddress)}
+          {textField(t("trip.place.fields.openingHours"), openingHours, setOpeningHours)}
+          {textField(t("trip.newPlace.fields.prices"), priceNotes, setPriceNotes)}
+          {textField(t("trip.newPlace.fields.website"), website, setWebsite, {
             ltr: true,
             placeholder: "https://…",
           })}
-          {textField("קישור הזמנה", bookingUrl, setBookingUrl, { ltr: true })}
-          {textField("קישור לתמונה", imageUrl, setImageUrl, { ltr: true })}
+          {textField(t("trip.newPlace.fields.bookingUrl"), bookingUrl, setBookingUrl, { ltr: true })}
+          {textField(t("trip.newPlace.fields.imageUrl"), imageUrl, setImageUrl, { ltr: true })}
         </div>
       </details>
 
@@ -464,9 +474,9 @@ export default function NewPlacePage() {
       <button
         type="submit"
         disabled={saving || !name.trim()}
-        className="w-full rounded-2xl bg-sea-600 py-3.5 text-lg font-semibold text-cream-50 transition active:scale-[0.98] disabled:opacity-50"
+        className="btn-primary w-full py-3.5 text-base"
       >
-        {saving ? "שומר…" : "שמור מקום"}
+        {saving ? t("common.saving") : t("trip.newPlace.submit")}
       </button>
     </form>
   );

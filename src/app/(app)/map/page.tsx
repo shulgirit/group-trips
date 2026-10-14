@@ -5,40 +5,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  BedDouble,
-  LocateFixed,
-  Radio,
-  Binoculars,
-  FerrisWheel,
+  CalendarCheck,
   Home,
-  IceCreamCone,
+  LocateFixed,
+  Map as MapIcon,
   MapPin as MapPinIcon,
-  ShoppingBag,
-  ShoppingCart,
-  SquareParking,
-  Utensils,
-  Volleyball,
-  Waves,
-  type LucideIcon,
+  MapPinned,
+  Radio,
+  X,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
 import { resolveHomeBase } from "@/lib/home-base";
 import { todayIso } from "@/lib/trip";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
+import type { Place, PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFamilies } from "@/lib/hooks";
 import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
 import { SHARE_DURATIONS, useSharedLocations } from "@/lib/shared-location";
+import { CATEGORY_ICON, CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useLocale, useT } from "@/i18n";
+import { activeLocale, tActive } from "@/i18n/active";
+import { intlLocale } from "@/i18n/format";
 
 const FAMILY_HEX: Record<string, string> = {
-  sea: "#1e81a3",
-  terra: "#bf653c",
-  lemon: "#dfae38",
-  olive: "#757d4d",
+  sea: "#3a4c66",
+  terra: "#9c5a43",
+  lemon: "#a8865a",
+  olive: "#5e7f7a",
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -52,13 +49,13 @@ declare global {
 
 
 const FILTERS = [
-  { id: "scheduled", label: "בלוח" },
-  { id: "all", label: "הכל" },
-  { id: "attractions", label: "אטרקציות" },
-  { id: "food", label: "אוכל" },
-  { id: "beach", label: "חופים" },
-  { id: "stay", label: "לינה" },
-  { id: "unscheduled", label: "לא שובץ" },
+  { id: "scheduled" },
+  { id: "all" },
+  { id: "attractions" },
+  { id: "food" },
+  { id: "beach" },
+  { id: "stay" },
+  { id: "unscheduled" },
 ] as const;
 
 type FilterId = (typeof FILTERS)[number]["id"];
@@ -80,33 +77,33 @@ function categoryMatches(category: PlaceCategory, filter: FilterId): boolean {
   }
 }
 
-/* Branded vector map pins — pin silhouette in the category color with a
-   clean white icon, replacing the default red pin + emoji. */
-const CATEGORY_MARKER: Record<
-  PlaceCategory,
-  { color: string; Icon: LucideIcon }
-> = {
-  attraction: { color: "#1e81a3", Icon: FerrisWheel },
-  restaurant: { color: "#bf653c", Icon: Utensils },
-  beach: { color: "#47a5c4", Icon: Waves },
-  icecream: { color: "#dfae38", Icon: IceCreamCone },
-  shopping: { color: "#a5502d", Icon: ShoppingBag },
-  supermarket: { color: "#757d4d", Icon: ShoppingCart },
-  viewpoint: { color: "#c9932a", Icon: Binoculars },
-  parking: { color: "#0f4f6b", Icon: SquareParking },
-  accommodation: { color: "#5c7d54", Icon: BedDouble },
-  sport: { color: "#14627f", Icon: Volleyball },
-  other: { color: "#776d5c", Icon: MapPinIcon },
+/* Vector map pins — pin silhouette in a quiet category tone with a clean
+   ivory icon (icons shared with the rest of the app via CATEGORY_ICON). */
+const CATEGORY_COLOR: Record<PlaceCategory, string> = {
+  attraction: "#16243a",
+  restaurant: "#9c5a43",
+  beach: "#3a4c66",
+  icecream: "#a8865a",
+  shopping: "#8a4c37",
+  supermarket: "#5e7f7a",
+  viewpoint: "#a8865a",
+  parking: "#6b6a66",
+  accommodation: "#5e7f7a",
+  sport: "#22324a",
+  other: "#6b7a90",
 };
 
 function markerIconFor(category: PlaceCategory, isVilla: boolean) {
   const { color, Icon } = isVilla
-    ? { color: "#b05a38", Icon: Home }
-    : (CATEGORY_MARKER[category] ?? CATEGORY_MARKER.other);
+    ? { color: "#a8865a", Icon: Home }
+    : {
+        color: CATEGORY_COLOR[category] ?? CATEGORY_COLOR.other,
+        Icon: CATEGORY_ICON[category] ?? MapPinIcon,
+      };
   const glyph = renderToStaticMarkup(
-    <Icon size={14} color="#ffffff" strokeWidth={2.4} />
+    <Icon size={14} color="#f7f5f0" strokeWidth={2} />
   ).replace("<svg", '<svg x="10" y="8.5"');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44"><path d="M17 42.5C17 42.5 3.5 25.5 3.5 15.5A13.5 13.5 0 1 1 30.5 15.5C30.5 25.5 17 42.5 17 42.5Z" fill="${color}" stroke="#fbf8f1" stroke-width="2.4"/>${glyph}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44"><path d="M17 42.5C17 42.5 3.5 25.5 3.5 15.5A13.5 13.5 0 1 1 30.5 15.5C30.5 25.5 17 42.5 17 42.5Z" fill="${color}" stroke="#f7f5f0" stroke-width="2"/>${glyph}</svg>`;
   const size = isVilla ? { w: 46, h: 60 } : { w: 34, h: 44 };
   return {
     url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
@@ -128,7 +125,7 @@ function loadGoogleMaps(onReady: () => void): void {
   window.__initTripMap = onReady;
   const script = document.createElement("script");
   script.id = "gmaps-script";
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&callback=__initTripMap&language=he`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&callback=__initTripMap&language=${activeLocale()}`;
   script.async = true;
   document.head.appendChild(script);
 }
@@ -136,6 +133,8 @@ function loadGoogleMaps(onReady: () => void): void {
 export default function MapPage() {
   const trip = useTrip();
   const { prefix } = trip;
+  const t = useT();
+  const { locale } = useLocale();
   const { places, loading } = usePlaces();
   // Home pin follows the current hotel (multi-hotel trips switch mid-trip)
   const homeBaseId = useMemo(
@@ -283,7 +282,7 @@ export default function MapPage() {
         strokeOpacity: 0,
         icons: [
           {
-            icon: { path: "M 0,-1 0,1", strokeOpacity: 0.7, strokeColor: "#0f4f6b", scale: 3 },
+            icon: { path: "M 0,-1 0,1", strokeOpacity: 0.6, strokeColor: "#16243a", scale: 2.5 },
             offset: "0",
             repeat: "14px",
           },
@@ -297,13 +296,13 @@ export default function MapPage() {
             position: { lat: stop.lat, lng: stop.lng },
             zIndex: 500,
             title: `${index + 1}. ${stop.label}`,
-            label: { text: String(index + 1), color: "#ffffff", fontWeight: "700", fontSize: "12px" },
+            label: { text: String(index + 1), color: "#f7f5f0", fontWeight: "500", fontSize: "12px" },
             icon: {
               path: window.google.maps.SymbolPath.CIRCLE,
               scale: 11,
-              fillColor: "#0b2e40",
-              fillOpacity: 0.9,
-              strokeColor: "#fbf8f1",
+              fillColor: "#0f1b2d",
+              fillOpacity: 0.92,
+              strokeColor: "#f7f5f0",
               strokeWeight: 2,
             },
           })
@@ -328,7 +327,7 @@ export default function MapPage() {
         map,
         position,
         zIndex: 2000,
-        title: "אני",
+        title: tActive("trip.map.me"),
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
           scale: 8,
@@ -366,17 +365,17 @@ export default function MapPage() {
     othersRef.current.forEach((marker) => marker.setMap(null));
     othersRef.current = shared.others.map((other) => {
       const color =
-        FAMILY_HEX[families?.find((f) => f.id === other.familyId)?.color ?? ""] ?? "#14627f";
+        FAMILY_HEX[families?.find((f) => f.id === other.familyId)?.color ?? ""] ?? "#3a4c66";
       const minutes = Math.max(0, Math.round((Date.now() - other.updatedAt) / 60_000));
       return new window.google.maps.Marker({
         map,
         position: { lat: other.lat, lng: other.lng },
         zIndex: 1500,
-        title: `${other.name} · לפני ${minutes} דק׳`,
+        title: t("trip.map.otherAgo", { name: other.name, minutes }),
         label: {
           text: (other.name || "?").slice(0, 1),
           color: "#ffffff",
-          fontWeight: "700",
+          fontWeight: "500",
           fontSize: "13px",
         },
         icon: {
@@ -389,7 +388,7 @@ export default function MapPage() {
         },
       });
     });
-  }, [mapReady, shared.others, families]);
+  }, [mapReady, shared.others, families, t]);
 
   function locateMe() {
     followRef.current = true;
@@ -406,27 +405,24 @@ export default function MapPage() {
       ? formatDistance(distanceMeters(fix, { lat: selected.lat, lng: selected.lng }))
       : null;
 
-  const selectedCategory = selected
-    ? (PLACE_CATEGORIES[selected.category] ?? PLACE_CATEGORIES.other)
-    : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
-        <p className="kicker text-terra-500">{trip.legacy ? "האי שלנו" : trip.shortName}</p>
-        <h1 className="font-display text-3xl font-normal text-ink-900">מפה</h1>
+        <p className="kicker text-ink-500">{trip.legacy ? t("trip.map.kickerLegacy") : trip.shortName}</p>
+        <h1 className="mt-1 font-display text-3xl font-light text-ink-900">{t("trip.map.title")}</h1>
       </div>
 
       <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
-          {FILTERS.map(({ id, label }) => (
+          {FILTERS.map(({ id }) => (
             <button
               key={id}
               type="button"
               onClick={() => setFilter(id)}
               className={`chip ${filter === id ? "chip-active" : ""}`}
             >
-              {label}
+              {t(`trip.map.filters.${id}`)}
             </button>
           ))}
         </div>
@@ -434,21 +430,21 @@ export default function MapPage() {
 
       {mapFailed ? (
         <EmptyState
-          emoji="🗺️"
-          title="המפה לא נטענה"
-          description="עדיין אפשר לנווט לכל מקום מתוך דף המקום עצמו"
+          icon={MapIcon}
+          title={t("trip.map.failedTitle")}
+          description={t("trip.map.failedDescription")}
           action={
             <Link href={`${prefix}/places`} className="btn-primary px-5 py-2.5 text-sm">
-              לרשימת המקומות
+              {t("trip.map.toPlaces")}
             </Link>
           }
         />
       ) : (
-        <div className="relative -mx-4 h-[64dvh] overflow-hidden bg-sea-100 md:mx-0 md:rounded-[2rem] md:border md:border-cream-200">
+        <div className="relative -mx-4 h-[64dvh] overflow-hidden bg-cream-100 md:mx-0 md:rounded-2xl md:border md:border-cream-200">
           <div ref={containerRef} className="h-full w-full" />
           {!mapReady && (
             <div className="absolute inset-0 flex items-center justify-center text-ink-500">
-              טוען מפה…
+              {t("trip.map.loading")}
             </div>
           )}
 
@@ -458,35 +454,41 @@ export default function MapPage() {
               <button
                 type="button"
                 onClick={locateMe}
-                aria-label="המיקום שלי"
-                className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-[var(--shadow-float)] transition active:scale-95 ${
+                aria-label={t("trip.map.myLocation")}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border border-cream-200 bg-white shadow-[var(--shadow-float)] transition active:scale-95 ${
                   locationStatus === "on" ? "text-[#1a73e8]" : "text-ink-700"
                 }`}
               >
-                <LocateFixed className={`h-5 w-5 ${locationStatus === "asking" ? "animate-pulse" : ""}`} />
+                <LocateFixed size={20} strokeWidth={STROKE} aria-hidden className={locationStatus === "asking" ? "animate-pulse" : ""} />
               </button>
               {personal && (
                 <button
                   type="button"
                   onClick={() => setShareOpen(true)}
-                  aria-label="שיתוף מיקום עם החבורה"
-                  className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-[var(--shadow-float)] transition active:scale-95 ${
-                    shared.sharing ? "bg-terra-500 text-cream-50" : "bg-white text-ink-700"
+                  aria-label={t("trip.share.aria")}
+                  aria-pressed={shared.sharing}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border shadow-[var(--shadow-float)] transition active:scale-95 ${
+                    shared.sharing
+                      ? "border-sea-900 bg-sea-900 text-lemon-200"
+                      : "border-cream-200 bg-white text-ink-700"
                   }`}
                 >
-                  <Radio className="h-5 w-5" />
+                  <Radio size={20} strokeWidth={STROKE} aria-hidden />
                 </button>
               )}
             </div>
           )}
           {locationStatus === "denied" && (
             <p className="card absolute inset-x-3 top-3 me-16 px-3 py-2 text-xs text-ink-700">
-              אין הרשאת מיקום — אפשרו אותה בהגדרות הדפדפן/הטלפון
+              {t("trip.map.locationDenied")}
             </p>
           )}
           {shared.others.length > 0 && !selected && (
-            <p className="absolute bottom-3 start-3 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-700 shadow">
-              📡 {shared.others.map((o) => o.name.split(" ")[0]).join(", ")} משתפים מיקום
+            <p className="absolute bottom-3 start-3 flex items-center gap-1.5 rounded-full border border-cream-200 bg-white/90 px-3 py-1.5 text-xs text-ink-700 backdrop-blur">
+              <Radio size={13} strokeWidth={STROKE} aria-hidden className="text-sea-700" />
+              {t("trip.map.othersSharing", {
+                names: shared.others.map((o) => o.name.split(" ")[0]).join(", "),
+              })}
             </p>
           )}
 
@@ -504,30 +506,38 @@ export default function MapPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center bg-gradient-to-b from-sea-100 to-cream-100 text-3xl">
-                      {selectedCategory?.emoji}
+                    <div className="flex h-full items-center justify-center bg-cream-100 text-sea-700">
+                      <CategoryIcon category={selected.category} size={26} />
                     </div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1 px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate font-display text-lg font-medium text-ink-900">
+                    <p className="truncate font-display text-lg font-normal text-ink-900">
                       {selected.name}
                     </p>
                     <button
                       type="button"
                       onClick={() => setSelected(null)}
-                      aria-label="סגירה"
+                      aria-label={t("common.close")}
                       className="px-1 text-ink-300"
                     >
-                      ✕
+                      <X size={16} strokeWidth={STROKE} aria-hidden />
                     </button>
                   </div>
-                  <p className="text-sm text-ink-500">
-                    {selectedCategory?.label}
-                    {selected.area ? ` · ${selected.area}` : ""}
-                    {scheduledIds.has(selected.id) ? " · 📅 בלוח" : ""}
-                    {selectedDistance ? ` · ${selectedDistance} ממך` : ""}
+                  <p className="flex flex-wrap items-center gap-x-1 text-sm text-ink-500">
+                    <span>{t(`trip.categories.${selected.category}`)}</span>
+                    {selected.area ? <span>· {selected.area}</span> : null}
+                    {scheduledIds.has(selected.id) ? (
+                      <span className="inline-flex items-center gap-1">
+                        ·
+                        <CalendarCheck size={12} strokeWidth={STROKE} aria-hidden />
+                        {t("trip.placeCard.scheduled")}
+                      </span>
+                    ) : null}
+                    {selectedDistance ? (
+                      <span>· {t("trip.map.fromYou", { distance: selectedDistance })}</span>
+                    ) : null}
                   </p>
                   <div className="mt-2 flex gap-2">
                     <a
@@ -536,22 +546,22 @@ export default function MapPage() {
                       rel="noopener noreferrer"
                       className="btn-primary flex-1 py-2 text-sm"
                     >
-                      נווט
+                      {t("trip.home.navigate")}
                     </a>
                     <a
                       href={googleMapsUrl(selected)}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Google Maps"
-                      className="btn-soft px-3 py-2 text-sm"
+                      className="btn-outline px-3 py-2 text-sm"
                     >
-                      🗺️
+                      <MapIcon size={16} strokeWidth={STROKE} aria-hidden />
                     </a>
                     <Link
                       href={`${prefix}/places/${selected.id}`}
-                      className="btn-soft flex-1 py-2 text-sm"
+                      className="btn-outline flex-1 py-2 text-sm"
                     >
-                      פרטים
+                      {t("trip.home.details")}
                     </Link>
                   </div>
                 </div>
@@ -564,20 +574,20 @@ export default function MapPage() {
       <BottomSheet
         open={shareOpen}
         onClose={() => setShareOpen(false)}
-        title="📡 שיתוף מיקום עם החבורה"
+        title={t("trip.share.title")}
       >
         <div className="space-y-4">
           <p className="text-sm leading-relaxed text-ink-500">
-            החבורה תראה אתכם על המפה — רק לזמן שתבחרו, ורק כשהאפליקציה פתוחה.
-            אפשר להפסיק בכל רגע.
+            {t("trip.share.description")}
           </p>
           {shared.sharing ? (
             <>
-              <p className="rounded-2xl bg-terra-100 px-4 py-3 text-sm font-medium text-terra-600">
-                משתפים עד{" "}
-                {new Date(shared.expiresAt!).toLocaleTimeString("he-IL", {
-                  hour: "2-digit",
-                  minute: "2-digit",
+              <p className="rounded-xl border border-lemon-300 px-4 py-3 text-sm text-ink-700">
+                {t("trip.share.sharingUntil", {
+                  time: new Date(shared.expiresAt!).toLocaleTimeString(intlLocale(locale), {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
                 })}
               </p>
               <button
@@ -585,7 +595,7 @@ export default function MapPage() {
                 onClick={() => shared.stopSharing().then(() => setShareOpen(false))}
                 className="btn-outline w-full py-3"
               >
-                הפסקת שיתוף
+                {t("trip.share.stop")}
               </button>
             </>
           ) : !fix ? (
@@ -597,7 +607,7 @@ export default function MapPage() {
               }}
               className="btn-primary w-full py-3"
             >
-              {locationStatus === "asking" ? "מאתרים…" : "הפעלת מיקום"}
+              {locationStatus === "asking" ? t("trip.share.locating") : t("trip.share.enableLocation")}
             </button>
           ) : (
             <div className="grid grid-cols-3 gap-2">
@@ -608,9 +618,9 @@ export default function MapPage() {
                   onClick={() =>
                     shared.startSharing(duration.id, fix).then(() => setShareOpen(false))
                   }
-                  className="btn-soft py-3 text-sm"
+                  className="btn-outline py-3 text-sm"
                 >
-                  {duration.label}
+                  {t(duration.labelKey)}
                 </button>
               ))}
             </div>
@@ -619,9 +629,9 @@ export default function MapPage() {
       </BottomSheet>
 
       {!loading && missingCoordsCount > 0 && (
-        <p className="text-sm text-ink-500">
-          📍 {missingCoordsCount} מקומות בלי מיקום מדויק עדיין — הם לא מוצגים על
-          המפה, אבל הניווט אליהם עובד מדף המקום
+        <p className="flex items-start gap-2 text-sm text-ink-500">
+          <MapPinned size={16} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0" />
+          {t("trip.map.missingCoords", { count: missingCoordsCount })}
         </p>
       )}
     </div>

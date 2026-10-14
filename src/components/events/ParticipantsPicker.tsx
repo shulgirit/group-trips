@@ -3,7 +3,7 @@
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
 import type { Family, Participants } from "@/types";
-
+import { useT } from "@/i18n";
 
 export function ParticipantsPicker({
   value,
@@ -16,10 +16,11 @@ export function ParticipantsPicker({
 }) {
   const { profile } = useFirebase();
   const { group } = useTrip();
+  const t = useT();
   const modes = [
-    { type: "all", label: "כולם" },
+    { type: "all", label: t("common.everyone") },
     { type: "families", label: group.unitLabel },
-    { type: "members", label: "מותאם אישית" },
+    { type: "members", label: t("trip.participants.custom") },
   ] as const;
 
   function switchMode(type: Participants["type"]) {
@@ -59,11 +60,7 @@ export function ParticipantsPicker({
             key={mode.type}
             type="button"
             onClick={() => switchMode(mode.type)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              value.type === mode.type
-                ? "bg-sea-600 text-cream-50"
-                : "bg-cream-100 text-ink-500"
-            }`}
+            className={`chip ${value.type === mode.type ? "chip-active" : ""}`}
           >
             {mode.label}
           </button>
@@ -77,10 +74,10 @@ export function ParticipantsPicker({
               key={family.id}
               type="button"
               onClick={() => toggleFamily(family.id)}
-              className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+              className={`rounded-xl border px-4 py-2.5 text-sm transition ${
                 value.familyIds.includes(family.id)
-                  ? "bg-terra-500 text-cream-50"
-                  : "bg-cream-100 text-ink-700"
+                  ? "border-sea-900 bg-sea-900 text-cream-50"
+                  : "border-cream-200 bg-white text-ink-700"
               }`}
             >
               {family.name}
@@ -93,7 +90,7 @@ export function ParticipantsPicker({
         <div className="mt-3 space-y-3">
           {families.map((family) => (
             <div key={family.id}>
-              <p className="mb-1.5 text-sm font-medium text-ink-500">
+              <p className="mb-1.5 text-sm text-ink-500">
                 {family.name}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -102,10 +99,10 @@ export function ParticipantsPicker({
                     key={member.id}
                     type="button"
                     onClick={() => toggleMember(member.id)}
-                    className={`rounded-full px-3.5 py-2 text-sm transition ${
+                    className={`rounded-full border px-3.5 py-2 text-sm transition ${
                       value.memberIds.includes(member.id)
-                        ? "bg-terra-500 font-medium text-cream-50"
-                        : "bg-cream-100 text-ink-700"
+                        ? "border-sea-900 bg-sea-900 text-cream-50"
+                        : "border-cream-200 bg-white text-ink-700"
                     }`}
                   >
                     {member.name}

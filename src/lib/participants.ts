@@ -1,4 +1,8 @@
 import type { Family, Participants } from "@/types";
+import { tActive } from "@/i18n/active";
+
+/** Stored family names are Hebrew data ("Mishpachat X") — show just "X". */
+const FAMILY_PREFIX = "\u05DE\u05E9\u05E4\u05D7\u05EA ";
 
 export function participantsLabel(
   participants: Participants,
@@ -6,19 +10,19 @@ export function participantsLabel(
 ): string {
   switch (participants.type) {
     case "all":
-      return "כולם";
+      return tActive("common.everyone");
     case "families": {
       const names = participants.familyIds
-        .map((id) => families.find((f) => f.id === id)?.name.replace("משפחת ", ""))
+        .map((id) => families.find((f) => f.id === id)?.name.replace(FAMILY_PREFIX, ""))
         .filter(Boolean);
-      return names.length ? names.join(" · ") : "משפחות";
+      return names.length ? names.join(" · ") : tActive("trip.participants.families");
     }
     case "members": {
       const memberNames = families
         .flatMap((f) => f.members)
         .filter((m) => participants.memberIds.includes(m.id))
         .map((m) => m.name);
-      if (!memberNames.length) return "משתתפים";
+      if (!memberNames.length) return tActive("trip.participants.members");
       return memberNames.length > 3
         ? `${memberNames.slice(0, 3).join(", ")} +${memberNames.length - 3}`
         : memberNames.join(", ");

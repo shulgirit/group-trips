@@ -2,23 +2,25 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarCheck, Heart } from "lucide-react";
-import { PLACE_CATEGORIES, type Place, type PlaceCategory } from "@/types";
+import { CalendarCheck, Heart, MapPin } from "lucide-react";
+import type { Place, PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
+import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 
-/** Category-tinted fallback art for places without photography */
+/** Quiet, category-tinted fallback fields for places without photography */
 const CATEGORY_TONES: Record<PlaceCategory, string> = {
-  attraction: "from-sea-500 to-sea-800",
-  restaurant: "from-terra-400 to-terra-600",
-  beach: "from-sea-400 to-sea-700",
-  icecream: "from-lemon-300 to-terra-400",
-  shopping: "from-terra-400 to-sea-700",
-  supermarket: "from-olive-500 to-sea-800",
-  viewpoint: "from-lemon-400 to-terra-600",
-  parking: "from-ink-500 to-sea-900",
-  accommodation: "from-olive-500 to-sea-700",
-  sport: "from-sea-500 to-olive-500",
-  other: "from-sea-600 to-sea-900",
+  attraction: "bg-sea-900",
+  restaurant: "bg-sea-900",
+  beach: "bg-sea-700",
+  icecream: "bg-sea-700",
+  shopping: "bg-sea-900",
+  supermarket: "bg-olive-500",
+  viewpoint: "bg-sea-900",
+  parking: "bg-ink-500",
+  accommodation: "bg-olive-500",
+  sport: "bg-sea-700",
+  other: "bg-sea-900",
 };
 
 export function PlaceCard({
@@ -28,11 +30,13 @@ export function PlaceCard({
 }: {
   place: Place;
   scheduled: boolean;
-  /** "1.2 ק״מ" when sorting by distance from the user */
+  /** "1.2 km" when sorting by distance from the user */
   distanceLabel?: string | null;
 }) {
   const { prefix } = useTrip();
-  const category = PLACE_CATEGORIES[place.category] ?? PLACE_CATEGORIES.other;
+  const t = useT();
+  const categoryKey: PlaceCategory = place.category in CATEGORY_TONES ? place.category : "other";
+  const categoryLabel = t(`trip.categories.${categoryKey}`);
 
   return (
     <Link
@@ -49,51 +53,52 @@ export function PlaceCard({
             className="object-cover"
           />
         ) : (
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${
-              CATEGORY_TONES[place.category] ?? CATEGORY_TONES.other
-            }`}
-          >
-            <span className="absolute inset-0 flex items-center justify-center text-5xl opacity-75">
-              {category.emoji}
+          <div className={`absolute inset-0 ${CATEGORY_TONES[categoryKey]}`}>
+            <span className="absolute inset-0 flex items-center justify-center text-cream-50/60">
+              <CategoryIcon category={categoryKey} size={40} strokeWidth={1.25} />
             </span>
           </div>
         )}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-sea-950/60 to-transparent"
+          className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-sea-950/65 to-transparent"
         />
         {/* Category chip */}
-        <span className="absolute right-3 top-3 rounded-full bg-cream-50/90 px-3 py-1 text-xs font-semibold text-ink-700 backdrop-blur">
-          {category.emoji} {category.label}
+        <span className="absolute start-3 top-3 flex items-center gap-1.5 rounded-full bg-cream-50/90 px-3 py-1 text-xs font-medium text-ink-700 backdrop-blur">
+          <CategoryIcon category={categoryKey} size={13} />
+          {categoryLabel}
         </span>
         {place.favorite && (
-          <span className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 backdrop-blur">
-            <Heart size={15} className="fill-terra-500 text-terra-500" />
+          <span className="absolute end-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 backdrop-blur">
+            <Heart size={15} strokeWidth={STROKE} aria-hidden className="fill-terra-500 text-terra-500" />
           </span>
         )}
         {/* Name over image */}
         <div className="absolute inset-x-0 bottom-0 px-4 pb-2.5">
-          <h3 className="truncate font-display text-xl font-medium text-cream-50">
+          <h3 className="truncate font-display text-xl font-light text-cream-50">
             {place.name}
           </h3>
         </div>
       </div>
-      <div className="flex items-center justify-between px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
         <p className="truncate text-sm text-ink-500">
           {distanceLabel ? (
-            <span className="font-semibold text-sea-700">📍 {distanceLabel} · </span>
+            <span className="inline-flex items-center gap-1 font-medium text-sea-700">
+              <MapPin size={12} strokeWidth={STROKE} aria-hidden />
+              {distanceLabel}
+              <span className="text-ink-300"> · </span>
+            </span>
           ) : null}
-          {place.area || category.label}
+          {place.area || categoryLabel}
         </p>
         {scheduled ? (
-          <span className="flex items-center gap-1 rounded-full bg-sea-100 px-2.5 py-1 text-xs font-semibold text-sea-700">
-            <CalendarCheck size={12} />
-            בלוח
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-sea-200 px-2.5 py-1 text-xs font-medium text-sea-700">
+            <CalendarCheck size={12} strokeWidth={STROKE} aria-hidden />
+            {t("trip.placeCard.scheduled")}
           </span>
         ) : (
-          <span className="rounded-full bg-lemon-100 px-2.5 py-1 text-xs font-medium text-ink-500">
-            עוד לא שובץ
+          <span className="shrink-0 rounded-full border border-cream-200 px-2.5 py-1 text-xs text-ink-500">
+            {t("trip.placeCard.notScheduled")}
           </span>
         )}
       </div>

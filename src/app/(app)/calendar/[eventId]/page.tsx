@@ -3,17 +3,18 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Trash2 } from "lucide-react";
+import { CalendarX, ChevronLeft, Trash2 } from "lucide-react";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
+import { EventGlyphPicker } from "@/components/events/EventGlyphPicker";
+import { STROKE } from "@/components/ui/Icon";
+import { useDayLabel, useT } from "@/i18n";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deleteEvent, updateEvent } from "@/lib/db";
 import { useDocData, useFamilies, usePlaces } from "@/lib/hooks";
 import { useTrip } from "@/components/providers/TripProvider";
-import { formatDayLabel, todayIso, tripDays } from "@/lib/trip";
+import { todayIso, tripDays } from "@/lib/trip";
 import type { Participants, TripEvent } from "@/types";
-
-const EMOJI_OPTIONS = ["🍝", "🏖️", "🏊", "⚽", "🛒", "🚗", "🏡", "🎉", "☕", "✈️"];
 
 export default function EditEventPage({
   params,
@@ -21,6 +22,8 @@ export default function EditEventPage({
   params: Promise<{ eventId: string }>;
 }) {
   const { prefix } = useTrip();
+  const t = useT();
+  const formatDayLabel = useDayLabel();
   const { eventId } = use(params);
   const router = useRouter();
   const days = tripDays(useTrip());
@@ -66,12 +69,12 @@ export default function EditEventPage({
   if (!event) {
     return (
       <EmptyState
-        emoji="🤷"
-        title="האירוע לא נמצא"
-        description="אולי הוא נמחק"
+        icon={CalendarX}
+        title={t("trip.eventForm.notFoundTitle")}
+        description={t("trip.eventForm.notFoundDescription")}
         action={
           <Link href={`${prefix}/calendar`} className="btn-primary px-5 py-2.5 text-sm">
-            ללוח הטיול
+            {t("trip.eventForm.toSchedule")}
           </Link>
         }
       />
@@ -100,7 +103,7 @@ export default function EditEventPage({
       });
       router.push(`${prefix}/calendar`);
     } catch {
-      setError("השמירה נכשלה, נסו שוב");
+      setError(t("common.errors.saveFailed"));
       setSaving(false);
     }
   }
@@ -116,19 +119,19 @@ export default function EditEventPage({
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="חזרה"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-cream-100 text-ink-700"
+          aria-label={t("common.back")}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 text-ink-700"
         >
-          <ChevronRight size={20} />
+          <ChevronLeft size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
         </button>
-        <h1 className="font-display text-2xl font-normal text-ink-900">
-          עריכת אירוע
+        <h1 className="font-display text-2xl font-light text-ink-900">
+          {t("trip.eventForm.editTitle")}
         </h1>
       </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          מה עושים? *
+          {t("trip.eventForm.what")}
         </span>
         <input
           type="text"
@@ -140,33 +143,20 @@ export default function EditEventPage({
       </label>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">אימוג׳י</p>
-        <div className="flex flex-wrap gap-2">
-          {EMOJI_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setEmoji(emoji === option ? "" : option)}
-              className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl transition ${
-                emoji === option ? "bg-sea-700" : "bg-cream-100"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.eventForm.icon")}</p>
+        <EventGlyphPicker value={emoji} onChange={setEmoji} />
       </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          מקום מקושר (קובע גם את התמונה)
+          {t("trip.eventForm.linkedPlace")}
         </span>
         <select
           value={placeId}
           onChange={(e) => setPlaceId(e.target.value)}
           className="field"
         >
-          <option value="">בלי מקום</option>
+          <option value="">{t("trip.eventForm.noPlace")}</option>
           {places?.map((place) => (
             <option key={place.id} value={place.id}>
               {place.name}
@@ -176,7 +166,7 @@ export default function EditEventPage({
       </label>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">באיזה יום?</p>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whichDay")}</p>
         <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
           <div className="flex w-max gap-2 pb-1">
             {days.map((d) => (
@@ -187,7 +177,7 @@ export default function EditEventPage({
                 className={`chip ${day === d ? "chip-active" : ""}`}
               >
                 {formatDayLabel(d)}
-                {d === today && " · היום"}
+                {d === today && ` · ${t("common.today")}`}
               </button>
             ))}
           </div>
@@ -197,7 +187,7 @@ export default function EditEventPage({
       <div className="flex gap-3">
         <label className="flex-1">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            שעה
+            {t("trip.schedule.time")}
           </span>
           <input
             type="time"
@@ -208,7 +198,7 @@ export default function EditEventPage({
         </label>
         <label className="flex-1">
           <span className="mb-2 block text-sm font-medium text-ink-700">
-            משך (דקות)
+            {t("trip.eventForm.durationMinutes")}
           </span>
           <input
             type="number"
@@ -218,14 +208,14 @@ export default function EditEventPage({
             onChange={(e) =>
               setDurationMin(e.target.value ? Number(e.target.value) : null)
             }
-            placeholder="פתוח"
+            placeholder={t("trip.eventForm.open")}
             className="field"
           />
         </label>
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-700">מי מגיע?</p>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.schedule.whoComes")}</p>
         {families ? (
           <ParticipantsPicker
             value={participants}
@@ -233,13 +223,13 @@ export default function EditEventPage({
             families={families}
           />
         ) : (
-          <p className="text-sm text-ink-500">טוען משפחות…</p>
+          <p className="text-sm text-ink-500">{t("common.loading")}</p>
         )}
       </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
-          הערות
+          {t("trip.eventForm.notes")}
         </span>
         <input
           type="text"
@@ -258,9 +248,9 @@ export default function EditEventPage({
       <button
         type="submit"
         disabled={saving || !title.trim() || participantsInvalid}
-        className="btn-primary w-full py-3.5 text-lg"
+        className="btn-primary w-full py-3.5 text-base"
       >
-        {saving ? "שומר…" : "שמירת שינויים"}
+        {saving ? t("common.saving") : t("trip.eventForm.saveChanges")}
       </button>
 
       <div className="pt-1 text-center">
@@ -271,24 +261,24 @@ export default function EditEventPage({
               onClick={handleDelete}
               className="btn bg-terra-600 px-5 py-2.5 text-sm text-cream-50"
             >
-              כן, למחוק את האירוע
+              {t("trip.eventForm.confirmDelete")}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="btn-soft px-5 py-2.5 text-sm"
             >
-              ביטול
+              {t("common.cancel")}
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="btn inline-flex border border-terra-100 px-5 py-2.5 text-sm font-medium text-terra-600"
+            className="btn inline-flex border border-cream-200 px-5 py-2.5 text-sm text-terra-600"
           >
-            <Trash2 size={16} />
-            מחיקת האירוע
+            <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
+            {t("trip.eventForm.delete")}
           </button>
         )}
       </div>
