@@ -1,6 +1,6 @@
 /**
- * Together — brand mark: two routes converging into one path, meeting at
- * a brass node. Strokes use currentColor so the mark follows its context.
+ * Together — brand mark: a T drawn as two routes that meet at a brass node
+ * and continue as one path. Strokes use currentColor so the mark follows its context.
  */
 
 const BRASS = "#A8865A";
@@ -26,12 +26,12 @@ export function LogoMark({
       aria-label={title}
     >
       <path
-        d="M9 6C9 19.5 24 21.5 24 30M39 6C39 19.5 24 21.5 24 30V43"
+        d="M6 12C14 12 20 13.5 24 19M42 12C34 12 28 13.5 24 19V42"
         stroke="currentColor"
         strokeWidth="2.6"
         strokeLinecap="round"
       />
-      <circle cx="24" cy="30" r="3.3" fill={BRASS} />
+      <circle cx="24" cy="19" r="3.3" fill={BRASS} />
     </svg>
   );
 }
