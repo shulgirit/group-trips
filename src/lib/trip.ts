@@ -1,3 +1,5 @@
+import { activeLocale } from "@/i18n/active";
+import { formatDayLabel as formatDay } from "@/i18n/format";
 /**
  * Static trip configuration (fallback/seed values).
  * The canonical copy lives in Firestore at trips/sicily-2026.
@@ -61,17 +63,7 @@ export function isDuringTrip(): boolean {
   return today >= TRIP.startDate && today <= TRIP.endDate;
 }
 
-const DAY_NAMES = [
-  "יום ראשון",
-  "יום שני",
-  "יום שלישי",
-  "יום רביעי",
-  "יום חמישי",
-  "יום שישי",
-  "שבת",
-] as const;
-
+/** "שבת · 15.8" / "Saturday · 15.8" in the active UI language. */
 export function formatDayLabel(dateIso: string): string {
-  const date = new Date(`${dateIso}T12:00:00`);
-  return `${DAY_NAMES[date.getDay()]} · ${date.getDate()}.${date.getMonth() + 1}`;
+  return formatDay(dateIso, activeLocale());
 }

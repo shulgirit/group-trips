@@ -1,3 +1,5 @@
+import { activeLocale } from "@/i18n/active";
+
 /** ISO 4217 code ("EUR", "THB", …). Legacy trips only ever use EUR/ILS/USD. */
 export type Currency = string;
 
@@ -5,16 +7,6 @@ export type Currency = string;
 export const CURRENCIES: readonly Currency[] = ["EUR", "ILS", "USD"];
 
 const KNOWN_SYMBOL: Record<string, string> = { EUR: "€", ILS: "₪", USD: "$" };
-const KNOWN_LABEL: Record<string, string> = {
-  EUR: "€ באירו",
-  ILS: "₪ בשקלים",
-  USD: "$ בדולרים",
-};
-const KNOWN_PAREN: Record<string, string> = {
-  EUR: "(אירו)",
-  ILS: "(שקלים)",
-  USD: "(דולרים)",
-};
 
 const symbolCache = new Map<string, string>();
 
@@ -43,18 +35,19 @@ export function currencySymbol(code: Currency): string {
 /** Hebrew currency name ("פרנק שווייצרי"). */
 export function currencyName(code: Currency): string {
   try {
-    return new Intl.DisplayNames(["he"], { type: "currency" }).of(code) ?? code;
+    return new Intl.DisplayNames([activeLocale()], { type: "currency" }).of(code) ?? code;
   } catch {
     return code;
   }
 }
 
+/** "€ Euro" / "€ אירו" */
 export function currencyLabel(code: Currency): string {
-  return KNOWN_LABEL[code] ?? `${currencySymbol(code)} ${currencyName(code)}`;
+  return `${currencySymbol(code)} ${currencyName(code)}`;
 }
 
 export function currencyParen(code: Currency): string {
-  return KNOWN_PAREN[code] ?? `(${currencyName(code)})`;
+  return `(${currencyName(code)})`;
 }
 
 /**

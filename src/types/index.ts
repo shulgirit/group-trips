@@ -1,17 +1,19 @@
 import type { Currency } from "@/lib/currency";
 
+/** Category keys. `label` is the Hebrew name used in AI prompts; the UI
+ *  shows t(`trip.categories.<key>`) and <CategoryIcon>. */
 export const PLACE_CATEGORIES = {
-  attraction: { label: "אטרקציה", emoji: "🎡" },
-  restaurant: { label: "מסעדה", emoji: "🍝" },
-  beach: { label: "חוף", emoji: "🏖️" },
-  icecream: { label: "גלידה", emoji: "🍦" },
-  shopping: { label: "קניות", emoji: "🛍️" },
-  supermarket: { label: "סופר", emoji: "🛒" },
-  viewpoint: { label: "תצפית", emoji: "🌅" },
-  parking: { label: "חניה", emoji: "🅿️" },
-  accommodation: { label: "לינה", emoji: "🏡" },
-  sport: { label: "ספורט", emoji: "⚽" },
-  other: { label: "אחר", emoji: "📌" },
+  attraction: { label: "אטרקציה" },
+  restaurant: { label: "מסעדה" },
+  beach: { label: "חוף" },
+  icecream: { label: "גלידה" },
+  shopping: { label: "קניות" },
+  supermarket: { label: "סופר" },
+  viewpoint: { label: "תצפית" },
+  parking: { label: "חניה" },
+  accommodation: { label: "לינה" },
+  sport: { label: "ספורט" },
+  other: { label: "אחר" },
 } as const;
 
 export type PlaceCategory = keyof typeof PLACE_CATEGORIES;
