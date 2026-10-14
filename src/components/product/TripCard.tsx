@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { Glyph } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+import { formatShortDate } from "@/i18n/format";
 import type { TripSummary } from "@/lib/my-trips";
 
 function daysUntil(dateIso: string, todayIso: string): number {
@@ -8,11 +13,6 @@ function daysUntil(dateIso: string, todayIso: string): number {
   );
 }
 
-function shortDate(iso: string) {
-  const [, m, d] = iso.split("-");
-  return `${Number(d)}.${Number(m)}`;
-}
-
 export function TripCard({
   trip,
   today,
@@ -20,25 +20,26 @@ export function TripCard({
   trip: TripSummary;
   today: string;
 }) {
+  const t = useT();
   const isDraft = trip.status === "draft";
   const days = daysUntil(trip.startDate, today);
   const badge = isDraft
-    ? { label: "טיוטה — להמשיך", className: "bg-lemon-100 text-ink-700" }
+    ? { label: t("product.card.draft"), className: "bg-cream-50 text-ink-700" }
     : trip.phase === "live"
-      ? { label: "● עכשיו בטיול", className: "bg-terra-500 text-cream-50" }
+      ? { label: t("product.card.live"), className: "bg-terra-500 text-cream-50", live: true }
       : trip.phase === "upcoming"
         ? {
-            label: days === 1 ? "מחר!" : `בעוד ${days} ימים`,
-            className: "bg-sea-100 text-sea-700",
+            label: days === 1 ? t("product.card.tomorrow") : t("product.card.inDays", { count: days }),
+            className: "bg-cream-50/90 text-sea-700",
           }
-        : { label: "זיכרונות", className: "bg-cream-100 text-ink-500" };
+        : { label: t("product.card.past"), className: "bg-cream-50/80 text-ink-500" };
 
   return (
     <Link
       href={isDraft ? `/new?trip=${trip.id}` : trip.href}
-      className={`card group block overflow-hidden transition active:scale-[0.99] ${trip.phase === "live" && !isDraft ? "ring-2 ring-terra-400" : ""}`}
+      className={`card group block overflow-hidden transition active:scale-[0.99] ${trip.phase === "live" && !isDraft ? "ring-1 ring-terra-400" : ""}`}
     >
-      <div className="relative h-36 overflow-hidden bg-gradient-to-br from-sea-900 via-sea-700 to-sea-500">
+      <div className="relative h-36 overflow-hidden bg-sea-900">
         {trip.coverImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -50,23 +51,28 @@ export function TripCard({
         {!trip.coverImage && (
           <span
             aria-hidden
-            className="absolute inset-0 flex items-center justify-center text-6xl opacity-80"
+            className="absolute inset-0 flex items-center justify-center text-cream-50/60"
           >
-            {trip.emoji}
+            <Glyph value={trip.emoji} size={44} />
           </span>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-sea-950/75 via-sea-950/10 to-transparent" />
+        <div className="hero-overlay absolute inset-0" />
         <span
-          className={`absolute start-3 top-3 rounded-full px-3 py-1 text-xs font-bold ${badge.className}`}
+          className={`absolute start-3 top-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${badge.className}`}
         >
+          {"live" in badge && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-cream-50" />}
           {badge.label}
         </span>
         <div className="absolute inset-x-4 bottom-3">
-          <p className="font-display text-2xl font-normal text-cream-50 drop-shadow">
-            {trip.emoji} {trip.name}
+          <p className="flex items-center gap-2 font-display text-2xl font-light text-cream-50 drop-shadow">
+            <Glyph value={trip.emoji} size={20} className="shrink-0 opacity-80" />
+            <span className="truncate">{trip.name}</span>
           </p>
           <p className="text-sm text-cream-50/85">
-            {trip.destination} · {shortDate(trip.startDate)}–{shortDate(trip.endDate)}
+            {trip.destination} ·{" "}
+            <span dir="ltr" className="numerals">
+              {formatShortDate(trip.startDate)}–{formatShortDate(trip.endDate)}
+            </span>
           </p>
         </div>
       </div>

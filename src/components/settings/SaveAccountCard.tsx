@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Lock } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 import {
   apiFetch,
   appleSignInAvailable,
@@ -14,6 +17,7 @@ import {
  * identity, so nothing is lost, and the trip opens on any new phone.
  */
 export function SaveAccountCard() {
+  const t = useT();
   const { user } = useFirebase();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -35,10 +39,10 @@ export function SaveAccountCard() {
       const code = (error as { code?: string }).code ?? "";
       setMessage(
         code === "auth/credential-already-in-use" || code === "auth/email-already-in-use"
-          ? "החשבון הזה כבר קיים אצלנו. התנתקו, התחברו איתו ופתחו שוב את קישור ההזמנה."
+          ? t("product.saveAccount.alreadyExists")
           : code === "auth/popup-closed-by-user"
             ? ""
-            : "החיבור לא הושלם — נסו שוב"
+            : t("product.saveAccount.failed")
       );
     } finally {
       setBusy(false);
@@ -47,21 +51,20 @@ export function SaveAccountCard() {
 
   if (done) {
     return (
-      <section className="card px-4 py-4 text-sm font-medium text-olive-500">
-        ✓ החשבון נשמר — עכשיו אפשר להיכנס לטיול מכל טלפון
+      <section className="card flex items-center gap-2.5 px-4 py-4 text-sm font-medium text-olive-500">
+        <Check size={18} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+        {t("product.saveAccount.done")}
       </section>
     );
   }
 
   return (
-    <section className="card space-y-3 border-lemon-300 bg-lemon-100/60 px-4 py-4">
-      <h2 className="font-display text-lg font-medium text-ink-900">
-        🔐 שמרו את הגישה שלכם
+    <section className="card space-y-3 border-lemon-300 px-4 py-5">
+      <h2 className="flex items-center gap-2 font-display text-lg font-normal text-ink-900">
+        <Lock size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-lemon-500" />
+        {t("product.saveAccount.title")}
       </h2>
-      <p className="text-sm leading-relaxed text-ink-700">
-        נכנסתם בלי חשבון, אז הגישה שמורה רק בטלפון הזה. חברו Google או Apple
-        כדי לא לאבד אותה — הכל נשאר בדיוק כמו שהוא.
-      </p>
+      <p className="text-sm leading-relaxed text-ink-700">{t("product.saveAccount.text")}</p>
       <div className="flex gap-2">
         <button
           type="button"
@@ -69,7 +72,7 @@ export function SaveAccountCard() {
           onClick={() => link("google")}
           className="btn flex-1 border border-cream-200 bg-white py-3 text-ink-900"
         >
-          {busy ? "רגע…" : "Google"}
+          {busy ? t("product.saveAccount.wait") : "Google"}
         </button>
         {showApple && (
           <button

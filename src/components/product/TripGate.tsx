@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
+import { Compass, Lock, type LucideIcon } from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { TripAppShell } from "@/components/layout/TripAppShell";
+import { STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useT } from "@/i18n";
 import { db } from "@/lib/firebase/client";
 import { tripConfigFromDoc, type TripDoc } from "@/lib/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
@@ -27,12 +30,12 @@ function Splash() {
 }
 
 function Notice({
-  emoji,
+  icon: Icon,
   title,
   text,
   children,
 }: {
-  emoji: string;
+  icon: LucideIcon;
   title: string;
   text: string;
   children?: React.ReactNode;
@@ -40,10 +43,8 @@ function Notice({
   return (
     <main className="flex min-h-dvh items-center justify-center px-5">
       <div className="card w-full max-w-sm px-6 py-8 text-center">
-        <p className="text-4xl" aria-hidden>
-          {emoji}
-        </p>
-        <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">
+        <Icon size={28} strokeWidth={STROKE} aria-hidden className="mx-auto text-sea-700" />
+        <h1 className="mt-4 font-display text-2xl font-light text-ink-900">
           {title}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-500">{text}</p>
@@ -65,6 +66,7 @@ export function TripGate({
   tripId: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const { user, loading } = useAuthUser();
   const [state, setState] = useState<State>({ kind: "loading" });
   const uid = user?.uid ?? null;
@@ -98,9 +100,9 @@ export function TripGate({
   if (!user) {
     return (
       <Notice
-        emoji="🔐"
-        title="כניסה לטיול"
-        text="התחברו עם החשבון שאיתו הצטרפתם לטיול"
+        icon={Lock}
+        title={t("product.gate.signInTitle")}
+        text={t("product.gate.signInText")}
       >
         <SignInPanel />
       </Notice>
@@ -110,12 +112,12 @@ export function TripGate({
   if (state.kind === "denied" || state.kind === "missing") {
     return (
       <Notice
-        emoji="🧭"
-        title={state.kind === "missing" ? "הטיול לא נמצא" : "אין לכם גישה לטיול הזה"}
-        text="בקשו מהמארגנים קישור הזמנה ופתחו אותו בטלפון. אם הצטרפתם עם חשבון אחר — התנתקו והתחברו איתו."
+        icon={Compass}
+        title={state.kind === "missing" ? t("product.gate.notFound") : t("product.gate.noAccess")}
+        text={t("product.gate.noAccessText")}
       >
         <Link href="/trips" className="btn-primary w-full py-3">
-          לטיולים שלי
+          {t("product.gate.myTrips")}
         </Link>
       </Notice>
     );

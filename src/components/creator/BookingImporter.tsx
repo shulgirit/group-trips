@@ -2,9 +2,35 @@
 
 import { useRef, useState } from "react";
 import { ref, uploadBytes } from "firebase/storage";
-import { Check, ClipboardPaste, FileUp, Loader2, Trash2 } from "lucide-react";
+import {
+  BedDouble,
+  CarFront,
+  Check,
+  ClipboardPaste,
+  FileText,
+  FileUp,
+  Loader2,
+  MapPin,
+  Plane,
+  Ticket,
+  Trash2,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+import { tActive } from "@/i18n/active";
 import { apiFetch, auth, storage } from "@/lib/firebase/client";
-import { BOOKING_KIND, type BookingItem } from "@/lib/booking";
+import type { BookingItem } from "@/lib/booking";
+
+const KIND_ICON: Record<BookingItem["kind"], LucideIcon> = {
+  flight: Plane,
+  lodging: BedDouble,
+  car: CarFront,
+  activity: Ticket,
+  restaurant: Utensils,
+  other: MapPin,
+};
 
 interface PendingImport {
   key: string;
@@ -16,7 +42,7 @@ interface PendingImport {
 }
 
 function itemWhen(item: BookingItem) {
-  if (!item.startDate) return "בלי תאריך";
+  if (!item.startDate) return tActive("creator.booking.noDate");
   const [, m, d] = item.startDate.split("-");
   return `${Number(d)}.${Number(m)}${item.startTime ? ` · ${item.startTime}` : ""}`;
 }
@@ -35,6 +61,7 @@ export function BookingImporter({
   onApplied?: (summary: { events: number; places: number; homeBase: boolean }) => void;
   compact?: boolean;
 }) {
+  const t = useT();
   const fileInput = useRef<HTMLInputElement>(null);
   const [imports, setImports] = useState<PendingImport[]>([]);
   const [pasting, setPasting] = useState(false);
@@ -59,10 +86,10 @@ export function BookingImporter({
           status: "failed",
           message:
             result.error === "unsupported_type"
-              ? "סוג קובץ לא נתמך — PDF או תמונה"
+              ? t("creator.booking.errors.unsupported")
               : result.error === "quota_exceeded"
-                ? "הגעתם למכסת הייבוא החודשית"
-                : "לא הצלחנו לקרוא את הקובץ",
+                ? t("creator.booking.errors.quota")
+                : t("creator.booking.errors.unreadable"),
         });
         return;
       }
@@ -71,10 +98,10 @@ export function BookingImporter({
         status: items.length ? "review" : "failed",
         importId: result.id,
         items,
-        message: items.length ? undefined : "לא מצאנו הזמנות במסמך הזה",
+        message: items.length ? undefined : t("creator.booking.errors.noneFound"),
       });
     } catch {
-      patch(key, { status: "failed", message: "שגיאת רשת — נסו שוב" });
+      patch(key, { status: "failed", message: t("creator.booking.errors.network") });
     }
   }
 
@@ -91,7 +118,7 @@ export function BookingImporter({
         { key, label: file.name, status: "uploading", items: [] },
       ]);
       if (file.size > 15 * 1024 * 1024) {
-        patch(key, { status: "failed", message: "הקובץ גדול מדי (עד 15MB)" });
+        patch(key, { status: "failed", message: t("creator.booking.errors.tooBig") });
         continue;
       }
       try {
@@ -102,7 +129,7 @@ export function BookingImporter({
         });
         await extract(key, { storagePath, fileName: file.name });
       } catch {
-        patch(key, { status: "failed", message: "ההעלאה נכשלה" });
+        patch(key, { status: "failed", message: t("creator.booking.errors.uploadFailed") });
       }
     }
   }
@@ -112,7 +139,7 @@ export function BookingImporter({
     const key = `text-${Date.now()}`;
     setImports((current) => [
       ...current,
-      { key, label: "טקסט מהמייל", status: "reading", items: [] },
+      { key, label: t("creator.booking.pastedLabel"), status: "reading", items: [] },
     ]);
     setPasting(false);
     const body = text;
@@ -138,11 +165,14 @@ export function BookingImporter({
       const summary = await response.json();
       patch(entry.key, {
         status: "applied",
-        message: `נוספו ${summary.events} אירועים ללו״ז${summary.places ? ` ו-${summary.places} מקומות` : ""}${summary.homeBase ? " · הוגדר בית 🏡" : ""}`,
+        message:
+          t("creator.booking.applied", { count: summary.events }) +
+          (summary.places ? t("creator.booking.appliedPlaces", { count: summary.places }) : "") +
+          (summary.homeBase ? t("creator.booking.appliedHome") : ""),
       });
       onApplied?.(summary);
     } catch {
-      patch(entry.key, { status: "review", message: "השמירה נכשלה — נסו שוב" });
+      patch(entry.key, { status: "review", message: t("creator.booking.errors.saveFailed") });
     }
   }
 
@@ -165,20 +195,20 @@ export function BookingImporter({
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
-          className="card flex flex-col items-center gap-2 border-2 border-dashed border-sea-200 bg-sea-100/30 px-4 py-6 text-center transition active:scale-[0.99]"
+          className="card flex flex-col items-center gap-2 border-dashed px-4 py-7 text-center transition active:scale-[0.99]"
         >
-          <FileUp className="h-7 w-7 text-sea-700" />
-          <span className="font-semibold text-ink-900">העלאת קבצים</span>
-          <span className="text-xs text-ink-500">PDF או צילום מסך — כרטיסי טיסה, מלון, אטרקציות</span>
+          <FileUp size={24} strokeWidth={STROKE} aria-hidden className="text-sea-700" />
+          <span className="font-medium text-ink-900">{t("creator.booking.upload.title")}</span>
+          <span className="text-xs text-ink-500">{t("creator.booking.upload.text")}</span>
         </button>
         <button
           type="button"
           onClick={() => setPasting((open) => !open)}
-          className="card flex flex-col items-center gap-2 px-4 py-6 text-center transition active:scale-[0.99]"
+          className="card flex flex-col items-center gap-2 px-4 py-7 text-center transition active:scale-[0.99]"
         >
-          <ClipboardPaste className="h-7 w-7 text-terra-500" />
-          <span className="font-semibold text-ink-900">הדבקה מהמייל</span>
-          <span className="text-xs text-ink-500">מעתיקים את אישור ההזמנה ומדביקים</span>
+          <ClipboardPaste size={24} strokeWidth={STROKE} aria-hidden className="text-sea-700" />
+          <span className="font-medium text-ink-900">{t("creator.booking.paste.title")}</span>
+          <span className="text-xs text-ink-500">{t("creator.booking.paste.text")}</span>
         </button>
       </div>
       <input
@@ -197,12 +227,12 @@ export function BookingImporter({
         <div className="space-y-2">
           <textarea
             className="field min-h-36 text-sm"
-            placeholder="הדביקו כאן את תוכן המייל עם אישור ההזמנה…"
+            placeholder={t("creator.booking.paste.placeholder")}
             value={text}
             onChange={(event) => setText(event.target.value)}
           />
           <button type="button" onClick={handleText} disabled={!text.trim()} className="btn-primary w-full py-3">
-            קריאת ההזמנה ✨
+            {t("creator.booking.paste.read")}
           </button>
         </div>
       )}
@@ -211,76 +241,83 @@ export function BookingImporter({
         <div key={entry.key} className="card overflow-hidden">
           <div className="flex items-center gap-3 border-b border-cream-200/70 px-4 py-3">
             {entry.status === "uploading" || entry.status === "reading" || entry.status === "applying" ? (
-              <Loader2 className="h-5 w-5 animate-spin text-sea-600" />
+              <Loader2 size={20} strokeWidth={STROKE} aria-hidden className="animate-spin text-sea-600" />
             ) : entry.status === "applied" ? (
-              <Check className="h-5 w-5 text-olive-500" />
+              <Check size={20} strokeWidth={STROKE} aria-hidden className="text-olive-500" />
             ) : (
-              <span aria-hidden>📄</span>
+              <FileText size={20} strokeWidth={STROKE} aria-hidden className="text-ink-500" />
             )}
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-900">{entry.label}</p>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{entry.label}</p>
             <span className="shrink-0 text-xs text-ink-500">
               {entry.status === "uploading"
-                ? "מעלים…"
+                ? t("creator.booking.status.uploading")
                 : entry.status === "reading"
-                  ? "ה-AI קורא…"
+                  ? t("creator.booking.status.reading")
                   : entry.status === "applying"
-                    ? "מוסיפים…"
+                    ? t("creator.booking.status.applying")
                     : ""}
             </span>
           </div>
           {entry.status === "review" && (
             <div className="space-y-3 px-4 py-3">
               <ul className="space-y-2">
-                {entry.items.map((item, index) => (
-                  <li
-                    key={index}
-                    className={`rounded-2xl border px-3 py-2.5 transition ${item.include ? "border-sea-200 bg-white" : "border-cream-200 bg-cream-50 opacity-60"}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl" aria-hidden>
-                        {BOOKING_KIND[item.kind].emoji}
-                      </span>
-                      <input
-                        className="min-w-0 flex-1 bg-transparent font-semibold text-ink-900 outline-none"
-                        value={item.title}
-                        onChange={(event) => updateItem(entry.key, index, { title: event.target.value })}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => updateItem(entry.key, index, { include: !item.include })}
-                        aria-label={item.include ? "לא להוסיף" : "להוסיף"}
-                        className="p-1 text-ink-300"
-                      >
-                        {item.include ? <Trash2 className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-500">
-                      <input
-                        type="date"
-                        className="rounded-lg bg-cream-100 px-2 py-1"
-                        value={item.startDate}
-                        onChange={(event) => updateItem(entry.key, index, { startDate: event.target.value })}
-                      />
-                      <input
-                        type="time"
-                        className="rounded-lg bg-cream-100 px-2 py-1"
-                        value={item.startTime}
-                        onChange={(event) => updateItem(entry.key, index, { startTime: event.target.value })}
-                      />
-                      <span>{BOOKING_KIND[item.kind].label}</span>
-                      {item.flightNumber && <span dir="ltr">{item.flightNumber}</span>}
-                      {item.confirmationCode && <span dir="ltr">#{item.confirmationCode}</span>}
-                    </div>
-                    {(item.location || item.notes) && (
-                      <p className="mt-1 line-clamp-2 text-xs text-ink-500">
-                        {[item.location, item.notes].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
-                    {!item.startDate && (
-                      <p className="mt-1 text-xs text-terra-600">{itemWhen(item)} — יתווסף כמקום בלבד</p>
-                    )}
-                  </li>
-                ))}
+                {entry.items.map((item, index) => {
+                  const KindIcon = KIND_ICON[item.kind] ?? MapPin;
+                  return (
+                    <li
+                      key={index}
+                      className={`rounded-2xl border px-3 py-2.5 transition ${item.include ? "border-sea-200 bg-white" : "border-cream-200 bg-cream-50 opacity-60"}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <KindIcon size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-700" />
+                        <input
+                          className="min-w-0 flex-1 bg-transparent font-medium text-ink-900 outline-none"
+                          value={item.title}
+                          onChange={(event) => updateItem(entry.key, index, { title: event.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItem(entry.key, index, { include: !item.include })}
+                          aria-label={item.include ? t("creator.booking.exclude") : t("creator.booking.include")}
+                          className="p-1 text-ink-300"
+                        >
+                          {item.include ? (
+                            <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
+                          ) : (
+                            <Check size={16} strokeWidth={STROKE} aria-hidden />
+                          )}
+                        </button>
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-500">
+                        <input
+                          type="date"
+                          className="rounded-lg bg-cream-100 px-2 py-1"
+                          value={item.startDate}
+                          onChange={(event) => updateItem(entry.key, index, { startDate: event.target.value })}
+                        />
+                        <input
+                          type="time"
+                          className="rounded-lg bg-cream-100 px-2 py-1"
+                          value={item.startTime}
+                          onChange={(event) => updateItem(entry.key, index, { startTime: event.target.value })}
+                        />
+                        <span>{t(`creator.booking.kinds.${item.kind}`)}</span>
+                        {item.flightNumber && <span dir="ltr">{item.flightNumber}</span>}
+                        {item.confirmationCode && <span dir="ltr">#{item.confirmationCode}</span>}
+                      </div>
+                      {(item.location || item.notes) && (
+                        <p className="mt-1 line-clamp-2 text-xs text-ink-500">
+                          {[item.location, item.notes].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      {!item.startDate && (
+                        <p className="mt-1 text-xs text-terra-600">
+                          {t("creator.booking.placeOnly", { when: itemWhen(item) })}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
               <button
                 type="button"
@@ -288,7 +325,7 @@ export function BookingImporter({
                 disabled={!entry.items.some((i) => i.include)}
                 className="btn-primary w-full py-3"
               >
-                הוספה לטיול ({entry.items.filter((i) => i.include).length})
+                {t("creator.booking.add", { count: entry.items.filter((i) => i.include).length })}
               </button>
             </div>
           )}

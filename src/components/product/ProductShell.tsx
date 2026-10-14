@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { signOut } from "firebase/auth";
-import { LogOut } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
 import { auth } from "@/lib/firebase/client";
-import { BRAND } from "@/lib/brand";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 /** Chrome for the product surfaces outside a trip (my trips, creator, join). */
@@ -16,6 +18,7 @@ export function ProductShell({
   children: React.ReactNode;
   wide?: boolean;
 }) {
+  const t = useT();
   const { user, personal } = useAuthUser();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -27,55 +30,52 @@ export function ProductShell({
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-cream-200/70 bg-cream-50/85 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-cream-200/70 bg-cream-50/90 backdrop-blur">
         <div
           className={`mx-auto flex h-14 w-full items-center justify-between px-4 ${wide ? "max-w-3xl" : "max-w-lg md:max-w-xl"}`}
         >
           <Link
             href={personal ? "/trips" : "/welcome"}
-            className="flex items-center gap-2 font-display text-lg font-medium text-ink-900"
+            aria-label="Together"
+            className="flex items-center text-ink-900"
           >
-            <span
-              aria-hidden
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sea-600 to-sea-900 text-base"
-            >
-              {BRAND.emoji}
-            </span>
-            {BRAND.name}
+            <Logo size={24} wordClassName="text-[15px]" />
           </Link>
           {user && (personal || user.isAnonymous) && (
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
-                aria-label="החשבון שלי"
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-sea-100 text-sm font-bold text-sea-700"
+                aria-label={t("product.shell.account")}
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-cream-200 bg-cream-100 text-sm font-medium text-sea-700"
               >
                 {user.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={user.photoURL} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                ) : user.displayName ? (
+                  user.displayName.slice(0, 2)
                 ) : (
-                  (user.displayName || (user.isAnonymous ? "👋" : "?")).slice(0, 2)
+                  <UserRound size={18} strokeWidth={STROKE} aria-hidden />
                 )}
               </button>
               {menuOpen && (
                 <div className="card absolute end-0 top-11 w-56 overflow-hidden p-1">
                   <p className="truncate px-3 py-2 text-sm text-ink-500">
-                    {user.displayName || user.email || "אורח (בלי חשבון)"}
+                    {user.displayName || user.email || t("product.shell.guest")}
                   </p>
                   <Link
                     href="/account"
                     className="block rounded-xl px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-cream-100"
                   >
-                    החשבון שלי
+                    {t("product.shell.account")}
                   </Link>
                   <button
                     type="button"
                     onClick={logout}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-terra-600 hover:bg-terra-100"
                   >
-                    <LogOut className="h-4 w-4" />
-                    התנתקות
+                    <LogOut size={16} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
+                    {t("product.shell.logout")}
                   </button>
                 </div>
               )}
@@ -84,7 +84,7 @@ export function ProductShell({
         </div>
       </header>
       <main
-        className={`mx-auto w-full px-4 pb-24 pt-6 ${wide ? "max-w-3xl" : "max-w-lg md:max-w-xl"}`}
+        className={`mx-auto w-full px-4 pb-24 pt-8 ${wide ? "max-w-3xl" : "max-w-lg md:max-w-xl"}`}
       >
         {children}
       </main>

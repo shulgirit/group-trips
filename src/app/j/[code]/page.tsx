@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { JoinFlow } from "./JoinFlow";
 
 export const metadata: Metadata = {
-  title: "הזמנה לטיול",
+  title: "Trip invitation",
   // Rich link preview in WhatsApp
   openGraph: {
-    title: "הוזמנתם לטיול 🧳",
-    description: "לו״ז, מפה, הוצאות ועוזר AI — הכל במקום אחד",
+    title: "You're invited to a trip",
+    description: "Schedule, map, expenses and an AI assistant — all in one place",
   },
 };
 

@@ -2,17 +2,29 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import { Glyph, STROKE } from "@/components/ui/Icon";
+import { useT, type TKey } from "@/i18n";
+import { translate } from "@/i18n/translate";
 import { apiFetch } from "@/lib/firebase/client";
 import { AI_PRESETS, AI_RULES, type AiPreset } from "@/lib/trip-doc";
 import { peopleCounts, primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
 
 const PRESET_ORDER: Exclude<AiPreset, "custom">[] = ["butler", "pilot", "buddy", "guide"];
 
-const SAMPLE_QUESTIONS = [
-  "מה כדאי לעשות ביום הראשון?",
-  "תמליץ על מסעדה שווה",
-  "מה חשוב לדעת על היעד?",
+const SAMPLE_QUESTIONS: TKey[] = [
+  "creator.ai.samples.firstDay",
+  "creator.ai.samples.restaurant",
+  "creator.ai.samples.know",
 ];
+
+/** Every name a preset has shipped with (any language) — renaming keeps custom names. */
+const DEFAULT_NAMES = new Set(
+  PRESET_ORDER.flatMap((p) => [
+    AI_PRESETS[p].name,
+    translate("he", `creator.ai.presets.${p}.name`),
+    translate("en", `creator.ai.presets.${p}.name`),
+  ])
+);
 
 export function StepAi({
   state,
@@ -21,6 +33,7 @@ export function StepAi({
   state: CreatorState;
   update: (patch: Partial<CreatorState>) => void;
 }) {
+  const t = useT();
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState<{ q: string; a: string } | null>(null);
   const [asking, setAsking] = useState(false);
@@ -31,11 +44,11 @@ export function StepAi({
   }
 
   function pickPreset(preset: Exclude<AiPreset, "custom">) {
-    const wasDefaultName = PRESET_ORDER.some((p) => AI_PRESETS[p].name === ai.name) || !ai.name;
+    const wasDefaultName = DEFAULT_NAMES.has(ai.name) || !ai.name;
     setAi({
       preset,
-      emoji: AI_PRESETS[preset].emoji,
-      ...(wasDefaultName ? { name: AI_PRESETS[preset].name } : {}),
+      emoji: preset,
+      ...(wasDefaultName ? { name: t(`creator.ai.presets.${preset}.name`) } : {}),
     });
   }
 
@@ -69,7 +82,7 @@ export function StepAi({
             peopleCount: people,
             kidsCount: kids,
           },
-          ai: { ...ai, name: ai.name.trim() || "העוזר" },
+          ai: { ...ai, name: ai.name.trim() || t("creator.defaults.aiName") },
           question: text,
         }),
       });
@@ -77,7 +90,7 @@ export function StepAi({
       setReply({ q: text, a: body.reply || "…" });
       setQuestion("");
     } catch {
-      setReply({ q: text, a: "לא הצלחתי לענות כרגע — נסו שוב" });
+      setReply({ q: text, a: t("creator.ai.failed") });
     } finally {
       setAsking(false);
     }
@@ -86,72 +99,75 @@ export function StepAi({
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="font-display text-3xl font-normal text-ink-900">עוזר ה-AI שלכם ✨</h1>
-        <p className="mt-1 text-ink-500">
-          הוא ממליץ, משבץ בלו״ז, פותח סקרים ומכיר את כל הטיול. תנו לו אופי
-        </p>
+        <h1 className="font-display text-3xl font-light text-ink-900">{t("creator.ai.title")}</h1>
+        <p className="mt-2 text-ink-500">{t("creator.ai.text")}</p>
       </header>
 
       <section className="grid grid-cols-2 gap-2">
         {PRESET_ORDER.map((key) => {
-          const preset = AI_PRESETS[key];
           const active = ai.preset === key;
           return (
             <button
               key={key}
               type="button"
+              aria-pressed={active}
               onClick={() => pickPreset(key)}
-              className={`card px-3 py-3 text-start transition ${active ? "ring-2 ring-sea-500" : ""}`}
+              className={`card px-4 py-4 text-start transition ${active ? "ring-1 ring-sea-700" : ""}`}
             >
-              <span className="text-2xl" aria-hidden>
-                {preset.emoji}
+              <Glyph value={key} size={20} className={active ? "text-lemon-500" : "text-sea-700"} />
+              <span className="mt-2 block font-medium text-ink-900">
+                {t(`creator.ai.presets.${key}.label`)}
               </span>
-              <span className="mt-1 block font-semibold text-ink-900">{preset.label}</span>
-              <span className="mt-0.5 block text-xs leading-snug text-ink-500">״{preset.sample}״</span>
+              <span className="mt-1 block text-xs leading-snug text-ink-500">
+                {t("creator.ai.quote", { text: t(`creator.ai.presets.${key}.sample`) })}
+              </span>
             </button>
           );
         })}
       </section>
 
-      <section className="grid grid-cols-[5rem_1fr] gap-2">
-        <label className="space-y-1">
-          <span className="text-xs text-ink-500">אימוג׳י</span>
-          <input
-            className="field text-center text-2xl"
-            value={ai.emoji}
-            maxLength={8}
-            onChange={(event) => setAi({ emoji: event.target.value })}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs text-ink-500">איך קוראים לו?</span>
-          <input
-            className="field text-lg font-semibold"
-            value={ai.name}
-            maxLength={30}
-            placeholder="המשרת של החבורה"
-            onChange={(event) => setAi({ name: event.target.value })}
-          />
+      <section>
+        <label className="block space-y-1">
+          <span className="text-xs text-ink-500">{t("creator.ai.nameLabel")}</span>
+          <span className="relative block">
+            <Glyph
+              value={ai.emoji}
+              size={20}
+              className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-sea-700"
+            />
+            <input
+              className="field ps-12 text-lg font-medium"
+              value={ai.name}
+              maxLength={30}
+              placeholder={t("creator.ai.namePlaceholder")}
+              onChange={(event) => setAi({ name: event.target.value })}
+            />
+          </span>
         </label>
       </section>
 
       <section className="space-y-2">
-        <p className="text-sm font-semibold text-ink-700">כללים שחשוב שיזכור</p>
+        <p className="text-sm font-medium text-ink-700">{t("creator.ai.rulesLabel")}</p>
         <div className="flex flex-wrap gap-2">
-          {AI_RULES.map((rule) => (
-            <button
-              key={rule.id}
-              type="button"
-              onClick={() => toggleRule(rule.id)}
-              className={`chip ${ai.rules.includes(rule.id) ? "chip-active" : ""}`}
-            >
-              {rule.label}
-            </button>
-          ))}
+          {AI_RULES.map((rule) => {
+            const key = `creator.ai.rules.${rule.id}` as TKey;
+            const label = t(key);
+            return (
+              <button
+                key={rule.id}
+                type="button"
+                aria-pressed={ai.rules.includes(rule.id)}
+                onClick={() => toggleRule(rule.id)}
+                className={`chip ${ai.rules.includes(rule.id) ? "chip-active" : ""}`}
+              >
+                {label === key ? rule.id : label}
+              </button>
+            );
+          })}
         </div>
         <textarea
           className="field min-h-20 text-sm"
-          placeholder="כללים משלכם, שורה לכל כלל. למשל: אנחנו קמים מאוחר — אל תציע דברים לפני 10:00"
+          placeholder={t("creator.ai.customRulesPlaceholder")}
           value={ai.customRules}
           maxLength={1500}
           onChange={(event) => setAi({ customRules: event.target.value })}
@@ -159,44 +175,51 @@ export function StepAi({
       </section>
 
       <section className="space-y-2">
-        <p className="text-sm font-semibold text-ink-700">
-          ספרו לו עליכם <span className="font-normal text-ink-300">(כל החבורה תוכל לערוך אחר כך)</span>
+        <p className="text-sm font-medium text-ink-700">
+          {t("creator.ai.aboutLabel")}{" "}
+          <span className="font-normal text-ink-300">{t("creator.ai.aboutHint")}</span>
         </p>
         <textarea
           className="field min-h-24 text-sm"
-          placeholder="מי זה מי, גילאים, מה כל אחד אוהב, בדיחות פנימיות…"
+          placeholder={t("creator.ai.aboutPlaceholder")}
           value={state.aboutUs}
           maxLength={4000}
           onChange={(event) => update({ aboutUs: event.target.value })}
         />
       </section>
 
-      <section className="card space-y-3 bg-gradient-to-br from-white to-sea-100/40 px-4 py-4">
-        <p className="text-sm font-semibold text-ink-700">נסו אותו עכשיו 👇</p>
+      <section className="card space-y-3 px-4 py-5">
+        <p className="kicker text-ink-500">{t("creator.ai.tryTitle")}</p>
         {reply && (
           <div className="space-y-2">
             <p className="ms-auto w-fit max-w-[85%] rounded-2xl rounded-ee-md bg-sea-700 px-3.5 py-2 text-sm text-cream-50">
               {reply.q}
             </p>
-            <p className="w-fit max-w-[90%] whitespace-pre-line rounded-2xl rounded-es-md bg-white px-3.5 py-2.5 text-sm leading-relaxed text-ink-900 shadow-sm">
-              <span className="font-semibold">
-                {ai.emoji} {ai.name}:
-              </span>{" "}
-              {reply.a}
-            </p>
+            <div className="w-fit max-w-[90%] rounded-2xl rounded-es-md border border-cream-200 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-ink-900">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-ink-500">
+                <Glyph value={ai.emoji} size={14} className="shrink-0" />
+                {ai.name}
+              </p>
+              <p className="mt-1 whitespace-pre-line">{reply.a}</p>
+            </div>
           </div>
         )}
-        {asking && <p className="text-sm text-ink-500">{ai.emoji} מקליד…</p>}
+        {asking && (
+          <p className="flex items-center gap-1.5 text-sm text-ink-500">
+            <Glyph value={ai.emoji} size={14} className="shrink-0" />
+            {t("creator.ai.typing")}
+          </p>
+        )}
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
           {SAMPLE_QUESTIONS.map((sample) => (
             <button
               key={sample}
               type="button"
-              onClick={() => ask(sample)}
+              onClick={() => ask(t(sample))}
               disabled={asking}
               className="chip shrink-0 bg-white"
             >
-              {sample}
+              {t(sample)}
             </button>
           ))}
         </div>
@@ -209,17 +232,17 @@ export function StepAi({
         >
           <input
             className="field flex-1 py-2.5"
-            placeholder="או כתבו שאלה…"
+            placeholder={t("creator.ai.askPlaceholder")}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
           />
           <button
             type="submit"
             disabled={asking || !question.trim()}
-            aria-label="שליחה"
+            aria-label={t("creator.ai.send")}
             className="btn-primary h-12 w-12 shrink-0"
           >
-            <Send className="h-5 w-5 rotate-180" />
+            <Send size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
           </button>
         </form>
       </section>

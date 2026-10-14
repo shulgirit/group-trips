@@ -4,14 +4,27 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  BedDouble,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  PartyPopper,
+  Plane,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
 import { InviteLinks } from "@/components/product/InviteLinks";
+import { Glyph, STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useLocale, useT, type TKey } from "@/i18n";
 import { apiFetch, auth, db } from "@/lib/firebase/client";
 import { useMyTrips } from "@/lib/my-trips";
-import { flagEmoji, stopsOf, type TripDoc } from "@/lib/trip-doc";
+import { stopsOf, type TripDoc } from "@/lib/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 import { BookingImporter } from "./BookingImporter";
 import { StepAi } from "./StepAi";
@@ -32,12 +45,12 @@ import {
 } from "./state";
 
 const STEPS = [
-  { key: "where", label: "יעד" },
-  { key: "who", label: "חבורה" },
-  { key: "bookings", label: "הזמנות" },
-  { key: "ai", label: "עוזר AI" },
-  { key: "launch", label: "יוצאים" },
-] as const;
+  { key: "where", label: "creator.steps.where" },
+  { key: "who", label: "creator.steps.who" },
+  { key: "bookings", label: "creator.steps.bookings" },
+  { key: "ai", label: "creator.steps.ai" },
+  { key: "launch", label: "creator.steps.launch" },
+] as const satisfies readonly { key: string; label: TKey }[];
 
 function readLocalDraft(): CreatorState | null {
   try {
@@ -114,6 +127,8 @@ async function loadTripState(tripId: string): Promise<CreatorState | null> {
 
 export function CreatorWizard() {
   const router = useRouter();
+  const t = useT();
+  const { dir } = useLocale();
   const params = useSearchParams();
   const editTripId = params.get("trip");
   const { user, personal, loading: authLoading } = useAuthUser();
@@ -136,19 +151,19 @@ export function CreatorWizard() {
       loadTripState(editTripId)
         .then((loaded) => {
           if (!loaded) {
-            setError("לא מצאנו את הטיול");
+            setError(t("creator.errors.notFound"));
             return;
           }
           setState(loaded);
           // Drafts resume where details are still missing
           setStep(loaded.status === "draft" ? 2 : 0);
         })
-        .catch(() => setError("אין לכם הרשאה לערוך את הטיול הזה"));
+        .catch(() => setError(t("creator.errors.noPermission")));
     } else {
       const draft = readLocalDraft();
       setState(draft && !draft.tripId ? draft : initialState(user.displayName));
     }
-  }, [authLoading, personal, user, editTripId]);
+  }, [authLoading, personal, user, editTripId, t]);
 
   const update = useCallback((patch: Partial<CreatorState>) => {
     setState((current) => {
@@ -178,8 +193,8 @@ export function CreatorWizard() {
       if (!response.ok) {
         setError(
           body.error === "trip_limit"
-            ? "הגעתם למספר הטיולים הפעילים בחשבון חינמי (5). ארכבו טיול ישן כדי לפתוח חדש."
-            : "השמירה נכשלה — בדקו את הפרטים ונסו שוב"
+            ? t("creator.errors.tripLimit")
+            : t("creator.errors.saveFailed")
         );
         return null;
       }
@@ -197,7 +212,7 @@ export function CreatorWizard() {
       }
       return tripId;
     } catch {
-      setError("שגיאת רשת — נסו שוב");
+      setError(t("creator.errors.network"));
       return null;
     } finally {
       setSaving(false);
@@ -248,11 +263,11 @@ export function CreatorWizard() {
     return (
       <ProductShell>
         <div className="card mx-auto max-w-sm px-6 py-8 text-center">
-          <p className="text-4xl" aria-hidden>
-            ✈️
-          </p>
-          <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">טיול חדש</h1>
-          <p className="mt-2 text-sm text-ink-500">התחברו כדי ליצור טיול ולהזמין את החבורה</p>
+          <Plane size={28} strokeWidth={STROKE} aria-hidden className="mx-auto text-sea-700" />
+          <h1 className="mt-4 font-display text-2xl font-light text-ink-900">
+            {t("creator.signIn.title")}
+          </h1>
+          <p className="mt-2 text-sm text-ink-500">{t("creator.signIn.text")}</p>
           <div className="mt-6">
             <SignInPanel />
           </div>
@@ -266,9 +281,9 @@ export function CreatorWizard() {
       <ProductShell>
         {error ? (
           <div className="card px-6 py-8 text-center">
-            <p className="font-semibold text-ink-900">{error}</p>
+            <p className="font-medium text-ink-900">{error}</p>
             <Link href="/trips" className="btn-soft mt-4 px-5 py-3">
-              לטיולים שלי
+              {t("product.gate.myTrips")}
             </Link>
           </div>
         ) : (
@@ -281,24 +296,24 @@ export function CreatorWizard() {
   const isEdit = state.status === "active" && !launched;
   const { people } = peopleCounts(state);
   const stepKey = STEPS[step].key;
+  const routeArrow = dir === "rtl" ? " ← " : " → ";
 
   if (launched && state.tripId) {
     return (
       <ProductShell>
         <div className="space-y-6">
           <div className="text-center">
-            <p className="text-6xl" aria-hidden>
-              🎉
-            </p>
-            <h1 className="mt-3 font-display text-3xl font-normal text-ink-900">
-              {state.emoji} {state.name} מוכן!
+            <PartyPopper size={32} strokeWidth={STROKE} aria-hidden className="mx-auto text-lemon-500" />
+            <h1 className="mt-4 font-display text-3xl font-light text-ink-900">
+              {t("creator.launched.title", { name: state.name })}
             </h1>
-            <p className="mt-2 text-ink-500">עכשיו מזמינים את החבורה — כל אחד בוחר את השם שלו ונכנס</p>
+            <p className="mt-2 text-ink-500">{t("creator.launched.text")}</p>
           </div>
           {summary ? (
-            <div className="card bg-gradient-to-br from-white to-lemon-100/60 px-5 py-4">
-              <p className="text-sm font-semibold text-ink-700">
-                {state.ai.emoji} {state.ai.name}:
+            <div className="card px-5 py-5">
+              <p className="flex items-center gap-2 text-sm font-medium text-ink-700">
+                <Glyph value={state.ai.emoji} size={16} className="shrink-0 text-lemon-500" />
+                {state.ai.name}
               </p>
               <p className="mt-1 whitespace-pre-line leading-relaxed text-ink-900">{summary}</p>
             </div>
@@ -311,8 +326,9 @@ export function CreatorWizard() {
             emoji={state.emoji}
             families={state.families.map((f) => ({ id: f.id, name: f.name }))}
           />
-          <Link href={`/t/${state.tripId}`} className="btn-primary w-full py-4 text-lg">
-            כניסה לטיול →
+          <Link href={`/t/${state.tripId}`} className="btn-primary w-full gap-2 py-4 text-lg">
+            {t("creator.launched.enter")}
+            <ArrowRight size={18} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
           </Link>
         </div>
       </ProductShell>
@@ -323,7 +339,7 @@ export function CreatorWizard() {
     <ProductShell>
       <div className="space-y-6">
         {/* Progress */}
-        <nav aria-label="שלבים" className="flex items-center gap-1.5">
+        <nav aria-label={t("creator.steps.label")} className="flex items-center gap-1.5">
           {STEPS.map((s, index) => (
             <button
               key={s.key}
@@ -335,12 +351,12 @@ export function CreatorWizard() {
               className="flex flex-1 flex-col items-center gap-1.5"
             >
               <span
-                className={`h-1.5 w-full rounded-full transition ${index <= step ? "bg-sea-600" : "bg-cream-200"}`}
+                className={`h-0.5 w-full rounded-full transition ${index <= step ? "bg-sea-700" : "bg-cream-200"}`}
               />
               <span
-                className={`text-[11px] font-semibold ${index === step ? "text-sea-700" : "text-ink-300"}`}
+                className={`text-[11px] font-medium ${index === step ? "text-sea-700" : "text-ink-300"}`}
               >
-                {s.label}
+                {t(s.label)}
               </span>
             </button>
           ))}
@@ -357,11 +373,10 @@ export function CreatorWizard() {
         {stepKey === "bookings" && state.tripId && (
           <div className="space-y-6">
             <header>
-              <h1 className="font-display text-3xl font-normal text-ink-900">הזמנות וכרטיסים 🎟️</h1>
-              <p className="mt-1 text-ink-500">
-                טיסות, מלון, רכב ואטרקציות שכבר הזמנתם — ה-AI יקרא אותם ויכניס ללו״ז ולמפה.
-                אפשר לדלג ולהוסיף אחר כך ממסך המסמכים.
-              </p>
+              <h1 className="font-display text-3xl font-light text-ink-900">
+                {t("creator.bookings.title")}
+              </h1>
+              <p className="mt-2 text-ink-500">{t("creator.bookings.text")}</p>
             </header>
             <BookingImporter
               tripId={state.tripId}
@@ -380,41 +395,63 @@ export function CreatorWizard() {
         {stepKey === "launch" && (
           <div className="space-y-6">
             <header>
-              <h1 className="font-display text-3xl font-normal text-ink-900">
-                {isEdit ? "סיכום ושמירה" : "הכל מוכן? 🚀"}
+              <h1 className="font-display text-3xl font-light text-ink-900">
+                {isEdit ? t("creator.launch.editTitle") : t("creator.launch.title")}
               </h1>
-              <p className="mt-1 text-ink-500">
-                {isEdit ? "שמרו את השינויים — כל החבורה תראה אותם מיד" : "יוצרים את הטיול ומזמינים את כולם"}
+              <p className="mt-2 text-ink-500">
+                {isEdit ? t("creator.launch.editText") : t("creator.launch.text")}
               </p>
             </header>
             <div className="card overflow-hidden">
-              <div className="relative h-36 bg-gradient-to-br from-sea-900 to-sea-500">
+              <div className="relative h-36 bg-sea-900">
                 {primaryPlace(state)?.coverImage && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={primaryPlace(state)!.coverImage!} alt="" className="h-full w-full object-cover" />
                 )}
                 <div className="hero-overlay absolute inset-0" />
-                <p className="absolute inset-x-4 bottom-3 font-display text-2xl font-normal text-cream-50">
-                  {state.emoji} {state.name}
+                <p className="absolute inset-x-4 bottom-3 flex items-center gap-2 font-display text-2xl font-light text-cream-50">
+                  <Glyph value={state.emoji} size={20} className="shrink-0 opacity-80" />
+                  <span className="truncate">{state.name}</span>
                 </p>
               </div>
               <dl className="divide-y divide-cream-200/70 text-sm">
-                {[
+                {(
                   [
-                    state.stops.length > 1 ? "📍 מסלול" : "📍 יעד",
-                    state.stops
-                      .map((s) => (s.place ? `${flagEmoji(s.place.country)} ${s.place.label}` : ""))
-                      .filter(Boolean)
-                      .join(" ← "),
-                  ],
-                  ["📅 תאריכים", `${tripStart(state)} → ${tripEnd(state)}`],
-                  ["👥 משתתפים", `${people} ב-${state.families.length} ${state.groupKind === "families" ? "משפחות" : "קבוצות"}`],
-                  ["✨ עוזר AI", `${state.ai.emoji} ${state.ai.name}`],
-                  ["🏡 לינה", state.homeBase?.name ?? "עוד לא הוגדר"],
-                ].map(([label, value]) => (
+                    [
+                      MapPin,
+                      state.stops.length > 1 ? t("creator.launch.route") : t("creator.launch.destination"),
+                      state.stops
+                        .map((s) => s.place?.label ?? "")
+                        .filter(Boolean)
+                        .join(routeArrow),
+                    ],
+                    [CalendarDays, t("creator.launch.dates"), `${tripStart(state)} – ${tripEnd(state)}`],
+                    [
+                      Users,
+                      t("creator.launch.people"),
+                      t("creator.launch.peopleValue", {
+                        people,
+                        count: state.families.length,
+                        units:
+                          state.groupKind === "families"
+                            ? t("creator.launch.families")
+                            : t("creator.launch.groups"),
+                      }),
+                    ],
+                    [null, t("creator.launch.ai"), state.ai.name],
+                    [BedDouble, t("creator.launch.lodging"), state.homeBase?.name ?? t("creator.launch.lodgingNone")],
+                  ] as [LucideIcon | null, string, string][]
+                ).map(([Icon, label, value]) => (
                   <div key={label} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <dt className="text-ink-500">{label}</dt>
-                    <dd className="truncate font-semibold text-ink-900" dir="auto">
+                    <dt className="flex items-center gap-2 text-ink-500">
+                      {Icon ? (
+                        <Icon size={16} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+                      ) : (
+                        <Glyph value={state.ai.emoji} size={16} className="shrink-0" />
+                      )}
+                      {label}
+                    </dt>
+                    <dd className="truncate font-medium text-ink-900" dir="auto">
                       {value}
                     </dd>
                   </div>
@@ -431,15 +468,15 @@ export function CreatorWizard() {
         )}
 
         {/* Footer nav */}
-        <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-cream-200/70 bg-cream-50/90 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+        <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-cream-200/70 bg-cream-50/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
           {step > 0 && (
             <button
               type="button"
               onClick={() => setStep((s) => s - 1)}
               className="btn-soft px-4 py-3.5"
-              aria-label="הקודם"
+              aria-label={t("creator.nav.previous")}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronLeft size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
             </button>
           )}
           {stepKey === "launch" ? (
@@ -449,7 +486,11 @@ export function CreatorWizard() {
               disabled={saving}
               className="btn-accent flex-1 py-3.5 text-lg"
             >
-              {saving ? "שומרים…" : isEdit ? "שמירת השינויים" : "יצירת הטיול 🚀"}
+              {saving
+                ? t("common.saving")
+                : isEdit
+                  ? t("creator.launch.saveChanges")
+                  : t("creator.launch.create")}
             </button>
           ) : (
             <button
@@ -458,8 +499,12 @@ export function CreatorWizard() {
               disabled={saving}
               className="btn-primary flex-1 py-3.5 text-lg"
             >
-              {saving ? "שומרים…" : stepKey === "bookings" ? "המשך" : "הבא"}
-              <ChevronLeft className="h-5 w-5" />
+              {saving
+                ? t("common.saving")
+                : stepKey === "bookings"
+                  ? t("common.continue")
+                  : t("common.next")}
+              <ChevronRight size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
             </button>
           )}
         </div>

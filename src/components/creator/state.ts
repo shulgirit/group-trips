@@ -1,6 +1,7 @@
 "use client";
 
-import { AI_PRESETS, type AiPreset, type GroupKind } from "@/lib/trip-doc";
+import { tActive } from "@/i18n/active";
+import type { AiPreset, GroupKind } from "@/lib/trip-doc";
 import type { TripInput } from "@/lib/trip-schemas";
 
 export interface CreatorDestination {
@@ -94,7 +95,7 @@ export function initialState(displayName: string | null): CreatorState {
     tripId: null,
     status: "draft",
     name: "",
-    emoji: "✈️",
+    emoji: "plane",
     stops: [{ id: shortId("s"), place: null, startDate: "", endDate: "" }],
     departureTime: "",
     groupKind: "families",
@@ -102,14 +103,18 @@ export function initialState(displayName: string | null): CreatorState {
     families: [
       {
         id: familyId,
-        name: last ? `משפחת ${last}` : "המשפחה שלי",
-        members: [{ id: memberId, name: first || "אני", kid: false, age: null }],
+        name: last
+          ? tActive("creator.defaults.familyOf", { name: last })
+          : tActive("creator.defaults.myFamily"),
+        members: [
+          { id: memberId, name: first || tActive("creator.defaults.me"), kid: false, age: null },
+        ],
       },
     ],
     me: { familyId, memberId },
     ai: {
-      name: AI_PRESETS.butler.name,
-      emoji: AI_PRESETS.butler.emoji,
+      name: tActive("creator.ai.presets.butler.name"),
+      emoji: "butler",
       preset: "butler",
       rules: [],
       customRules: "",
@@ -138,6 +143,11 @@ function shortDate(iso: string) {
   return `${Number(d)}.${Number(m)}`;
 }
 
+/** " (stop 2)" suffix for validation messages on multi-stop trips. */
+function stopSuffix(multi: boolean, index: number): string {
+  return multi ? tActive("creator.validation.stopSuffix", { n: index + 1 }) : "";
+}
+
 /** Wizard state → API payload. */
 export function toTripInput(
   state: CreatorState,
@@ -160,7 +170,7 @@ export function toTripInput(
   const departureAt = departureIso(state);
   return {
     name: state.name.trim(),
-    emoji: state.emoji || "✈️",
+    emoji: state.emoji || "plane",
     stops: state.stops
       .filter((stop) => stop.place)
       .map((stop) => ({
@@ -179,14 +189,17 @@ export function toTripInput(
       })),
     departureAt,
     departureNote: departureAt
-      ? `✈️ ההמראה · ${shortDate(tripStart(state))} · ${state.departureTime}`
+      ? tActive("creator.defaults.departureNote", {
+          date: shortDate(tripStart(state)),
+          time: state.departureTime,
+        })
       : "",
     homeBase: state.homeBase,
     groupKind: state.groupKind,
     groupName: state.groupName.trim(),
     aboutUs: state.aboutUs,
     families,
-    ai: { ...state.ai, name: state.ai.name.trim() || "העוזר" },
+    ai: { ...state.ai, name: state.ai.name.trim() || tActive("creator.defaults.aiName") },
     me: meValid ? state.me : null,
     status,
   };
@@ -209,22 +222,22 @@ export function peopleCounts(state: CreatorState) {
 export function basicsValid(state: CreatorState): string | null {
   const multi = state.stops.length > 1;
   for (const [index, stop] of state.stops.entries()) {
-    const which = multi ? ` (יעד ${index + 1})` : "";
-    if (!stop.place) return `בחרו יעד${which}`;
-    if (!stop.startDate || !stop.endDate) return `בחרו תאריכים${which}`;
-    if (stop.endDate < stop.startDate) return `תאריך הסיום לפני ההתחלה${which}`;
+    const which = stopSuffix(multi, index);
+    if (!stop.place) return tActive("creator.validation.pickDestination", { which });
+    if (!stop.startDate || !stop.endDate) return tActive("creator.validation.pickDates", { which });
+    if (stop.endDate < stop.startDate) return tActive("creator.validation.endBeforeStart", { which });
     const previous = state.stops[index - 1];
     if (previous && stop.startDate < previous.endDate) {
-      return `היעדים חופפים — יעד ${index + 1} מתחיל לפני שהקודם נגמר`;
+      return tActive("creator.validation.overlap", { n: index + 1 });
     }
   }
   const days = (Date.parse(tripEnd(state)) - Date.parse(tripStart(state))) / 86_400_000;
-  if (days > 120) return "טיול עד 120 יום";
-  if (!state.name.trim()) return "תנו לטיול שם";
+  if (days > 120) return tActive("creator.validation.maxDays");
+  if (!state.name.trim()) return tActive("creator.validation.name");
   return null;
 }
 
 export function groupValid(state: CreatorState): string | null {
-  if (!peopleCounts(state).people) return "הוסיפו לפחות משתתף אחד";
+  if (!peopleCounts(state).people) return tActive("creator.validation.people");
   return null;
 }

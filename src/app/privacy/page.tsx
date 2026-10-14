@@ -1,43 +1,38 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/product/LegalPage";
 
-export const metadata: Metadata = { title: "מדיניות פרטיות" };
+export const metadata: Metadata = { title: "Privacy Policy" };
 
 // DRAFT — have this reviewed by a lawyer before store submission.
 export default function PrivacyPage() {
   return (
     <LegalPage
-      title="מדיניות פרטיות"
-      updated="אוקטובר 2026"
+      title="product.legal.privacy.title"
       sections={[
         {
-          heading: "מה אנחנו אוספים",
+          heading: "product.legal.privacy.collect.heading",
           body: [
-            "פרטי חשבון מ-Google או Apple: שם, אימייל ותמונת פרופיל.",
-            "תוכן שאתם והחבורה מוסיפים לטיול: מקומות, אירועים בלו״ז, סקרים, הוצאות, מסמכים ותמונות.",
-            "מיקום — רק כשאתם מאשרים, רק בזמן שהאפליקציה פתוחה, ורק כדי להציג אתכם על המפה או לשתף את המיקום עם החבורה כשבחרתם בכך.",
-            "אסימון התראות (Push) כדי לשלוח תזכורות ועדכונים מהטיול.",
+            "product.legal.privacy.collect.p1",
+            "product.legal.privacy.collect.p2",
+            "product.legal.privacy.collect.p3",
+            "product.legal.privacy.collect.p4",
           ],
         },
         {
-          heading: "איך משתמשים במידע",
+          heading: "product.legal.privacy.use.heading",
           body: [
-            "המידע משמש רק להפעלת הטיול שלכם: הצגתו לחברי הטיול, שליחת התראות, והפעלת עוזר ה-AI.",
-            "כשאתם משוחחים עם עוזר ה-AI או מעלים אישור הזמנה, התוכן הרלוונטי נשלח לספק ה-AI (OpenAI) לצורך עיבוד בלבד. חיפושי מקומות נעשים מול Google Maps.",
-            "אנחנו לא מוכרים מידע ולא מציגים פרסומות.",
+            "product.legal.privacy.use.p1",
+            "product.legal.privacy.use.p2",
+            "product.legal.privacy.use.p3",
           ],
         },
         {
-          heading: "מי רואה מה",
-          body: [
-            "כל מה שבטיול גלוי רק לחברי אותו טיול. מסמכים שסימנתם כפרטיים ושיחות עם עוזר ה-AI גלויים רק לכם.",
-          ],
+          heading: "product.legal.privacy.visibility.heading",
+          body: ["product.legal.privacy.visibility.p1"],
         },
         {
-          heading: "מחיקה",
-          body: [
-            "אפשר למחוק את החשבון בכל רגע מתוך האפליקציה: החשבון שלי ← מחיקת החשבון. הפרופיל נמחק ואתם יוצאים מכל הטיולים.",
-          ],
+          heading: "product.legal.privacy.deletion.heading",
+          body: ["product.legal.privacy.deletion.p1"],
         },
       ]}
     />

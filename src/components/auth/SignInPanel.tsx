@@ -6,6 +6,7 @@ import {
   signInWithApple,
   signInWithGoogle,
 } from "@/lib/firebase/client";
+import { useT, type TKey } from "@/i18n";
 
 function GoogleGlyph() {
   return (
@@ -26,10 +27,11 @@ function AppleGlyph() {
   );
 }
 
-const ERRORS: Record<string, string> = {
-  "auth/popup-closed-by-user": "",
-  "auth/cancelled-popup-request": "",
-  "auth/network-request-failed": "אין חיבור לרשת — נסו שוב",
+/** Firebase auth error → message key (null = silent, e.g. user closed the popup). */
+const ERRORS: Record<string, TKey | null> = {
+  "auth/popup-closed-by-user": null,
+  "auth/cancelled-popup-request": null,
+  "auth/network-request-failed": "product.signIn.network",
 };
 
 /** Google / Apple sign-in buttons. Calls onSignedIn after success. */
@@ -40,6 +42,7 @@ export function SignInPanel({
   onSignedIn?: () => void;
   tone?: "light" | "dark";
 }) {
+  const t = useT();
   const [busy, setBusy] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState("");
   // Decided after mount — depends on the native shell (avoids hydration drift)
@@ -55,8 +58,8 @@ export function SignInPanel({
       onSignedIn?.();
     } catch (err) {
       const code = (err as { code?: string }).code ?? "";
-      const message = code in ERRORS ? ERRORS[code] : "ההתחברות נכשלה — נסו שוב";
-      setError(message);
+      const key = code in ERRORS ? ERRORS[code] : "product.signIn.failed";
+      setError(key ? t(key) : "");
     } finally {
       setBusy(null);
     }
@@ -68,20 +71,20 @@ export function SignInPanel({
         type="button"
         onClick={() => run("google")}
         disabled={Boolean(busy)}
-        className="btn w-full border border-cream-200 bg-white py-3.5 text-base text-ink-900 shadow-sm"
+        className="btn w-full border border-cream-200 bg-white py-3.5 text-base font-medium text-ink-900"
       >
         <GoogleGlyph />
-        {busy === "google" ? "מתחברים…" : "המשך עם Google"}
+        {busy === "google" ? t("product.signIn.connecting") : t("product.signIn.google")}
       </button>
       {showApple && (
         <button
           type="button"
           onClick={() => run("apple")}
           disabled={Boolean(busy)}
-          className="btn w-full bg-ink-900 py-3.5 text-base text-cream-50"
+          className="btn w-full bg-ink-900 py-3.5 text-base font-medium text-cream-50"
         >
           <AppleGlyph />
-          {busy === "apple" ? "מתחברים…" : "המשך עם Apple"}
+          {busy === "apple" ? t("product.signIn.connecting") : t("product.signIn.apple")}
         </button>
       )}
       {error && (

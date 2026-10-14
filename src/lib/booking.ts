@@ -33,14 +33,5 @@ export interface BookingImport {
   error?: string;
 }
 
-export const BOOKING_KIND: Record<
-  BookingItem["kind"],
-  { emoji: string; label: string }
-> = {
-  flight: { emoji: "✈️", label: "טיסה" },
-  lodging: { emoji: "🏨", label: "לינה" },
-  car: { emoji: "🚗", label: "רכב" },
-  activity: { emoji: "🎟️", label: "אטרקציה" },
-  restaurant: { emoji: "🍽️", label: "מסעדה" },
-  other: { emoji: "📌", label: "אחר" },
-};
+/** Every reservation kind, in display order (labels/icons live in the UI). */
+export const BOOKING_KINDS = BookingItemSchema.shape.kind.options;

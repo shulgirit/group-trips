@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Luggage, Plus } from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
 import { TripCard } from "@/components/product/TripCard";
+import { STROKE } from "@/components/ui/Icon";
 import { ListSkeleton } from "@/components/ui/Skeleton";
+import { useT } from "@/i18n";
 import { useMyTrips } from "@/lib/my-trips";
 import { todayIso } from "@/lib/trip";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 export default function MyTripsPage() {
+  const t = useT();
   const { user, personal, loading: authLoading } = useAuthUser();
   const guest = Boolean(user?.isAnonymous);
   const { trips, loading } = useMyTrips(personal || guest ? user!.uid : null);
@@ -28,15 +31,11 @@ export default function MyTripsPage() {
     return (
       <ProductShell>
         <div className="card mx-auto max-w-sm px-6 py-8 text-center">
-          <p className="text-4xl" aria-hidden>
-            🧳
-          </p>
-          <h1 className="mt-3 font-display text-2xl font-normal text-ink-900">
-            הטיולים שלי
+          <Luggage size={28} strokeWidth={STROKE} aria-hidden className="mx-auto text-sea-700" />
+          <h1 className="mt-4 font-display text-2xl font-light text-ink-900">
+            {t("product.trips.title")}
           </h1>
-          <p className="mt-2 text-sm text-ink-500">
-            התחברו כדי לראות את הטיולים שלכם ולפתוח טיול חדש
-          </p>
+          <p className="mt-2 text-sm text-ink-500">{t("product.trips.signedOutText")}</p>
           <div className="mt-6">
             <SignInPanel />
           </div>
@@ -46,42 +45,41 @@ export default function MyTripsPage() {
   }
 
   const firstName = (user?.displayName ?? "").split(" ")[0];
-  const current = trips.filter((t) => t.phase !== "past" || t.status === "draft");
-  const past = trips.filter((t) => t.phase === "past" && t.status !== "draft");
+  const current = trips.filter((trip) => trip.phase !== "past" || trip.status === "draft");
+  const past = trips.filter((trip) => trip.phase === "past" && trip.status !== "draft");
 
   return (
     <ProductShell>
       <div className="space-y-8">
         <header>
-          <p className="kicker text-terra-500">הטיולים שלי</p>
-          <h1 className="mt-1 font-display text-3xl font-normal text-ink-900">
-            {firstName ? `היי ${firstName} 👋` : "היי 👋"}
+          <p className="kicker text-ink-500">{t("product.trips.title")}</p>
+          <h1 className="mt-2 font-display text-3xl font-light text-ink-900">
+            {firstName
+              ? t("product.trips.greeting", { name: firstName })
+              : t("product.trips.greetingAnon")}
           </h1>
-          <p className="mt-1 text-ink-500">לאן נוסעים הפעם?</p>
+          <p className="mt-1 text-ink-500">{t("product.trips.subtitle")}</p>
         </header>
 
         {guest ? (
           <p className="card px-5 py-4 text-sm leading-relaxed text-ink-500">
-            נכנסתם כאורח. כדי לפתוח טיול משלכם — התנתקו והתחברו עם Google או
-            Apple, או שמרו את החשבון מתוך הגדרות הטיול.
+            {t("product.trips.guestNote")}
           </p>
         ) : (
-        <Link
-          href="/new"
-          className="card flex items-center gap-4 border-dashed border-sea-200 bg-sea-100/40 px-5 py-5 transition active:scale-[0.99]"
-        >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sea-700 text-cream-50">
-            <Plus className="h-6 w-6" />
-          </span>
-          <span>
-            <span className="block font-display text-lg font-medium text-ink-900">
-              טיול חדש
+          <Link
+            href="/new"
+            className="card flex items-center gap-4 px-5 py-5 transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sea-700 text-cream-50">
+              <Plus size={20} strokeWidth={STROKE} aria-hidden />
             </span>
-            <span className="block text-sm text-ink-500">
-              יעד, חבורה, הזמנות ועוזר AI — בכמה דקות
+            <span>
+              <span className="block font-display text-lg font-normal text-ink-900">
+                {t("product.trips.newTrip.title")}
+              </span>
+              <span className="block text-sm text-ink-500">{t("product.trips.newTrip.text")}</span>
             </span>
-          </span>
-        </Link>
+          </Link>
         )}
 
         {loading ? (
@@ -90,7 +88,7 @@ export default function MyTripsPage() {
           <>
             {current.length > 0 && (
               <section className="space-y-3">
-                <h2 className="section-title">בקרוב ועכשיו</h2>
+                <h2 className="section-title">{t("product.trips.current")}</h2>
                 {current.map((trip) => (
                   <TripCard key={trip.id} trip={trip} today={today} />
                 ))}
@@ -98,7 +96,7 @@ export default function MyTripsPage() {
             )}
             {past.length > 0 && (
               <section className="space-y-3">
-                <h2 className="section-title">טיולים קודמים</h2>
+                <h2 className="section-title">{t("product.trips.past")}</h2>
                 {past.map((trip) => (
                   <TripCard key={trip.id} trip={trip} today={today} />
                 ))}
@@ -106,7 +104,7 @@ export default function MyTripsPage() {
             )}
             {trips.length === 0 && (
               <p className="text-center text-sm text-ink-500">
-                עוד אין טיולים. קיבלתם הזמנה? פתחו את הקישור מהוואטסאפ 📩
+                {t("product.trips.empty")}
               </p>
             )}
           </>

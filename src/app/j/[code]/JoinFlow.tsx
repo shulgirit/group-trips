@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Link2, MapPin, UserRound, Users } from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
+import { Glyph, STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useT, type TKey } from "@/i18n";
+import { formatShortDate } from "@/i18n/format";
 import { apiFetch, auth, signInAsGuest } from "@/lib/firebase/client";
 import type { InvitePreview } from "@/lib/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
@@ -22,21 +26,17 @@ type Preview = InvitePreview & {
   aiEmoji: string;
 };
 
-const ERRORS: Record<string, string> = {
-  not_found: "הקישור לא קיים — בדקו שהעתקתם אותו במלואו",
-  expired: "תוקף הקישור פג — בקשו מהמארגנים קישור חדש",
-  used_up: "הקישור כבר נוצל עד הסוף — בקשו קישור חדש",
-  revoked: "הקישור בוטל על ידי המארגנים",
-  trip_closed: "הטיול הזה כבר נסגר",
+const ERRORS: Record<string, TKey> = {
+  not_found: "product.join.errors.notFound",
+  expired: "product.join.errors.expired",
+  used_up: "product.join.errors.usedUp",
+  revoked: "product.join.errors.revoked",
+  trip_closed: "product.join.errors.tripClosed",
 };
-
-function shortDate(iso: string) {
-  const [, m, d] = iso.split("-");
-  return `${Number(d)}.${Number(m)}`;
-}
 
 export function JoinFlow({ code }: { code: string }) {
   const router = useRouter();
+  const t = useT();
   const { user, personal, loading } = useAuthUser();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
@@ -51,8 +51,8 @@ export function JoinFlow({ code }: { code: string }) {
         setPreview(body);
         setFamilyId(body.familyId);
       })
-      .catch((err: Error) => setError(ERRORS[err.message] ?? ERRORS.not_found));
-  }, [code]);
+      .catch((err: Error) => setError(t(ERRORS[err.message] ?? ERRORS.not_found)));
+  }, [code, t]);
 
   const isKidInvite = preview?.role === "kid";
   const [asGuest, setAsGuest] = useState(false);
@@ -72,11 +72,13 @@ export function JoinFlow({ code }: { code: string }) {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(
-          body.error === "trip_full"
-            ? "הטיול מלא — פנו למארגנים"
-            : body.error === "sign_in_required"
-              ? "צריך להתחבר עם Google או Apple"
-              : (ERRORS[body.error] ?? "ההצטרפות נכשלה — נסו שוב")
+          t(
+            body.error === "trip_full"
+              ? "product.join.errors.tripFull"
+              : body.error === "sign_in_required"
+                ? "product.join.errors.signInRequired"
+                : (ERRORS[body.error] ?? "product.join.errors.failed")
+          )
         );
         return;
       }
@@ -84,7 +86,7 @@ export function JoinFlow({ code }: { code: string }) {
       await auth().currentUser?.getIdToken(true).catch(() => undefined);
       router.replace(`/t/${body.tripId}`);
     } catch {
-      setError("ההצטרפות נכשלה — בדקו את החיבור ונסו שוב");
+      setError(t("product.join.errors.failedNetwork"));
     } finally {
       setJoining(false);
     }
@@ -94,12 +96,10 @@ export function JoinFlow({ code }: { code: string }) {
     return (
       <ProductShell>
         <div className="card px-6 py-10 text-center">
-          <p className="text-4xl" aria-hidden>
-            🔗
-          </p>
-          <p className="mt-3 font-display text-xl font-medium text-ink-900">{error}</p>
+          <Link2 size={28} strokeWidth={STROKE} aria-hidden className="mx-auto text-sea-700" />
+          <p className="mt-4 font-display text-xl font-light text-ink-900">{error}</p>
           <Link href="/trips" className="btn-soft mt-6 px-5 py-3">
-            לטיולים שלי
+            {t("product.gate.myTrips")}
           </Link>
         </div>
       </ProductShell>
@@ -125,49 +125,62 @@ export function JoinFlow({ code }: { code: string }) {
     <ProductShell>
       <div className="space-y-6">
         <section className="card overflow-hidden">
-          <div className="relative h-44 bg-gradient-to-br from-sea-900 via-sea-700 to-sea-500">
+          <div className="relative h-44 bg-sea-900">
             {preview.coverImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview.coverImage} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span aria-hidden className="absolute inset-0 flex items-center justify-center text-7xl">
-                {preview.emoji}
+              <span aria-hidden className="absolute inset-0 flex items-center justify-center text-cream-50/60">
+                <Glyph value={preview.emoji} size={52} />
               </span>
             )}
             <div className="hero-overlay absolute inset-0" />
             <div className="absolute inset-x-5 bottom-4">
-              <p className="kicker text-lemon-300">הוזמנתם לטיול</p>
-              <h1 className="font-display text-3xl font-normal text-cream-50">
-                {preview.emoji} {preview.name}
+              <p className="kicker text-lemon-300">{t("product.join.invited")}</p>
+              <h1 className="mt-1 font-display text-3xl font-light text-cream-50">
+                {preview.name}
               </h1>
             </div>
           </div>
-          <div className="space-y-1 px-5 py-4 text-sm text-ink-700">
-            <p>
-              📍 {preview.destination} · {shortDate(preview.startDate)}–{shortDate(preview.endDate)}
-            </p>
-            {preview.organizer && <p>🧑‍✈️ מארגנים: {preview.organizer}</p>}
-            <p>
-              {preview.aiEmoji} {preview.aiName} — עוזר ה-AI של הטיול כבר מחכה
-            </p>
-            {preview.memberCount > 1 && (
-              <p>👥 {preview.memberCount} כבר בפנים</p>
+          <ul className="space-y-2 px-5 py-5 text-sm text-ink-700">
+            <li className="flex items-center gap-2.5">
+              <MapPin size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
+              <span>
+                {preview.destination} ·{" "}
+                <span dir="ltr" className="numerals">
+                  {formatShortDate(preview.startDate)}–{formatShortDate(preview.endDate)}
+                </span>
+              </span>
+            </li>
+            {preview.organizer && (
+              <li className="flex items-center gap-2.5">
+                <UserRound size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
+                {t("product.join.organizers", { name: preview.organizer })}
+              </li>
             )}
-          </div>
+            <li className="flex items-center gap-2.5">
+              <Glyph value={preview.aiEmoji} size={16} className="shrink-0 text-ink-500" />
+              {t("product.join.aiWaiting", { name: preview.aiName })}
+            </li>
+            {preview.memberCount > 1 && (
+              <li className="flex items-center gap-2.5">
+                <Users size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
+                {t("product.join.alreadyIn", { count: preview.memberCount })}
+              </li>
+            )}
+          </ul>
         </section>
 
         {!canPick ? (
           <section className="card space-y-4 px-5 py-6 text-center">
-            <h2 className="font-display text-xl font-medium text-ink-900">
-              התחברו כדי להצטרף
+            <h2 className="font-display text-xl font-light text-ink-900">
+              {t("product.join.signInTitle")}
             </h2>
-            <p className="text-sm text-ink-500">
-              חשבון אחד לכל הטיולים — בלי סיסמאות
-            </p>
+            <p className="text-sm text-ink-500">{t("product.join.signInText")}</p>
             <SignInPanel />
             <div className="flex items-center gap-3 text-xs text-ink-300">
               <span className="h-px flex-1 bg-cream-200" />
-              או
+              {t("common.or")}
               <span className="h-px flex-1 bg-cream-200" />
             </div>
             <button
@@ -175,17 +188,16 @@ export function JoinFlow({ code }: { code: string }) {
               onClick={() => setAsGuest(true)}
               className="btn-soft w-full py-3.5 text-base"
             >
-              המשך בלי חשבון 👋
+              {t("product.join.guest")}
             </button>
             <p className="text-xs leading-relaxed text-ink-500">
-              בלי Gmail? אין בעיה — בוחרים שם ונכנסים. הגישה נשמרת בטלפון הזה,
-              ואפשר לחבר חשבון בהמשך מתוך ההגדרות.
+              {t("product.join.guestNote")}
             </p>
           </section>
         ) : (
           <section className="space-y-3">
-            <h2 className="font-display text-xl font-medium text-ink-900">
-              {kidsOnly ? "מי אתם? 👋" : "מי אתם מהחבורה? 👋"}
+            <h2 className="font-display text-xl font-light text-ink-900">
+              {kidsOnly ? t("product.join.whoKids") : t("product.join.whoGroup")}
             </h2>
             {families.length > 1 && (
               <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4">
@@ -211,33 +223,33 @@ export function JoinFlow({ code }: { code: string }) {
                       type="button"
                       disabled={joining}
                       onClick={() => join(familyId ?? families[0].id, member.id)}
-                      className="rounded-2xl bg-sea-700 px-5 py-3 text-base font-semibold text-cream-50 transition active:scale-[0.97] disabled:opacity-50"
+                      className="rounded-full bg-sea-700 px-5 py-3 text-base font-medium text-cream-50 transition active:scale-[0.97] disabled:opacity-50"
                     >
                       {member.name}
                     </button>
                   ))}
               </div>
             ) : (
-              <p className="text-sm text-ink-500">בחרו משפחה ואז את השם שלכם</p>
+              <p className="text-sm text-ink-500">{t("product.join.pickFamily")}</p>
             )}
             {!kidsOnly && (
               <button
                 type="button"
                 disabled={joining}
                 onClick={() => join(familyId, null)}
-                className="w-full pt-2 text-center text-sm font-medium text-sea-700 underline"
+                className="w-full pt-2 text-center text-sm font-medium text-sea-700 underline underline-offset-2"
               >
-                {joining ? "מצטרפים…" : "אני לא ברשימה — להצטרף בכל זאת"}
+                {joining ? t("product.join.joining") : t("product.join.notListed")}
               </button>
             )}
             {user && personal && (
               <p className="text-center text-xs text-ink-500">
-                מחוברים כ-{user.displayName || user.email}
+                {t("product.join.signedInAs", { name: user.displayName || user.email || "" })}
               </p>
             )}
             {!personal && !isKidInvite && (
               <p className="text-center text-xs text-ink-500">
-                נכנסים כאורח — הגישה נשמרת בטלפון הזה
+                {t("product.join.guestHint")}
               </p>
             )}
           </section>

@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, QrCode, Share2, X } from "lucide-react";
+import { Check, Copy, Link2, QrCode, Share2, Users, X, type LucideIcon } from "lucide-react";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+import { tActive } from "@/i18n/active";
 import { apiFetch } from "@/lib/firebase/client";
 
 interface Invite {
@@ -23,6 +26,7 @@ export function whatsappShareUrl(text: string): string {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
+/** Invite text in the sender's UI language. `emoji` is kept for callers but no longer rendered. */
 export function inviteMessage(opts: {
   tripName: string;
   emoji: string;
@@ -30,7 +34,11 @@ export function inviteMessage(opts: {
   url: string;
 }): string {
   const who = opts.familyName ? ` (${opts.familyName})` : "";
-  return `${opts.emoji} הוזמנתם לטיול "${opts.tripName}"${who}!\nכל הלו״ז, המפה, ההוצאות ועוזר ה-AI שלנו — במקום אחד.\nלהצטרפות: ${opts.url}`;
+  return [
+    tActive("product.invite.message.title", { trip: opts.tripName, who }),
+    tActive("product.invite.message.body"),
+    tActive("product.invite.message.join", { url: opts.url }),
+  ].join("\n");
 }
 
 /** Shares through the native sheet when available, else WhatsApp. */
@@ -48,6 +56,7 @@ async function share(text: string, url: string) {
 }
 
 function QrModal({ url, onClose }: { url: string; onClose: () => void }) {
+  const t = useT();
   const [dataUrl, setDataUrl] = useState("");
   useEffect(() => {
     let cancelled = false;
@@ -72,41 +81,47 @@ function QrModal({ url, onClose }: { url: string; onClose: () => void }) {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex justify-end">
-          <button type="button" onClick={onClose} aria-label="סגירה" className="text-ink-500">
-            <X className="h-5 w-5" />
+          <button type="button" onClick={onClose} aria-label={t("common.close")} className="text-ink-500">
+            <X size={20} strokeWidth={STROKE} aria-hidden />
           </button>
         </div>
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={dataUrl} alt="קוד QR להצטרפות" className="mx-auto w-full rounded-2xl" />
+          <img src={dataUrl} alt={t("product.invite.qrAlt")} className="mx-auto w-full rounded-2xl" />
         ) : (
           <div className="aspect-square w-full animate-pulse rounded-2xl bg-cream-100" />
         )}
-        <p className="mt-3 text-sm text-ink-500">סורקים במצלמה ומצטרפים</p>
+        <p className="mt-3 text-sm text-ink-500">{t("product.invite.qrHint")}</p>
       </div>
     </div>
   );
 }
 
 function InviteRow({
+  icon: Icon,
   label,
   hint,
   url,
   message,
 }: {
+  icon: LucideIcon;
   label: string;
   hint: string;
   url: string;
   message: string;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState(false);
   return (
     <li className="rounded-2xl border border-cream-200 bg-white px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold text-ink-900">{label}</p>
-          <p className="truncate text-xs text-ink-500" dir="ltr">
+          <p className="flex items-center gap-2 font-medium text-ink-900">
+            <Icon size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
+            <span className="truncate">{label}</span>
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-500" dir="ltr">
             {hint}
           </p>
         </div>
@@ -114,10 +129,10 @@ function InviteRow({
           <button
             type="button"
             onClick={() => setQr(true)}
-            aria-label="קוד QR"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-cream-100 text-ink-700"
+            aria-label={t("product.invite.qr")}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 text-ink-700"
           >
-            <QrCode className="h-4.5 w-4.5" />
+            <QrCode size={18} strokeWidth={STROKE} aria-hidden />
           </button>
           <button
             type="button"
@@ -126,18 +141,22 @@ function InviteRow({
               setCopied(true);
               setTimeout(() => setCopied(false), 1800);
             }}
-            aria-label="העתקת קישור"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-cream-100 text-ink-700"
+            aria-label={t("product.invite.copyLink")}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 text-ink-700"
           >
-            {copied ? <Check className="h-4.5 w-4.5 text-olive-500" /> : <Copy className="h-4.5 w-4.5" />}
+            {copied ? (
+              <Check size={18} strokeWidth={STROKE} aria-hidden className="text-olive-500" />
+            ) : (
+              <Copy size={18} strokeWidth={STROKE} aria-hidden />
+            )}
           </button>
           <button
             type="button"
             onClick={() => share(message, url)}
-            className="btn flex h-10 items-center gap-1.5 bg-[#25D366] px-3 text-sm text-white"
+            className="btn flex h-10 items-center gap-1.5 rounded-full bg-sea-700 px-4 text-sm text-cream-50"
           >
-            <Share2 className="h-4 w-4" />
-            שליחה
+            <Share2 size={16} strokeWidth={STROKE} aria-hidden />
+            {t("product.invite.send")}
           </button>
         </div>
       </div>
@@ -161,6 +180,7 @@ export function InviteLinks({
   emoji: string;
   families: { id: string; name: string }[];
 }) {
+  const t = useT();
   const [invites, setInvites] = useState<Invite[] | null>(null);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -172,10 +192,10 @@ export function InviteLinks({
       const { invites } = await response.json();
       setInvites(invites);
     } catch {
-      setError("לא הצלחנו לטעון את קישורי ההזמנה");
+      setError(t("product.invite.loadFailed"));
       setInvites([]);
     }
-  }, [tripId]);
+  }, [tripId, t]);
 
   useEffect(() => {
     load();
@@ -212,7 +232,8 @@ export function InviteLinks({
       <ul className="space-y-2">
         {general ? (
           <InviteRow
-            label="🔗 קישור כללי לכל החבורה"
+            icon={Link2}
+            label={t("product.invite.general")}
             hint={inviteUrl(general.code).replace(/^https?:\/\//, "")}
             url={inviteUrl(general.code)}
             message={inviteMessage({ tripName, emoji, url: inviteUrl(general.code) })}
@@ -225,15 +246,16 @@ export function InviteLinks({
               onClick={createGeneral}
               className="btn-outline w-full py-3"
             >
-              {creating ? "יוצרים…" : "יצירת קישור הזמנה"}
+              {creating ? t("product.invite.creating") : t("product.invite.create")}
             </button>
           </li>
         )}
         {perFamily.map(({ family, invite }) => (
           <InviteRow
             key={family.id}
-            label={`👨‍👩‍👧 ${family.name}`}
-            hint={`${invite!.uses}/${invite!.maxUses} הצטרפו`}
+            icon={Users}
+            label={family.name}
+            hint={t("product.invite.joined", { uses: invite!.uses, max: invite!.maxUses })}
             url={inviteUrl(invite!.code)}
             message={inviteMessage({
               tripName,
@@ -245,8 +267,7 @@ export function InviteLinks({
         ))}
       </ul>
       <p className="text-xs leading-relaxed text-ink-500">
-        קישור משפחתי מסמן מראש את המשפחה — מי שנכנס רק בוחר את השם שלו.
-        הקישורים בתוקף 60 יום.
+        {t("product.invite.footnote")}
       </p>
     </div>
   );

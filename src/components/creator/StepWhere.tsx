@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
+import { STROKE, TRIP_GLYPHS } from "@/components/ui/Icon";
+import { useT, type TKey } from "@/i18n";
 import { apiFetch } from "@/lib/firebase/client";
-import { flagEmoji } from "@/lib/trip-doc";
 import {
   primaryPlace,
   shortId,
@@ -20,7 +21,6 @@ interface Suggestion {
   secondary: string;
 }
 
-const EMOJIS = ["✈️", "🌴", "🏖️", "🏔️", "🍋", "🍕", "🥐", "🎉", "🌍", "⛵", "🗺️", "🏝️"];
 
 function nights(start: string, end: string): number | null {
   if (!start || !end || end < start) return null;
@@ -43,6 +43,7 @@ function DestinationSearch({
   autoFocus?: boolean;
   placeholder: string;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -89,7 +90,7 @@ function DestinationSearch({
       };
       onPick({ ...destination, label: destination.label || suggestion.label });
     } catch {
-      setError("לא הצלחנו לטעון את היעד — נסו שוב");
+      setError(t("creator.where.loadFailed"));
     } finally {
       setResolving(false);
     }
@@ -97,22 +98,27 @@ function DestinationSearch({
 
   return (
     <div className="relative">
-      <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-300" />
+      <Search
+        size={20}
+        strokeWidth={STROKE}
+        aria-hidden
+        className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-ink-300"
+      />
       <input
         className="field ps-12 text-lg"
         placeholder={placeholder}
         value={query}
         autoComplete="off"
         autoFocus={autoFocus}
-        aria-label="חיפוש יעד"
+        aria-label={t("creator.where.searchLabel")}
         onChange={(event) => setQuery(event.target.value)}
         disabled={resolving}
       />
       {(suggestions.length > 0 || searching || resolving) && (
         <ul className="card absolute inset-x-0 top-full z-20 mt-2 overflow-hidden p-1">
-          {resolving && <li className="px-4 py-3 text-sm text-ink-500">טוענים את היעד…</li>}
+          {resolving && <li className="px-4 py-3 text-sm text-ink-500">{t("creator.where.loading")}</li>}
           {!resolving && searching && suggestions.length === 0 && (
-            <li className="px-4 py-3 text-sm text-ink-500">מחפשים…</li>
+            <li className="px-4 py-3 text-sm text-ink-500">{t("creator.where.searching")}</li>
           )}
           {suggestions.map((suggestion) => (
             <li key={suggestion.placeId}>
@@ -121,9 +127,9 @@ function DestinationSearch({
                 onClick={() => pick(suggestion)}
                 className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-start hover:bg-cream-100"
               >
-                <MapPin className="h-4.5 w-4.5 shrink-0 text-sea-600" />
+                <MapPin size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-600" />
                 <span className="min-w-0">
-                  <span className="block font-semibold text-ink-900">{suggestion.label}</span>
+                  <span className="block font-medium text-ink-900">{suggestion.label}</span>
                   <span className="block truncate text-xs text-ink-500">{suggestion.secondary}</span>
                 </span>
               </button>
@@ -153,26 +159,27 @@ function StopCard({
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   const multi = count > 1;
   const stopNights = nights(stop.startDate, stop.endDate);
   return (
     <div className="card overflow-visible">
       {stop.place ? (
-        <div className="relative h-32 overflow-hidden rounded-t-3xl bg-gradient-to-br from-sea-900 to-sea-500">
+        <div className="relative h-32 overflow-hidden rounded-t-3xl bg-sea-900">
           {stop.place.coverImage && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={stop.place.coverImage} alt="" className="h-full w-full object-cover" />
           )}
           <div className="hero-overlay absolute inset-0" />
           {multi && (
-            <span className="absolute start-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-cream-50/90 text-sm font-bold text-ink-900">
+            <span className="numerals absolute start-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-cream-50/90 text-sm text-ink-900">
               {index + 1}
             </span>
           )}
           <div className="absolute inset-x-4 bottom-3 flex items-end justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate font-display text-2xl font-normal text-cream-50">
-                {flagEmoji(stop.place.country)} {stop.place.label}
+              <p className="truncate font-display text-2xl font-light text-cream-50">
+                {stop.place.label}
               </p>
               <p className="text-xs text-cream-50/80" dir="ltr">
                 {stop.place.timezone} · {stop.place.currency}
@@ -181,18 +188,22 @@ function StopCard({
             <button
               type="button"
               onClick={() => onChange({ place: null })}
-              className="shrink-0 rounded-full bg-cream-50/90 px-3 py-1.5 text-xs font-semibold text-ink-900"
+              className="shrink-0 rounded-full bg-cream-50/90 px-3 py-1.5 text-xs font-medium text-ink-900"
             >
-              שינוי
+              {t("creator.where.change")}
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-2 px-4 pt-4">
-          {multi && <p className="text-sm font-semibold text-ink-700">יעד {index + 1}</p>}
+          {multi && (
+            <p className="text-sm font-medium text-ink-700">{t("creator.where.stopN", { n: index + 1 })}</p>
+          )}
           <DestinationSearch
             autoFocus={index > 0}
-            placeholder={index === 0 ? "סיציליה, טוסקנה, אתונה…" : "לאן ממשיכים?"}
+            placeholder={
+              index === 0 ? t("creator.where.firstPlaceholder") : t("creator.where.nextPlaceholder")
+            }
             onPick={(place) => onChange({ place })}
           />
         </div>
@@ -201,7 +212,9 @@ function StopCard({
       <div className="space-y-2 px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
-            <span className="text-xs text-ink-500">{index === 0 ? "יוצאים" : "מגיעים"}</span>
+            <span className="text-xs text-ink-500">
+              {index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
+            </span>
             <input
               type="date"
               className="field"
@@ -218,7 +231,7 @@ function StopCard({
           </label>
           <label className="space-y-1">
             <span className="text-xs text-ink-500">
-              {index === count - 1 ? "חוזרים" : "ממשיכים הלאה"}
+              {index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
             </span>
             <input
               type="date"
@@ -231,35 +244,39 @@ function StopCard({
         </div>
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink-500">
-            {stopNights !== null ? (stopNights === 0 ? "יום אחד" : `${stopNights} לילות`) : ""}
+            {stopNights !== null
+              ? stopNights === 0
+                ? t("creator.where.oneDay")
+                : t("creator.where.nights", { count: stopNights })
+              : ""}
           </p>
           {multi && (
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                aria-label="הזזה למעלה"
+                aria-label={t("creator.where.moveUp")}
                 disabled={index === 0}
                 onClick={() => onMove(-1)}
                 className="rounded-xl p-2 text-ink-500 disabled:opacity-30"
               >
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp size={16} strokeWidth={STROKE} aria-hidden />
               </button>
               <button
                 type="button"
-                aria-label="הזזה למטה"
+                aria-label={t("creator.where.moveDown")}
                 disabled={index === count - 1}
                 onClick={() => onMove(1)}
                 className="rounded-xl p-2 text-ink-500 disabled:opacity-30"
               >
-                <ArrowDown className="h-4 w-4" />
+                <ArrowDown size={16} strokeWidth={STROKE} aria-hidden />
               </button>
               <button
                 type="button"
-                aria-label="הסרת יעד"
+                aria-label={t("creator.where.removeStop")}
                 onClick={onRemove}
                 className="rounded-xl p-2 text-ink-300 hover:text-terra-600"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
               </button>
             </div>
           )}
@@ -276,6 +293,7 @@ export function StepWhere({
   state: CreatorState;
   update: (patch: Partial<CreatorState>) => void;
 }) {
+  const t = useT();
   const [names, setNames] = useState<{ name: string; emoji: string }[]>([]);
   const [naming, setNaming] = useState(false);
   const stops = state.stops;
@@ -369,10 +387,8 @@ export function StepWhere({
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="font-display text-3xl font-normal text-ink-900">לאן טסים? 🌍</h1>
-        <p className="mt-1 text-ink-500">
-          יעד אחד או מסלול של כמה ארצות — כל השאר נבנה מזה
-        </p>
+        <h1 className="font-display text-3xl font-light text-ink-900">{t("creator.where.title")}</h1>
+        <p className="mt-2 text-ink-500">{t("creator.where.text")}</p>
       </header>
 
       <section className="space-y-3">
@@ -395,17 +411,21 @@ export function StepWhere({
             disabled={!stops[stops.length - 1]?.place}
             className="btn-outline w-full py-3 disabled:opacity-40"
           >
-            <Plus className="h-4 w-4" /> הוספת יעד נוסף במסלול
+            <Plus size={16} strokeWidth={STROKE} aria-hidden /> {t("creator.where.addStop")}
           </button>
         )}
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-ink-500">
             {tripNights !== null
-              ? `${tripNights + 1} ימים${stops.length > 1 ? ` · ${stops.length} יעדים` : ""}${countries.size > 1 ? ` · ${countries.size} ארצות` : ""}`
+              ? [
+                  t("creator.where.days", { count: tripNights + 1 }),
+                  ...(stops.length > 1 ? [t("creator.where.stops", { count: stops.length })] : []),
+                  ...(countries.size > 1 ? [t("creator.where.countries", { count: countries.size })] : []),
+                ].join(" · ")
               : ""}
           </p>
           <label className="flex items-center gap-2 text-sm text-ink-500">
-            שעת המראה
+            {t("creator.where.departureTime")}
             <input
               type="time"
               className="field w-28 py-2"
@@ -418,25 +438,25 @@ export function StepWhere({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-semibold text-ink-700" htmlFor="trip-name">
-            שם הטיול
+          <label className="text-sm font-medium text-ink-700" htmlFor="trip-name">
+            {t("creator.where.nameLabel")}
           </label>
           {firstPlace && (
             <button
               type="button"
               onClick={suggestNames}
               disabled={naming}
-              className="flex items-center gap-1 text-sm font-semibold text-sea-700"
+              className="flex items-center gap-1.5 text-sm font-medium text-sea-700"
             >
-              <Sparkles className="h-4 w-4" />
-              {naming ? "חושב…" : "הצעות AI"}
+              <Sparkles size={16} strokeWidth={STROKE} aria-hidden />
+              {naming ? t("creator.where.thinking") : t("creator.where.suggest")}
             </button>
           )}
         </div>
         <input
           id="trip-name"
           className="field text-lg"
-          placeholder="סיציליה 2026"
+          placeholder={t("creator.where.namePlaceholder")}
           value={state.name}
           maxLength={60}
           onChange={(event) => update({ name: event.target.value })}
@@ -448,33 +468,50 @@ export function StepWhere({
                 key={option.name}
                 type="button"
                 onClick={() => {
-                  update({ name: option.name, emoji: option.emoji || state.emoji });
+                  // Suggested emoji are ignored — the trip keeps its chosen icon
+                  update({ name: option.name });
                   setNames([]);
                 }}
-                className="chip bg-lemon-100 text-ink-700"
+                className="chip text-ink-700"
               >
-                {option.emoji} {option.name}
+                {option.name}
               </button>
             ))}
-            <button type="button" onClick={() => setNames([])} aria-label="סגירה" className="chip px-2.5">
-              <X className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={() => setNames([])}
+              aria-label={t("common.close")}
+              className="chip px-2.5"
+            >
+              <X size={16} strokeWidth={STROKE} aria-hidden />
             </button>
           </div>
         )}
-        <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pt-1">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => update({ emoji })}
-              aria-label={`אימוג׳י ${emoji}`}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-2xl transition ${
-                state.emoji === emoji ? "bg-sea-700 ring-2 ring-sea-200" : "bg-cream-100"
-              }`}
-            >
-              {emoji}
-            </button>
-          ))}
+        <div
+          role="radiogroup"
+          aria-label={t("creator.where.iconLabel")}
+          className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pt-1"
+        >
+          {TRIP_GLYPHS.map(({ key, Icon }) => {
+            const active = state.emoji === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => update({ emoji: key })}
+                aria-label={t(`creator.where.icons.${key}` as TKey)}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${
+                  active
+                    ? "border-sea-700 bg-sea-700 text-cream-50"
+                    : "border-cream-200 bg-white text-ink-500"
+                }`}
+              >
+                <Icon size={18} strokeWidth={STROKE} aria-hidden />
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
