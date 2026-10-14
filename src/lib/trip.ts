@@ -1,35 +1,8 @@
 import { activeLocale } from "@/i18n/active";
 import { formatDayLabel as formatDay } from "@/i18n/format";
-/**
- * Static trip configuration (fallback/seed values).
- * The canonical copy lives in Firestore at trips/sicily-2026.
- */
-export const TRIP = {
-  id: "sicily-2026",
-  name: "סיציליה 2026",
-  heroTitle: "סיציליה מחכה לנו 🇮🇹",
-  /** Home hero artwork — replace with a real trip photo anytime */
-  heroImage: "/images/hero.jpg",
-  /** Departure flight from TLV, Israel time */
-  countdownTarget: "2026-08-15T21:35:00+03:00",
-  /** Trip calendar days (local dates) */
-  startDate: "2026-08-15",
-  endDate: "2026-08-24",
-  currency: "EUR",
-  villa: {
-    name: "הוילה — Villa Maria con piscina e vista mare",
-    address:
-      "Contrada Bocca della Carrubba, sn, 91014 Castellammare del Golfo TP, Italy",
-    lat: 38.0070196 as number | null,
-    lng: 12.887506 as number | null,
-  },
-} as const;
-
-export const TRIP_PATH = `trips/${TRIP.id}`;
-
 /** All trip days as ISO date strings (YYYY-MM-DD), inclusive. */
 export function tripDays(
-  trip: { startDate: string; endDate: string } = TRIP
+  trip: { startDate: string; endDate: string }
 ): string[] {
   const days: string[] = [];
   const current = new Date(`${trip.startDate}T12:00:00`);
@@ -51,17 +24,13 @@ export function todayIso(): string {
 /** 1-based trip day number for a date, or null outside the trip. */
 export function tripDayNumber(
   dateIso: string,
-  trip: { startDate: string; endDate: string } = TRIP
+  trip: { startDate: string; endDate: string }
 ): number | null {
   const days = tripDays(trip);
   const index = days.indexOf(dateIso);
   return index === -1 ? null : index + 1;
 }
 
-export function isDuringTrip(): boolean {
-  const today = todayIso();
-  return today >= TRIP.startDate && today <= TRIP.endDate;
-}
 
 /** "שבת · 15.8" / "Saturday · 15.8" in the active UI language. */
 export function formatDayLabel(dateIso: string): string {

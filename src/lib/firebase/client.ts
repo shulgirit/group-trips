@@ -85,6 +85,8 @@ if (USE_EMULATORS && typeof window !== "undefined") {
     );
     return (await signInWithCredential(auth(), credential)).user.uid;
   };
+  (window as unknown as Record<string, unknown>).__e2eToken = async () =>
+    auth().currentUser?.getIdToken();
   (window as unknown as Record<string, unknown>).__e2eLink = async (
     name: string,
     email: string

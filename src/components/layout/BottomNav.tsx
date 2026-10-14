@@ -7,6 +7,14 @@ import { useTrip } from "@/components/providers/TripProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 
+/** Nav labels are one short line: "The Concierge" → "Concierge". */
+function shortNavLabel(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= 10) return trimmed;
+  const words = trimmed.split(/\s+/);
+  return words[words.length - 1].length <= 12 ? words[words.length - 1] : trimmed;
+}
+
 export function BottomNav() {
   const pathname = usePathname();
   const trip = useTrip();
@@ -17,7 +25,7 @@ export function BottomNav() {
   const homeHref = trip.prefix || "/";
   const navItems = [
     { href: homeHref, label: t("trip.nav.home"), icon: Home, hero: false },
-    { href: `${trip.prefix}/ai`, label: trip.ai.navLabel, icon: Sparkles, hero: true },
+    { href: `${trip.prefix}/ai`, label: shortNavLabel(trip.ai.navLabel), icon: Sparkles, hero: true },
     { href: `${trip.prefix}/calendar`, label: t("trip.nav.schedule"), icon: CalendarDays, hero: false },
     { href: `${trip.prefix}/map`, label: t("trip.nav.map"), icon: Map, hero: false },
     { href: `${trip.prefix}/places`, label: t("trip.nav.places"), icon: MapPin, hero: false },
@@ -53,7 +61,7 @@ export function BottomNav() {
                     >
                       <Sparkles size={18} strokeWidth={STROKE} aria-hidden />
                     </span>
-                    {label}
+                    <span className="block max-w-full truncate">{label}</span>
                   </Link>
                 </li>
               );
@@ -76,7 +84,7 @@ export function BottomNav() {
                   >
                     <Icon size={20} strokeWidth={active ? 1.75 : STROKE} aria-hidden />
                   </span>
-                  {label}
+                  <span className="block max-w-full truncate">{label}</span>
                 </Link>
               </li>
             );

@@ -19,15 +19,18 @@
   --color-ink-900: #0f1b2d;
   --color-ink-700: #2e3a4b;
   --color-ink-500: #6b6a66;
+  --color-ink-400: #8c8a84;
   --color-ink-300: #a9a59c;
 
   /* Ink navy — primary */
   --color-sea-950: #08111d;
   --color-sea-900: #0f1b2d;
+  --color-sea-800: #132036;
   --color-sea-700: #16243a;
   --color-sea-600: #22324a;
   --color-sea-500: #3a4c66;
   --color-sea-400: #6b7a90;
+  --color-sea-300: #a8b3c2;
   --color-sea-200: #d3d8e0;
   --color-sea-100: #e9ecf1;
 
@@ -35,9 +38,11 @@
   --color-terra-600: #8a4c37;
   --color-terra-500: #9c5a43;
   --color-terra-400: #b5775f;
+  --color-terra-200: #e8d2c8;
   --color-terra-100: #f3e8e2;
 
   /* Brass — the one accent */
+  --color-lemon-600: #8f6f47;
   --color-lemon-500: #a8865a;
   --color-lemon-400: #bb9b70;
   --color-lemon-300: #d5c09f;

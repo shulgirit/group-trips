@@ -493,7 +493,6 @@ async function executeTool(
   pending: PendingNotifications
 ): Promise<Record<string, unknown>> {
   const tripRef = adminDb().collection("trips").doc(trip.id);
-  // "🦻✨ המשרת של החבורה" for sicily — byte-identical to the original
   const aiName = trip.aiName;
   const aiSigner = aiName;
 
@@ -795,7 +794,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "quota_exceeded",
-        reply: `הגעתם למכסת השיחות החודשית של הטיול (${quota.limit}). היא תתחדש בתחילת החודש הבא 🙏`,
+        reply:
+          locale === "en"
+            ? `Your trip reached its monthly AI limit (${quota.limit} messages). It resets at the start of next month.`
+            : `הגעתם למכסת השיחות החודשית של הטיול (${quota.limit}). היא תתחדש בתחילת החודש הבא.`,
       },
       { status: 429 }
     );
