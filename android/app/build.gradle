@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Cloud builds pass the build number (codemagic.yaml)
-        versionCode (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
+        versionCode = Integer.parseInt(System.getenv("BUILD_NUMBER") ?: "1")
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
