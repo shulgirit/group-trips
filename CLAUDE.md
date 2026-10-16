@@ -120,8 +120,12 @@ API (New) · web-push · Vercel. Node 22 (`engines`), npm `overrides` pins
 
 Tailwind v4: component classes (`.card`, `.btn-*`, `.chip`, `.field`) are
 defined in `@layer components` in `globals.css` — **you cannot `@apply` a
-custom class in v4**; group selectors instead. Font: Heebo only (user
-rejected serif). Home countdown is `dir="ltr"`, days leftmost, clock-style —
+custom class in v4**; group selectors instead. **Redesign (2026-10, branch
+`redesign`): direction "Atlas & Journal" — read `docs/design/` first.**
+Fonts: IBM Plex Sans Hebrew (text/UI), Frank Ruhl Libre via `font-serif`
+(display headlines only — Omer approved the serif for the redesign), Jost
+(wordmark only). Landing globe = vanilla three.js in
+`src/components/landing/globe/` (lazy, never in trip routes). Home countdown is `dir="ltr"`, days leftmost, clock-style —
 **do not flip it**. Bottom nav order (RTL): עכשיו · המשרת (gold bubble,
 same size as siblings) · לו״ז · מפה · מקומות · עוד.
 

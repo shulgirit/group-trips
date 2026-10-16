@@ -62,7 +62,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
           <div dir="ltr" className="numerals text-[2.25rem] leading-10 text-cream-50">
             {String(value).padStart(id === "days" ? 1 : 2, "0")}
           </div>
-          <div className="kicker mt-1.5 text-[9px]! tracking-[0.22em]! text-cream-50/70">
+          <div className="mt-1.5 text-xs text-cream-50/75">
             {label}
           </div>
         </div>

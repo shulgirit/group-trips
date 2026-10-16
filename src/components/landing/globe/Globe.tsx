@@ -46,8 +46,6 @@ export function Globe({
   const [ready, setReady] = useState(false);
   const [labelId, setLabelId] = useState(scenes[0]?.id ?? "");
 
-  layoutRef.current = layout;
-
   useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
@@ -117,6 +115,7 @@ export function Globe({
   }, []);
 
   useEffect(() => {
+    layoutRef.current = layout;
     handleRef.current?.setLayout(layout);
   }, [layout]);
 

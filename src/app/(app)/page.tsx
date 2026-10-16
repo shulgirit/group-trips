@@ -10,16 +10,23 @@ import {
   Compass,
   LayoutGrid,
   Map as MapIcon,
-  MapPin,
+  Ticket,
+  UserPlus,
   Users,
-  Waves,
+  Vote,
+  Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { Countdown } from "@/components/home/Countdown";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { CategoryIcon, Glyph, STROKE } from "@/components/ui/Icon";
-import { useDayLabel, useT, type TKey } from "@/i18n";
-import { useEvents, useFamilies, usePlaces } from "@/lib/hooks";
+import { Glyph, STROKE } from "@/components/ui/Icon";
+import { RouteArt } from "@/components/journal/RouteArt";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useDayLabel, useLocale, useT, type TKey } from "@/i18n";
+import { intlLocale } from "@/i18n/format";
+import { useDocData, useEvents, useFamilies, usePlaces } from "@/lib/hooks";
+import { stopForDay, type TripMember } from "@/lib/trip-doc";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { participantsLabel } from "@/lib/participants";
 import {
@@ -105,80 +112,139 @@ export default function HomePage() {
 
   const dayNumber = tripDayNumber(today, trip);
 
+  const { locale } = useLocale();
+  const { user } = useFirebase();
+  const { data: me } = useDocData<TripMember>(
+    trip.legacy ? "_/_" : `${trip.path}/members/${user?.uid ?? "_"}`
+  );
+  const canInvite = !trip.legacy && (me?.role === "owner" || me?.role === "admin");
+
+  const travelers = (families ?? []).flatMap((family) =>
+    family.members.map((member) => ({ id: member.id, name: member.name, color: family.color }))
+  );
+  const stop = stopForDay(trip.stops, today);
+  const region = nextEvent ? stopForDay(trip.stops, nextEvent.day).region : stop.region;
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(locale), { day: "numeric", month: "long" });
+  const dates = t("trip.home.tripDates", {
+    start: dateFormat.format(new Date(`${trip.startDate}T12:00:00`)),
+    end: dateFormat.format(new Date(`${trip.endDate}T12:00:00`)),
+  });
+  const timeUntil = nextEvent && now ? timeUntilLabel(eventStart(nextEvent), now, t) : null;
+
+  const quick: { href: string; label: TKey; Icon: LucideIcon }[] = [
+    { href: `${prefix}/calendar`, label: "trip.home.quick.schedule", Icon: CalendarDays },
+    { href: `${prefix}/map`, label: "trip.home.quick.map", Icon: MapIcon },
+    { href: `${prefix}/documents`, label: "trip.home.quick.tickets", Icon: Ticket },
+    { href: `${prefix}/expenses`, label: "trip.home.quick.expenses", Icon: Wallet },
+    canInvite
+      ? { href: `${prefix}/settings`, label: "trip.home.quick.invite", Icon: UserPlus }
+      : { href: `${prefix}/polls`, label: "trip.home.quick.polls", Icon: Vote },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* ── Cinematic hero ── */}
-      <section className="relative -mx-4 -mt-4 overflow-hidden md:mx-0 md:mt-0 md:rounded-[2rem]">
-        <div className="relative h-[340px] md:h-[400px]">
-          <TripHeroBackdrop trip={trip} />
+    <div className="space-y-9">
+      {/* ── Hero: the trip as the cover of its own journal ── */}
+      <section className="relative -mx-4 -mt-4 overflow-hidden md:mx-0 md:mt-0 md:rounded-[1.75rem]">
+        <div className="relative h-[360px] md:h-[420px]">
+          {trip.heroImage ? <TripHeroBackdrop trip={trip} /> : <RouteArt seed={trip.id} focus="top" />}
           <div className="hero-overlay absolute inset-0" />
           {!trip.legacy && (
             <Link
               href="/trips"
-              className="absolute end-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-cream-50/30 bg-ink-900/30 px-3 py-1.5 text-xs font-medium text-cream-50 backdrop-blur"
+              className="absolute end-4 top-[max(1rem,env(safe-area-inset-top))] inline-flex items-center gap-1.5 rounded-full bg-night-950/45 px-3 py-1.5 text-xs font-medium text-cream-50 backdrop-blur"
             >
               <LayoutGrid size={14} strokeWidth={STROKE} aria-hidden />
               {t("settings.more.myTrips")}
             </Link>
           )}
-          <div className="absolute inset-x-0 bottom-0 px-6 pb-7 text-center">
-            <p className="kicker text-lemon-300">{trip.kicker}</p>
+          <div className="absolute inset-x-0 bottom-0 px-6 pb-6">
             {duringTrip ? (
               <>
-                <h1 className="mt-3 font-display text-4xl font-extralight tracking-tight text-cream-50">
+                <p className="text-sm text-cream-50/80">
+                  {dayNumber
+                    ? t("trip.home.dayOf", { day: dayNumber, total: tripDays(trip).length })
+                    : dates}
+                </p>
+                <h1 className="mt-1.5 font-serif text-display-sm font-medium text-cream-50 md:text-display">
                   {now ? t(greetingKey(now)) : t("trip.home.greeting.hello")}
                 </h1>
-                {dayNumber && (
-                  <p className="mt-3 text-base font-light text-cream-50/85">
-                    {t("trip.home.dayOf", {
-                      day: dayNumber,
-                      total: tripDays(trip).length,
-                    })}{" "}
-                    · {trip.dayLabelSuffix}
-                  </p>
-                )}
+                <p className="mt-2 text-[15px] text-cream-50/85">
+                  {t("trip.home.nowIn", { place: stop.label })}
+                </p>
               </>
             ) : (
               <>
-                <h1 className="mt-3 font-display text-4xl font-extralight leading-tight tracking-tight text-cream-50">
+                <p className="text-sm text-cream-50/80">{dates}</p>
+                <h1 className="mt-1.5 font-serif text-display-sm font-medium leading-[1.08] text-cream-50 md:text-display">
                   {trip.heroTitle}
                 </h1>
-                <div className="mt-6">
+                <div className="mt-5 flex justify-start">
                   <Countdown targetIso={trip.countdownTarget} />
                 </div>
-                <p className="mt-5 text-sm font-light text-cream-50/80">
-                  {trip.departureNote}
-                </p>
               </>
+            )}
+            {travelers.length > 0 && (
+              <Link
+                href={`${prefix}/families`}
+                className="mt-5 inline-flex items-center gap-3 rounded-full py-1 pe-3 text-sm text-cream-50/85"
+              >
+                <span className="flex -space-x-2 rtl:space-x-reverse">
+                  {travelers.slice(0, 5).map((person) => (
+                    <span
+                      key={person.id}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-night-950/60 bg-cream-50 text-xs font-medium text-night-950"
+                    >
+                      {person.name.slice(0, 1)}
+                    </span>
+                  ))}
+                </span>
+                {t("trip.home.group", { count: travelers.length })}
+              </Link>
             )}
           </div>
         </div>
       </section>
 
+      {/* ── Quick access: the core tools, one tap away ── */}
+      <nav aria-label={t("trip.nav.aria")} className="-mt-3 grid grid-cols-5 gap-2">
+        {quick.map(({ href, label, Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex flex-col items-center gap-1.5 rounded-2xl py-2.5 text-ink-700 transition active:scale-[0.97] active:bg-chart-100"
+          >
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-chart-200 bg-white">
+              <Icon size={19} strokeWidth={STROKE} aria-hidden />
+            </span>
+            <span className="text-xs font-medium">{t(label)}</span>
+          </Link>
+        ))}
+      </nav>
+
       {/* ── Happening now ── */}
       {currentEvent && (
-        <section className="card overflow-hidden border-s-2 border-s-lemon-500">
-          <div className="px-5 py-5">
-            <p className="kicker text-lemon-500">{t("trip.home.happeningNow")}</p>
-            <p className="mt-2 flex items-center gap-2 font-display text-2xl font-light text-ink-900">
-              {currentEvent.emoji && (
-                <Glyph value={currentEvent.emoji} fallback={CalendarDays} size={20} className="shrink-0 text-ink-500" />
-              )}
-              <span className="min-w-0">{currentEvent.title}</span>
-            </p>
+        <section className="flex items-center gap-4 rounded-2xl bg-night-950 px-5 py-4 text-cream-50">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="absolute inset-0 animate-ping rounded-full bg-brass-500/60" />
+            <span className="relative h-3 w-3 rounded-full bg-brass-500" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs text-cream-50/70">{t("trip.home.happeningNow")}</p>
+            <p className="truncate text-lg font-medium">{currentEvent.title}</p>
           </div>
         </section>
       )}
 
-      {/* ── Next activity ── */}
-      <section>
-        <h2 className="section-title mb-3">{t("trip.home.nextActivity")}</h2>
+      {/* ── Next up: the one card that answers when, where and how ── */}
+      <section aria-labelledby="next-up">
+        <h2 id="next-up" className="mb-3 font-serif text-2xl font-medium text-ink-900">
+          {t("trip.home.nextActivity")}
+        </h2>
         {eventsLoading || now === null ? (
           <ListSkeleton rows={1} />
         ) : nextEvent ? (
-          <div className="card overflow-hidden">
-            {/* Visual header */}
-            <div className="relative h-40">
+          <article className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_1px_2px_rgb(15_27_45/0.05),0_18px_40px_-28px_rgb(15_27_45/0.35)]">
+            <div className="relative h-44">
               {nextPlace?.imageUrl ? (
                 <Image
                   src={nextPlace.imageUrl}
@@ -188,89 +254,70 @@ export default function HomePage() {
                   className="object-cover"
                 />
               ) : (
-                <div className="absolute inset-0 bg-sea-900">
-                  <span className="absolute inset-0 flex items-center justify-center pb-8 text-cream-50/50">
-                    {nextEvent.emoji ? (
-                      <Glyph value={nextEvent.emoji} fallback={Waves} size={44} strokeWidth={1.25} />
-                    ) : nextPlace ? (
-                      <CategoryIcon category={nextPlace.category} size={44} strokeWidth={1.25} />
-                    ) : (
-                      <Waves size={44} strokeWidth={1.25} aria-hidden />
-                    )}
-                  </span>
-                </div>
+                <RouteArt seed={nextEvent.id} />
               )}
-              <div className="hero-overlay absolute inset-0" />
-              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-5 pb-4">
-                <div className="min-w-0">
-                  <p className="truncate font-display text-2xl font-light text-cream-50">
-                    {nextEvent.title}
-                  </p>
-                  <p className="mt-1 text-sm font-light text-cream-50/85">
-                    {nextEvent.day === today
-                      ? t("common.today")
-                      : formatDayLabel(nextEvent.day)}
-                    {" · "}
-                    <span dir="ltr" className="tabular-nums">
-                      {nextEvent.startTime}
-                    </span>
-                  </p>
-                </div>
-                {timeUntilLabel(eventStart(nextEvent), now, t) && (
-                  <span className="shrink-0 rounded-full border border-lemon-300/70 bg-sea-950/40 px-3 py-1.5 text-xs font-medium text-lemon-200 backdrop-blur">
-                    {timeUntilLabel(eventStart(nextEvent), now, t)}
-                  </span>
-                )}
-              </div>
+              {timeUntil && (
+                <span className="absolute start-4 top-4 rounded-full bg-night-950/75 px-3 py-1.5 text-xs font-medium text-brass-100 backdrop-blur">
+                  {timeUntil}
+                </span>
+              )}
             </div>
-
-            <div className="space-y-4 px-5 py-5">
-              {families && (
-                <p className="flex items-center gap-2 text-sm text-ink-500">
-                  <Users size={15} strokeWidth={STROKE} aria-hidden />
-                  {participantsLabel(nextEvent.participants, families)}
-                  {nextEvent.notes && (
-                    <span className="text-ink-300">· {nextEvent.notes}</span>
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 text-center">
+                  <p dir="ltr" className="font-serif text-[1.75rem] leading-none text-ink-900 tabular-nums">
+                    {nextEvent.startTime}
+                  </p>
+                  <p className="mt-1.5 text-xs text-ink-500">
+                    {nextEvent.day === today ? t("common.today") : formatDayLabel(nextEvent.day)}
+                  </p>
+                </div>
+                <div className="min-w-0 flex-1 border-s border-chart-200 ps-4">
+                  <p className="text-lg font-medium leading-snug text-ink-900">{nextEvent.title}</p>
+                  {nextPlace && <p className="mt-0.5 truncate text-sm text-ink-500">{nextPlace.name}</p>}
+                  {families && (
+                    <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-500">
+                      <Users size={15} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+                      <span className="truncate">{participantsLabel(nextEvent.participants, families)}</span>
+                    </p>
                   )}
-                </p>
-              )}
-              <div className="flex gap-2">
+                  {nextEvent.notes && <p className="mt-2 text-sm leading-relaxed text-ink-700">{nextEvent.notes}</p>}
+                </div>
+              </div>
+              <div className="mt-5 flex gap-2">
                 {nextPlace ? (
                   <>
                     <a
-                      href={wazeUrl(nextPlace)}
+                      href={wazeUrl(nextPlace, region)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-primary flex-1 py-3"
+                      className="btn-accent flex-1 py-3.5"
                     >
                       <Compass size={18} strokeWidth={STROKE} aria-hidden />
                       {t("trip.home.navigate")}
                     </a>
-                    <Link
-                      href={`${prefix}/places/${nextPlace.id}`}
-                      className="btn-soft flex-1 py-3"
-                    >
+                    <Link href={`${prefix}/places/${nextPlace.id}`} className="btn-soft flex-1 py-3.5">
                       {t("trip.home.details")}
                     </Link>
                     <a
-                      href={googleMapsUrl(nextPlace)}
+                      href={googleMapsUrl(nextPlace, region)}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Google Maps"
-                      className="btn-outline px-4 py-3"
+                      className="btn-outline px-4 py-3.5"
                     >
                       <MapIcon size={18} strokeWidth={STROKE} aria-hidden />
                     </a>
                   </>
                 ) : (
-                  <Link href={`${prefix}/calendar`} className="btn-soft flex-1 py-3">
+                  <Link href={`${prefix}/calendar`} className="btn-soft flex-1 py-3.5">
                     <CalendarDays size={18} strokeWidth={STROKE} aria-hidden />
                     {t("trip.home.fullSchedule")}
                   </Link>
                 )}
               </div>
             </div>
-          </div>
+          </article>
         ) : (
           <EmptyState
             icon={CalendarDays}
@@ -285,54 +332,72 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── Today timeline ── */}
+      {/* ── Today as a route: done, now, next ── */}
       {duringTrip && todayEvents.length > 0 && now && (
-        <section>
-          <h2 className="section-title mb-3">{t("trip.home.todaySchedule")}</h2>
-          <ol className="relative space-y-1.5 border-e border-cream-200 pe-5">
-            {todayEvents.map((event) => {
+        <section aria-labelledby="today">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 id="today" className="font-serif text-2xl font-medium text-ink-900">
+              {t("trip.home.todaySchedule")}
+            </h2>
+            <Link href={`${prefix}/calendar`} className="text-sm font-medium text-route-700">
+              {t("trip.home.fullSchedule")}
+            </Link>
+          </div>
+          <ol>
+            {todayEvents.map((event, index) => {
               const isCurrent = currentEvent?.id === event.id;
-              const isNext = nextEvent?.id === event.id;
+              const isNext = !currentEvent && nextEvent?.id === event.id;
               const isPast = eventEnd(event) < now;
+              const last = index === todayEvents.length - 1;
               return (
-                <li key={event.id} className="relative">
-                  <span
-                    aria-hidden
-                    className={`absolute -end-[26.5px] top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-cream-50 ${
+                <li key={event.id} className="relative flex gap-4">
+                  <span className="relative flex w-4 shrink-0 justify-center">
+                    {!last && (
+                      <span
+                        aria-hidden
+                        className={`absolute top-5 h-full w-px ${isPast ? "bg-route-500" : "bg-chart-200"}`}
+                      />
+                    )}
+                    <span
+                      aria-hidden
+                      className={`relative mt-[18px] rounded-full ${
+                        isCurrent
+                          ? "h-4 w-4 bg-brass-500 ring-4 ring-brass-100"
+                          : isNext
+                            ? "h-3.5 w-3.5 border-2 border-route-500 bg-white"
+                            : isPast
+                              ? "h-3 w-3 bg-route-500"
+                              : "h-3 w-3 border-2 border-chart-200 bg-white"
+                      }`}
+                    />
+                  </span>
+                  <Link
+                    href={`${prefix}/calendar/${event.id}`}
+                    className={`mb-2 flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-3.5 transition active:scale-[0.99] ${
                       isCurrent
-                        ? "bg-lemon-500"
-                        : isNext
-                          ? "bg-sea-700"
-                          : isPast
-                            ? "bg-cream-300"
-                            : "bg-cream-200"
-                    }`}
-                  />
-                  <div
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
-                      isCurrent
-                        ? "border border-lemon-300 bg-white font-medium"
-                        : isNext
-                          ? "border border-sea-200 bg-white"
-                          : isPast
-                            ? "opacity-55"
-                            : "bg-white"
+                        ? "bg-white shadow-[0_1px_2px_rgb(15_27_45/0.06),0_10px_24px_-18px_rgb(15_27_45/0.4)]"
+                        : isPast
+                          ? "text-ink-500"
+                          : "bg-white/70"
                     }`}
                   >
-                    <span
-                      dir="ltr"
-                      className="numerals w-12 shrink-0 text-sea-700"
-                    >
+                    <span dir="ltr" className={`w-12 shrink-0 text-[15px] tabular-nums ${isPast ? "text-ink-400" : "text-ink-900"}`}>
                       {event.startTime}
                     </span>
                     {event.emoji && (
                       <Glyph value={event.emoji} fallback={CalendarDays} size={16} className="shrink-0 text-ink-500" />
                     )}
-                    <span className="min-w-0 flex-1 truncate text-ink-900">
+                    <span className={`min-w-0 flex-1 truncate ${isCurrent ? "font-medium text-ink-900" : isPast ? "" : "text-ink-900"}`}>
                       {event.title}
                     </span>
-                    {isPast && <Check size={16} strokeWidth={STROKE} aria-hidden className="text-ink-300" />}
-                  </div>
+                    {isCurrent ? (
+                      <span className="shrink-0 text-xs font-medium text-brass-600">{t("trip.home.timelineNow")}</span>
+                    ) : isNext ? (
+                      <span className="shrink-0 text-xs font-medium text-route-700">{t("trip.home.timelineNext")}</span>
+                    ) : isPast ? (
+                      <Check size={16} strokeWidth={STROKE} aria-label={t("trip.home.timelineDone")} className="shrink-0 text-route-500" />
+                    ) : null}
+                  </Link>
                 </li>
               );
             })}
@@ -340,23 +405,18 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── More ideas ── */}
+      {/* ── Saved ideas not yet scheduled ── */}
       {(places?.length ?? 0) > 0 && (
-        <section>
-          <h2 className="section-title mb-3">{t("trip.home.worthChecking")}</h2>
-          <Link
-            href={`${prefix}/places`}
-            className="card flex items-center gap-4 px-5 py-4 transition active:scale-[0.99]"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cream-200 text-sea-700">
-              <Glyph value={trip.emoji} fallback={MapPin} size={18} />
-            </span>
-            <span className="flex-1 text-ink-700">
-              {t("trip.home.savedPlaces", { count: places!.length })}
-            </span>
-            <ChevronRight size={18} strokeWidth={STROKE} aria-hidden className="text-ink-300 rtl:rotate-180" />
-          </Link>
-        </section>
+        <Link
+          href={`${prefix}/places`}
+          className="flex items-center gap-4 border-t border-chart-200 pt-5 text-ink-700"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-route-100 text-route-700">
+            <Glyph value={trip.emoji} fallback={MapIcon} size={18} />
+          </span>
+          <span className="flex-1">{t("trip.home.savedPlaces", { count: places!.length })}</span>
+          <ChevronRight size={18} strokeWidth={STROKE} aria-hidden className="text-ink-400 rtl:rotate-180" />
+        </Link>
       )}
     </div>
   );

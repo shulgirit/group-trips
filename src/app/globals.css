@@ -230,16 +230,20 @@ body {
 /* Static planet limb — the hero is complete before (or without) WebGL */
 .globe-poster {
   background:
-    radial-gradient(circle at 50% 50%, transparent 0 55%, rgb(127 182 196 / 0.22) 61%, transparent 66%),
-    radial-gradient(circle at 42% 38%, #2c4a63 0%, #12233a 38%, #08111d 60%, transparent 61%);
+    radial-gradient(circle closest-side at 50% 50%, transparent 0 86%, rgb(127 182 196 / 0.24) 93%, transparent 100%),
+    radial-gradient(circle closest-side at 50% 50%, #2c4a63 0%, #12233a 50%, #08111d 84%, transparent 86%);
   background-repeat: no-repeat;
   background-size: 150vw 150vw;
   background-position: 50% 30vh;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
 }
 @media (min-width: 1024px) {
   .globe-poster {
     background-size: 78vh 78vh;
     background-position: 76% 50%;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   [dir="rtl"] .globe-poster {
     background-position: 24% 50%;
