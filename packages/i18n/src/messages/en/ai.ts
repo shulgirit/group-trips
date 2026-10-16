@@ -36,6 +36,9 @@ const ai: typeof he = {
       "The reply took too long or the connection dropped — your question is saved, you can try again",
     uploadFailed: "Photo upload failed, please try again",
     pollFailed: "Couldn't add to the poll, please try again",
+    failed: "I couldn't answer this time. Try asking again",
+    notConfigured: "The guide isn't connected yet. Try again later",
+    quota: "Your trip reached its monthly AI limit ({limit} messages). It resets at the start of next month.",
   },
 };
 

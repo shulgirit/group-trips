@@ -8,15 +8,22 @@
  * @module
  */
 
+import type * as access from "../access.js";
 import type * as account from "../account.js";
+import type * as assist from "../assist.js";
 import type * as auth from "../auth.js";
+import type * as chat from "../chat.js";
+import type * as chatRun from "../chatRun.js";
 import type * as crons from "../crons.js";
+import type * as destinations from "../destinations.js";
 import type * as documents from "../documents.js";
 import type * as email from "../email.js";
 import type * as events from "../events.js";
 import type * as expenses from "../expenses.js";
 import type * as families from "../families.js";
 import type * as http from "../http.js";
+import type * as imports from "../imports.js";
+import type * as importsRun from "../importsRun.js";
 import type * as invites from "../invites.js";
 import type * as lib_authz from "../lib/authz.js";
 import type * as lib_functions from "../lib/functions.js";
@@ -29,6 +36,7 @@ import type * as memberships from "../memberships.js";
 import type * as migration from "../migration.js";
 import type * as photos from "../photos.js";
 import type * as places from "../places.js";
+import type * as placesAi from "../placesAi.js";
 import type * as polls from "../polls.js";
 import type * as purge from "../purge.js";
 import type * as push from "../push.js";
@@ -43,15 +51,22 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  access: typeof access;
   account: typeof account;
+  assist: typeof assist;
   auth: typeof auth;
+  chat: typeof chat;
+  chatRun: typeof chatRun;
   crons: typeof crons;
+  destinations: typeof destinations;
   documents: typeof documents;
   email: typeof email;
   events: typeof events;
   expenses: typeof expenses;
   families: typeof families;
   http: typeof http;
+  imports: typeof imports;
+  importsRun: typeof importsRun;
   invites: typeof invites;
   "lib/authz": typeof lib_authz;
   "lib/functions": typeof lib_functions;
@@ -64,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   migration: typeof migration;
   photos: typeof photos;
   places: typeof places;
+  placesAi: typeof placesAi;
   polls: typeof polls;
   purge: typeof purge;
   push: typeof push;

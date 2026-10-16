@@ -36,6 +36,9 @@ const ai: PartialMessages["ai"] = {
       "La respuesta tardó demasiado o se cortó la conexión. Tu pregunta está guardada, puedes volver a intentarlo",
     uploadFailed: "No se pudo subir la foto. Inténtalo de nuevo",
     pollFailed: "No se pudo añadir a la encuesta. Inténtalo de nuevo",
+    failed: "Esta vez no pude responder. Vuelve a preguntar",
+    notConfigured: "El guía aún no está conectado. Inténtalo más tarde",
+    quota: "Tu viaje alcanzó el límite mensual de IA ({limit} mensajes). Se renueva a principios del mes que viene.",
   },
 };
 

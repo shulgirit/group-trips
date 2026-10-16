@@ -95,7 +95,8 @@ export async function addToIdeasPoll(
   tripId: Id<"trips">,
   label: string,
   placeId: Id<"places"> | null,
-  author: { userId?: Id<"users">; locale?: string }
+  author: { userId?: Id<"users">; locale?: string },
+  options: { notify?: boolean } = {}
 ): Promise<"added" | "exists"> {
   const polls = await ctx.db
     .query("polls")
@@ -117,7 +118,9 @@ export async function addToIdeasPoll(
       createdAt: Date.now(),
     });
   }
-  await notifyGroup(ctx, tripId, { type: "poll_option", title: label }, { excludeUserId: author.userId });
+  if (options.notify !== false) {
+    await notifyGroup(ctx, tripId, { type: "poll_option", title: label }, { excludeUserId: author.userId });
+  }
   return "added";
 }
 

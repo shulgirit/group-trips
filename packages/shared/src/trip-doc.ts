@@ -236,7 +236,13 @@ export const AI_RULES: { id: string; label: string; rule: string }[] = [
 ];
 
 /** A trip's itinerary — stored stops, or the single destination. */
-export function stopsOf(trip: TripDoc): TripStop[] {
+/** The trip fields stops and personas are derived from (TripDoc or a Convex trip). */
+export type TripShape = Pick<
+  TripDoc,
+  "destination" | "stops" | "timezone" | "currency" | "coverImage" | "startDate" | "endDate" | "groupKind" | "groupName"
+> & { ai: Pick<TripAi, "name" | "preset" | "rules" | "customRules" | "customPrompt"> };
+
+export function stopsOf(trip: Omit<TripShape, "ai" | "groupKind" | "groupName">): TripStop[] {
   if (trip.stops?.length) return trip.stops;
   return [
     {
@@ -292,7 +298,7 @@ function localToday(): string {
 }
 
 /** The persona paragraph for a trip (shared rules are appended server-side). */
-export function composePersona(trip: TripDoc): string {
+export function composePersona(trip: TripShape): string {
   const ai = trip.ai;
   if (ai.customPrompt?.trim()) return ai.customPrompt.trim();
   const preset =

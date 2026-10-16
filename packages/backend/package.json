@@ -25,7 +25,9 @@
     "better-auth": "1.6.33",
     "convex": "1.46.0",
     "convex-helpers": "0.1.128",
-    "web-push": "3.6.7"
+    "openai": "^7.4.0",
+    "web-push": "3.6.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@edge-runtime/vm": "5.0.0",

@@ -9,9 +9,11 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@together/i18n": "workspace:*",
     "@together/shared": "workspace:*",
     "openai": "^7.4.0",
     "zod": "^4.4.3"
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@together/config": "workspace:*",
     "@types/node": "^22",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "5.0.4"
   }
 }

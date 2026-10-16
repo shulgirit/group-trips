@@ -23,7 +23,9 @@ export const notice = v.union(
     detail: v.string(),
     navUrl: v.optional(v.string()),
   }),
-  v.object({ type: v.literal("welcome") })
+  v.object({ type: v.literal("welcome") }),
+  /** Several ideas added by the AI guide in one reply — one push, not one each */
+  v.object({ type: v.literal("ideas_updated"), labels: v.array(v.string()) })
 );
 export type Notice = Infer<typeof notice>;
 
@@ -70,6 +72,15 @@ export function renderNotice(tripId: string, item: Notice, locale: Locale): Push
         url: base,
         tag: `reminder-${item.eventId}`,
         navUrl: item.navUrl,
+      };
+    case "ideas_updated":
+      return {
+        title: translate(locale, "server.push.ideasUpdatedTitle"),
+        body:
+          item.labels.slice(0, 3).join(" · ") +
+          (item.labels.length > 3 ? ` ${translate(locale, "server.push.andMore", { count: item.labels.length - 3 })}` : ""),
+        url: `${base}/polls`,
+        tag: "poll",
       };
     case "welcome":
       return {

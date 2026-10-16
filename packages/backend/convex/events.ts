@@ -58,7 +58,8 @@ export async function insertEvent(
   ctx: MutationCtx,
   trip: Doc<"trips">,
   input: typeof eventInput.type,
-  author: { userId?: Id<"users">; name?: string; aiName?: string }
+  author: { userId?: Id<"users">; name?: string; aiName?: string },
+  options: { notify?: boolean } = {}
 ): Promise<Id<"events">> {
   const data = validate(input);
   const placeId = input.placeId ?? null;
@@ -81,6 +82,8 @@ export async function insertEvent(
     createdAt: Date.now(),
   });
   await scheduleReminder(ctx, trip, eventId);
+  // Booking imports add many events at once without pinging the group
+  if (options.notify === false) return eventId;
   await notifyGroup(
     ctx,
     trip._id,
