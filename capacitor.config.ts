@@ -24,6 +24,8 @@ const config: CapacitorConfig = {
     errorPath: "offline.html",
     allowNavigation: [new URL(PRODUCTION_URL).host, "*.firebaseapp.com", "accounts.google.com"],
   },
+  // Lets the server tell the store app from a browser (welcome → app onboarding)
+  appendUserAgent: "TogetherApp",
   ios: {
     contentInset: "never",
     limitsNavigationsToAppBoundDomains: false,
