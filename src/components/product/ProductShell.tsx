@@ -30,9 +30,9 @@ export function ProductShell({
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-cream-200/70 bg-cream-50/90 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-chart-200/70 bg-cream-50/90 backdrop-blur">
         <div
-          className={`mx-auto flex h-14 w-full items-center justify-between px-4 ${wide ? "max-w-3xl" : "max-w-lg md:max-w-xl"}`}
+          className={`mx-auto flex h-14 w-full items-center justify-between px-4 ${wide ? "max-w-3xl lg:max-w-5xl" : "max-w-lg md:max-w-xl"}`}
         >
           <Link
             href={personal ? "/trips" : "/welcome"}
@@ -47,8 +47,10 @@ export function ProductShell({
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-label={t("product.shell.account")}
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-cream-200 bg-cream-100 text-sm font-medium text-sea-700"
+                aria-expanded={menuOpen}
+                className="-me-1 flex h-11 w-11 items-center justify-center"
               >
+                <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-chart-200 bg-white text-sm font-medium text-ink-700">
                 {user.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={user.photoURL} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
@@ -57,22 +59,32 @@ export function ProductShell({
                 ) : (
                   <UserRound size={18} strokeWidth={STROKE} aria-hidden />
                 )}
+                </span>
               </button>
               {menuOpen && (
-                <div className="card absolute end-0 top-11 w-56 overflow-hidden p-1">
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  onClick={() => setMenuOpen(false)}
+                  className="fixed inset-0 z-0 cursor-default"
+                />
+              )}
+              {menuOpen && (
+                <div className="card absolute end-0 top-12 z-10 w-60 overflow-hidden p-1.5">
                   <p className="truncate px-3 py-2 text-sm text-ink-500">
                     {user.displayName || user.email || t("product.shell.guest")}
                   </p>
                   <Link
                     href="/account"
-                    className="block rounded-xl px-3 py-2.5 text-sm font-medium text-ink-700 hover:bg-cream-100"
+                    className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-ink-700 hover:bg-cream-100"
                   >
                     {t("product.shell.account")}
                   </Link>
                   <button
                     type="button"
                     onClick={logout}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-terra-600 hover:bg-terra-100"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-medium text-terra-600 hover:bg-terra-100"
                   >
                     <LogOut size={16} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
                     {t("product.shell.logout")}
@@ -84,7 +96,7 @@ export function ProductShell({
         </div>
       </header>
       <main
-        className={`mx-auto w-full px-4 pb-24 pt-8 ${wide ? "max-w-3xl" : "max-w-lg md:max-w-xl"}`}
+        className={`mx-auto w-full px-4 pb-24 pt-8 ${wide ? "max-w-3xl lg:max-w-5xl" : "max-w-lg md:max-w-xl"}`}
       >
         {children}
       </main>

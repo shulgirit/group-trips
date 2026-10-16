@@ -60,6 +60,11 @@ const product: typeof he = {
     current: "Upcoming and current",
     past: "Past trips",
     empty: "No trips yet. Got an invitation? Open the link from WhatsApp",
+    first: {
+      title: "Your first trip starts here",
+      text: "Pick a destination, add your group, and everyone joins from one link.",
+      cta: "Plan a trip",
+    },
   },
   card: {
     draft: "Draft — continue",
@@ -131,6 +136,16 @@ const product: typeof he = {
     notListed: "I'm not on the list — join anyway",
     signedInAs: "Signed in as {name}",
     guestHint: "Joining as a guest — access is saved on this phone",
+    stepOf: "Step {n} of {total}",
+    guideRole: "Your trip guide, already waiting",
+    travelers: { one: "1 traveler", other: "{count} travelers" },
+    errorTitles: {
+      notFound: "This link doesn't work",
+      expired: "This invite has expired",
+      usedUp: "This invite is used up",
+      revoked: "This invite was cancelled",
+      tripClosed: "This trip is closed",
+    },
   },
   invite: {
     qr: "QR code",
@@ -141,10 +156,12 @@ const product: typeof he = {
     loadFailed: "Couldn't load the invite links",
     create: "Create an invite link",
     creating: "Creating…",
-    general: "General link for the whole group",
+    general: "General invite link",
     joined: "{uses}/{max} joined",
+    joinedCount: "{count} joined",
+    notJoined: "Not joined yet",
     footnote:
-      "A family link preselects the family — people just pick their name. Links are valid for 60 days.",
+      "A family link preselects the family, so people just pick their name. Links are valid for 60 days.",
     message: {
       title: "You're invited to \"{trip}\"{who}!",
       body: "Our schedule, map, expenses and AI assistant — all in one place.",

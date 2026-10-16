@@ -31,6 +31,8 @@ const polls: PartialMessages["polls"] = {
   closePoll: "إغلاق الاستطلاع",
   confirmDelete: "حذف",
   deletePoll: "حذف الاستطلاع",
+  decided: "اختارت المجموعة",
+  moreVoters: "+{count}",
   new: {
     title: "استطلاع جديد",
     questionLabel: "ما السؤال؟ *",
@@ -44,6 +46,8 @@ const polls: PartialMessages["polls"] = {
     creating: "جارٍ الإنشاء…",
     submit: "فتح الاستطلاع",
     minOptions: "يلزم خياران على الأقل",
+    pickPlacesHint: "اضغطوا على مكان لإضافته أو إزالته",
+    optionsEmpty: "اختاروا أماكن أو اكتبوا خيارًا وسيظهر هنا",
   },
   sheet: {
     title: "إلى أي استطلاع نضيف؟",

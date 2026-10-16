@@ -1,8 +1,9 @@
 "use client";
 
+import { useLocationPrimer } from "@/components/permissions/LocationPrimer";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CloudOff, LocateFixed, MapPin, Plus } from "lucide-react";
+import { CloudOff, LocateFixed, MapPin, Plus, Search, X } from "lucide-react";
 import { PlaceCard } from "@/components/places/PlaceCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
@@ -61,7 +62,8 @@ export default function PlacesPage() {
   const { events } = useEvents();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
-  const { fix, status: locationStatus, start: startLocation } = useMyLocation();
+  const { fix, status: locationStatus, start: startLocationNow } = useMyLocation();
+  const { request: startLocation, sheet: locationSheet } = useLocationPrimer(startLocationNow);
 
   const scheduledIds = useMemo(
     () =>
@@ -99,27 +101,54 @@ export default function PlacesPage() {
 
   return (
     <div className="space-y-5">
+      {locationSheet}
       <div className="flex items-end justify-between">
         <div>
           <p className="kicker text-ink-500">{trip.kicker}</p>
           <h1 className="mt-1 font-display text-3xl font-light text-ink-900">
             {t("trip.places.title")}
           </h1>
+          {places && places.length > 0 && (
+            <p className="mt-1 text-sm text-ink-500">
+              {t("trip.places.count", { count: places.length })}
+            </p>
+          )}
         </div>
-        <Link href={`${prefix}/places/new`} className="btn-primary px-4 py-2.5 text-sm">
+        <Link href={`${prefix}/places/new`} className="btn-primary min-h-11 shrink-0 px-4 py-2.5 text-sm">
           <Plus size={16} strokeWidth={STROKE} aria-hidden />
           {t("trip.places.add")}
         </Link>
       </div>
 
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder={t("trip.places.searchPlaceholder")}
-        className="field"
-        aria-label={t("trip.places.searchAria")}
-      />
+      <div className="space-y-3">
+        <div className="relative">
+          <Search
+            size={17}
+            strokeWidth={STROKE}
+            aria-hidden
+            className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-ink-400"
+          />
+          <input
+            type="text"
+            inputMode="search"
+            dir="auto"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("trip.places.searchPlaceholder")}
+            className="field pe-11 ps-10"
+            aria-label={t("trip.places.searchAria")}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label={t("trip.places.clearSearch")}
+              className="absolute end-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-ink-400"
+            >
+              <X size={16} strokeWidth={STROKE} aria-hidden />
+            </button>
+          )}
+        </div>
 
       <div className="no-scrollbar -mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
@@ -131,7 +160,8 @@ export default function PlacesPage() {
                 setFilter(id);
                 if (id === "near" && locationStatus !== "on") startLocation();
               }}
-              className={`chip ${filter === id ? "chip-active" : ""}`}
+              aria-pressed={filter === id}
+              className={`chip min-h-10 ${filter === id ? "chip-active" : ""}`}
             >
               {id === "near" && <LocateFixed size={14} strokeWidth={STROKE} aria-hidden />}
               {t(`trip.places.filters.${id}`)}
@@ -139,9 +169,10 @@ export default function PlacesPage() {
           ))}
         </div>
       </div>
+      </div>
 
       {filter === "near" && !fix && (
-        <p className="flex items-center gap-2 rounded-xl border border-cream-200 px-4 py-3 text-sm text-ink-700">
+        <p className="flex items-center gap-2 rounded-xl bg-cream-100 px-4 py-3 text-sm text-ink-700">
           <LocateFixed size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-500" />
           {locationStatus === "denied"
             ? t("trip.places.locationDenied")
@@ -161,7 +192,7 @@ export default function PlacesPage() {
         />
       ) : visiblePlaces.length === 0 ? (
         <EmptyState
-          icon={MapPin}
+          icon={places?.length ? Search : MapPin}
           title={places?.length ? t("trip.places.noResultsTitle") : t("trip.places.emptyTitle")}
           description={
             places?.length
@@ -169,7 +200,18 @@ export default function PlacesPage() {
               : t("trip.places.emptyDescription")
           }
           action={
-            !places?.length && (
+            places?.length ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setFilter("all");
+                }}
+                className="btn-soft min-h-11 px-5 py-2.5 text-sm"
+              >
+                {t("trip.places.filters.all")}
+              </button>
+            ) : (
               <Link
                 href={`${prefix}/places/new`}
                 className="btn-primary px-5 py-2.5 text-sm"

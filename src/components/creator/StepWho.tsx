@@ -58,7 +58,7 @@ function MemberRow({
         onClick={() => onChange({ kid: !member.kid })}
         aria-label={member.kid ? t("creator.who.member.kidToggle") : t("creator.who.member.adultToggle")}
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${
-          member.kid ? "border-lemon-300 bg-lemon-100 text-ink-700" : "border-cream-200 bg-cream-100 text-sea-700"
+          member.kid ? "border-route-300 bg-route-100 text-route-700" : "border-chart-200 bg-chart-100 text-ink-700"
         }`}
       >
         {member.kid ? (
@@ -68,7 +68,8 @@ function MemberRow({
         )}
       </button>
       <input
-        className="field min-w-0 flex-1 py-2.5"
+        className="field min-h-11 min-w-0 flex-1 px-3 py-2"
+        dir="auto"
         placeholder={member.kid ? t("creator.who.member.kidName") : t("creator.who.member.name")}
         value={member.name}
         maxLength={30}
@@ -77,7 +78,7 @@ function MemberRow({
       />
       {member.kid && (
         <input
-          className="field w-16 px-2 py-2.5 text-center"
+          className="field min-h-11 w-14 px-1 py-2 text-center"
           inputMode="numeric"
           placeholder={t("creator.who.member.age")}
           value={member.age ?? ""}
@@ -91,8 +92,8 @@ function MemberRow({
         type="button"
         onClick={onMakeMe}
         aria-pressed={isMe}
-        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition ${
-          isMe ? "bg-sea-700 text-cream-50" : "bg-cream-100 text-ink-300"
+        className={`min-h-9 shrink-0 rounded-full px-3 text-xs font-medium transition ${
+          isMe ? "bg-sea-900 text-cream-50" : "border border-chart-200 text-ink-400"
         }`}
       >
         {t("creator.who.member.me")}
@@ -101,7 +102,7 @@ function MemberRow({
         type="button"
         onClick={onRemove}
         aria-label={t("creator.who.member.remove")}
-        className="shrink-0 p-1.5 text-ink-300 hover:text-terra-600"
+        className="-ms-1 flex h-11 w-9 shrink-0 items-center justify-center text-ink-300 hover:text-terra-600"
       >
         <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
       </button>
@@ -121,6 +122,7 @@ export function StepWho({
   const t = useT();
   const [focusId, setFocusId] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
+  const [groupNameOpen, setGroupNameOpen] = useState(false);
   const kind = state.groupKind;
   const singles = state.groupKind === "friends" || state.groupKind === "couple";
   const { people, kids } = peopleCounts(state);
@@ -225,18 +227,18 @@ export function StepWho({
   );
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <header>
-        <h1 className="font-display text-3xl font-light text-ink-900">{t("creator.who.title")}</h1>
-        <p className="mt-2 text-ink-500">{t("creator.who.text")}</p>
+        <h1 className="font-display text-display-sm font-medium text-ink-900">{t("creator.who.title")}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-500">{t("creator.who.text")}</p>
       </header>
 
       {previousTrips.length > 0 && (
-        <section className="card flex items-center gap-3 px-4 py-3">
-          <History size={20} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-700" />
+        <section className="flex items-center gap-3 rounded-2xl border border-chart-200 bg-white px-4 py-3">
+          <History size={20} strokeWidth={STROKE} aria-hidden className="shrink-0 text-route-500" />
           <p className="min-w-0 flex-1 text-sm text-ink-700">{t("creator.who.sameGroup")}</p>
           <select
-            className="field w-auto max-w-[45%] py-2 text-sm"
+            className="field min-h-11 w-auto max-w-[45%] py-2 text-sm"
             disabled={copying}
             value=""
             onChange={(event) => event.target.value && copyFrom(event.target.value)}
@@ -262,10 +264,10 @@ export function StepWho({
                 type="button"
                 aria-pressed={state.groupKind === key}
                 onClick={() => update({ groupKind: key })}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 text-sm font-medium transition ${
+                className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-3 text-sm font-medium transition ${
                   state.groupKind === key
-                    ? "border-sea-700 bg-sea-700 text-cream-50"
-                    : "border-cream-200 bg-white text-ink-700"
+                    ? "border-sea-900 bg-sea-900 text-cream-50"
+                    : "border-chart-200 bg-white text-ink-700"
                 }`}
               >
                 <Icon size={20} strokeWidth={STROKE} aria-hidden />
@@ -276,27 +278,40 @@ export function StepWho({
         </div>
       </section>
 
-      <section className="space-y-2">
-        <label className="text-sm font-medium text-ink-700" htmlFor="group-name">
-          {t("creator.who.groupName")}{" "}
-          <span className="font-normal text-ink-300">{t("creator.who.optional")}</span>
-        </label>
-        <input
-          id="group-name"
-          className="field"
-          placeholder={
-            singles ? t("creator.who.groupPlaceholderSingles") : t("creator.who.groupPlaceholder")
-          }
-          value={state.groupName}
-          maxLength={40}
-          onChange={(event) => update({ groupName: event.target.value })}
-        />
-      </section>
+      {groupNameOpen || state.groupName ? (
+        <section className="space-y-2">
+          <label className="text-sm font-medium text-ink-700" htmlFor="group-name">
+            {t("creator.who.groupName")}{" "}
+            <span className="font-normal text-ink-400">{t("creator.who.optional")}</span>
+          </label>
+          <input
+            id="group-name"
+            className="field"
+            dir="auto"
+            autoFocus={groupNameOpen && !state.groupName}
+            placeholder={
+              singles ? t("creator.who.groupPlaceholderSingles") : t("creator.who.groupPlaceholder")
+            }
+            value={state.groupName}
+            maxLength={40}
+            onChange={(event) => update({ groupName: event.target.value })}
+          />
+        </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setGroupNameOpen(true)}
+          className="-mt-3 flex min-h-11 items-center gap-1.5 text-sm font-medium text-route-700"
+        >
+          <Plus size={16} strokeWidth={STROKE} aria-hidden />
+          {t("creator.wizard.addGroupName")}
+        </button>
+      )}
 
       {singles ? (
         <section className="space-y-3">
           <p className="text-sm font-medium text-ink-700">{t("creator.who.participants")}</p>
-          <ul className="space-y-2">
+          <ul className="space-y-2.5 rounded-2xl bg-white px-3 py-3 shadow-[0_1px_2px_rgb(15_27_45/0.05),0_10px_28px_-22px_rgb(15_27_45/0.45)]">
             {flatMembers.map(({ family, member }) => (
               <MemberRow
                 key={member.id}
@@ -319,28 +334,29 @@ export function StepWho({
               />
             ))}
           </ul>
-          <button type="button" onClick={addFamily} className="btn-outline w-full py-3">
+          <button type="button" onClick={addFamily} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-cream-300 text-sm font-medium text-ink-700 transition hover:bg-white">
             <Plus size={16} strokeWidth={STROKE} aria-hidden /> {t("creator.who.addParticipant")}
           </button>
         </section>
       ) : (
         <section className="space-y-4">
           {state.families.map((family, index) => (
-            <div key={family.id} className="card space-y-3 px-4 py-4">
-              <div className="flex items-center gap-2">
+            <div key={family.id} className="space-y-3 rounded-2xl bg-white px-3 pb-2 pt-3 shadow-[0_1px_2px_rgb(15_27_45/0.05),0_10px_28px_-22px_rgb(15_27_45/0.45)]">
+              <div className="flex items-center gap-2 border-b border-chart-200 pb-3">
                 <span
                   aria-hidden
-                  className={`h-3 w-3 shrink-0 rounded-full ${["bg-sea-500", "bg-terra-500", "bg-lemon-500", "bg-olive-500"][index % 4]}`}
+                  className={`ms-1 h-3 w-3 shrink-0 rounded-full ${["bg-route-500", "bg-sea-500", "bg-olive-500", "bg-sea-300"][index % 4]}`}
                 />
                 <input
-                  className="field flex-1 py-2.5 font-medium"
+                  className="min-h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-lg font-medium text-ink-900 outline-none placeholder:font-normal placeholder:text-ink-300 focus:bg-chart-50"
+                  dir="auto"
                   placeholder={t(`creator.who.units.${kind}.placeholder`)}
                   value={family.name}
                   maxLength={40}
                   onChange={(event) => updateFamily(family.id, { name: event.target.value })}
                 />
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {family.members.map((member) => (
                   <MemberRow
                     key={member.id}
@@ -359,31 +375,33 @@ export function StepWho({
                   />
                 ))}
               </ul>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <button
                   type="button"
                   onClick={() => addMember(family.id, false)}
-                  className="btn-soft flex-1 py-2.5 text-sm"
+                  className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-route-700 hover:bg-chart-50"
                 >
-                  <UserRound size={16} strokeWidth={STROKE} aria-hidden /> {t("creator.who.adult")}
+                  <Plus size={14} strokeWidth={STROKE} aria-hidden />
+                  {t("creator.who.adult")}
                 </button>
                 <button
                   type="button"
                   onClick={() => addMember(family.id, true)}
-                  className="btn-soft flex-1 py-2.5 text-sm"
+                  className="flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-route-700 hover:bg-chart-50"
                 >
-                  <Baby size={16} strokeWidth={STROKE} aria-hidden /> {t("creator.who.kid")}
+                  <Plus size={14} strokeWidth={STROKE} aria-hidden />
+                  {t("creator.who.kid")}
                 </button>
               </div>
             </div>
           ))}
-          <button type="button" onClick={addFamily} className="btn-outline w-full py-3">
+          <button type="button" onClick={addFamily} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-cream-300 text-sm font-medium text-ink-700 transition hover:bg-white">
             <Plus size={16} strokeWidth={STROKE} aria-hidden /> {t(`creator.who.units.${kind}.add`)}
           </button>
         </section>
       )}
 
-      <p className="text-center text-sm text-ink-500">
+      <p className="text-center text-sm font-medium text-ink-700">
         {[
           t("creator.who.summaryPeople", { count: people }),
           ...(kids ? [t("creator.who.summaryKids", { count: kids })] : []),

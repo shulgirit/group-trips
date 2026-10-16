@@ -90,6 +90,18 @@ const money = {
     emptyPrivateDescription: "רק אתם רואים את מה שמועלה כאן",
     wantPrivate: "רוצים גם אזור אישי? עברו לטאב ״האזור האישי שלי״ והתחברו עם Google",
     someone: "מישהו מהקבוצה",
+    kicker: "ארנק הנסיעה",
+    importCardTitle: "ייבוא אישור הזמנה",
+    importCardHint: "טיסה, מלון או אטרקציה. ה-AI יוסיף את זה ללו״ז ולמפה",
+    openFile: "פתיחת {name}",
+    kind: {
+      flight: "טיסה",
+      ticket: "כרטיס",
+      stay: "לינה",
+      pdf: "PDF",
+      image: "תמונה",
+      file: "קובץ",
+    },
     errors: {
       signIn: "ההתחברות לא הושלמה — ודאו שחלונות קופצים מותרים ונסו שוב",
       tooLarge: "הקובץ גדול מדי (עד {max}MB)",

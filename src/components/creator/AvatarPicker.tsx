@@ -2,12 +2,13 @@
 
 /* eslint-disable @next/next/no-img-element -- tiny local/storage avatars, no optimisation needed */
 import { useRef, useState } from "react";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { getDownloadURL } from "firebase/storage";
+import { uploadToTrip } from "@/lib/firebase/upload";
 import { Check, ImagePlus, Loader2 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { avatarSrc, BOT_AVATARS } from "@/lib/avatars";
-import { auth, storage } from "@/lib/firebase/client";
+import { auth } from "@/lib/firebase/client";
 
 /** Square-crops and shrinks an image on the device (384px JPEG). */
 async function squareAvatar(file: File): Promise<Blob> {
@@ -49,8 +50,9 @@ export function AvatarPicker({
     try {
       const blob = await squareAvatar(file);
       const uid = auth().currentUser?.uid ?? "anon";
-      const fileRef = ref(storage(), `trips/${tripId}/photos/avatar/${uid}-${Date.now()}.jpg`);
-      await uploadBytes(fileRef, blob, { contentType: "image/jpeg" });
+      const fileRef = await uploadToTrip(`trips/${tripId}/photos/avatar/${uid}-${Date.now()}.jpg`, blob, {
+        contentType: "image/jpeg",
+      });
       onChange(await getDownloadURL(fileRef));
     } catch {
       setError(t("creator.ai.avatar.uploadFailed"));

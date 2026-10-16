@@ -56,6 +56,11 @@ const product: PartialMessages["product"] = {
     current: "القادمة والحالية",
     past: "رحلات سابقة",
     empty: "لا توجد رحلات بعد. وصلتكم دعوة؟ افتحوا الرابط من WhatsApp",
+    first: {
+      title: "رحلتكم الأولى تبدأ من هنا",
+      text: "اختاروا وجهة، أضيفوا مجموعتكم، وينضم الجميع من رابط واحد.",
+      cta: "خططوا لرحلة",
+    },
   },
   card: {
     draft: "مسودة، تابعوا",
@@ -127,6 +132,16 @@ const product: PartialMessages["product"] = {
     notListed: "لست في القائمة، الانضمام على أي حال",
     signedInAs: "مسجّل الدخول باسم {name}",
     guestHint: "الانضمام كضيف. يُحفظ الوصول على هذا الهاتف",
+    stepOf: "الخطوة {n} من {total}",
+    guideRole: "مرشد الرحلة، ينتظركم بالفعل",
+    travelers: { one: "مسافر واحد", other: "{count} مسافرين" },
+    errorTitles: {
+      notFound: "هذا الرابط لا يعمل",
+      expired: "انتهت صلاحية الدعوة",
+      usedUp: "تم استخدام الدعوة بالكامل",
+      revoked: "أُلغيت الدعوة",
+      tripClosed: "الرحلة مغلقة",
+    },
   },
   invite: {
     qr: "رمز QR",
@@ -137,8 +152,10 @@ const product: PartialMessages["product"] = {
     loadFailed: "تعذّر تحميل روابط الدعوة",
     create: "إنشاء رابط دعوة",
     creating: "جارٍ الإنشاء…",
-    general: "رابط عام للمجموعة كلها",
+    general: "رابط دعوة عام",
     joined: "انضم {uses}/{max}",
+    joinedCount: "انضم {count}",
+    notJoined: "لم ينضم أحد بعد",
     footnote:
       "رابط العائلة يحدّد العائلة مسبقًا، فيكفي أن يختار كل شخص اسمه. الروابط صالحة لمدة 60 يومًا.",
     message: {

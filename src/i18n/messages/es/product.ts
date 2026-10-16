@@ -60,6 +60,11 @@ const product: PartialMessages["product"] = {
     current: "Próximos y en curso",
     past: "Viajes anteriores",
     empty: "Aún no tienes viajes. ¿Te han invitado? Abre el enlace desde WhatsApp",
+    first: {
+      title: "Tu primer viaje empieza aquí",
+      text: "Elige un destino, añade a tu grupo y todos se unen desde un solo enlace.",
+      cta: "Planear un viaje",
+    },
   },
   card: {
     draft: "Borrador. Continuar",
@@ -131,6 +136,16 @@ const product: PartialMessages["product"] = {
     notListed: "No estoy en la lista. Unirme de todos modos",
     signedInAs: "Sesión iniciada como {name}",
     guestHint: "Te unes como invitado. El acceso se guarda en este móvil",
+    stepOf: "Paso {n} de {total}",
+    guideRole: "El guía del viaje, ya te espera",
+    travelers: { one: "1 viajero", other: "{count} viajeros" },
+    errorTitles: {
+      notFound: "Este enlace no funciona",
+      expired: "Esta invitación ha caducado",
+      usedUp: "Esta invitación ya se ha usado",
+      revoked: "Esta invitación se canceló",
+      tripClosed: "Este viaje está cerrado",
+    },
   },
   invite: {
     qr: "Código QR",
@@ -141,8 +156,10 @@ const product: PartialMessages["product"] = {
     loadFailed: "No se pudieron cargar los enlaces de invitación",
     create: "Crear un enlace de invitación",
     creating: "Creando…",
-    general: "Enlace general para todo el grupo",
+    general: "Enlace de invitación general",
     joined: "{uses}/{max} unidos",
+    joinedCount: "Unidos: {count}",
+    notJoined: "Aún no se ha unido nadie",
     footnote:
       "Un enlace de familia ya selecciona la familia: solo hay que elegir el nombre. Los enlaces son válidos durante 60 días.",
     message: {

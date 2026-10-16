@@ -18,11 +18,11 @@ export function LogoutRow() {
         setBusy(true);
         logoutEverywhere();
       }}
-      className="flex w-full items-center gap-4 rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-start transition active:bg-terra-100/40 disabled:opacity-60"
+      className="flex min-h-16 w-full items-center gap-4 px-4 py-3 text-start transition active:bg-terra-100/40 disabled:opacity-60"
     >
       <span
         aria-hidden
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-terra-100 text-terra-500"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-terra-200 text-terra-600"
       >
         <LogOut size={18} strokeWidth={STROKE} className="rtl:rotate-180" />
       </span>

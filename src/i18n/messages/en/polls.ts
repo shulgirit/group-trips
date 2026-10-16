@@ -31,6 +31,8 @@ const polls: typeof he = {
   closePoll: "Close poll",
   confirmDelete: "Delete",
   deletePoll: "Delete poll",
+  decided: "The group chose",
+  moreVoters: "+{count}",
   new: {
     title: "New poll",
     questionLabel: "What's the question? *",
@@ -44,6 +46,8 @@ const polls: typeof he = {
     creating: "Creating…",
     submit: "Open poll",
     minOptions: "At least two options are needed",
+    pickPlacesHint: "Tap a place to add or remove it",
+    optionsEmpty: "Pick places or write an option and they will show up here",
   },
   sheet: {
     title: "Add to which poll?",

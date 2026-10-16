@@ -9,6 +9,12 @@ const creator: typeof he = {
     ai: "AI assistant",
     launch: "Launch",
   },
+  wizard: {
+    progress: "Step {n} of {total}",
+    addDeparture: "Add departure time",
+    addGroupName: "Name your group",
+    inviteTitle: "Share the link",
+  },
   signIn: {
     title: "New trip",
     text: "Sign in to create a trip and invite your group",
@@ -26,7 +32,8 @@ const creator: typeof he = {
   },
   launched: {
     title: "{name} is ready!",
-    text: "Now invite the group — everyone picks their name and joins",
+    text: "Now invite everyone. Each person opens the link and picks their name",
+    textOne: "Now send {name} the link. They open it, pick their name, and they are in",
     enter: "Enter the trip",
   },
   bookings: {

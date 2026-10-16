@@ -12,7 +12,7 @@ export function TourRow() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event(OPEN_TOUR_EVENT))}
-      className="flex w-full items-center gap-4 rounded-2xl border border-cream-200 bg-white px-4 py-3.5 text-start transition active:bg-cream-100"
+      className="flex min-h-16 w-full items-center gap-4 px-4 py-3 text-start transition active:bg-cream-100"
     >
       <span
         aria-hidden

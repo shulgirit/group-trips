@@ -44,7 +44,7 @@ export function PlaceCard({
   return (
     <Link
       href={`${prefix}/places/${place.id}`}
-      className="card block overflow-hidden transition active:scale-[0.99]"
+      className="block overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_27_45/0.05),0_10px_28px_-22px_rgb(15_27_45/0.45)] transition active:scale-[0.99]"
     >
       <div className="relative aspect-[16/9]">
         {place.imageUrl ? (
@@ -82,9 +82,9 @@ export function PlaceCard({
         </div>
       </div>
       <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <p className="truncate text-sm text-ink-500">
+        <p dir="auto" className="truncate text-sm text-ink-500">
           {distanceLabel ? (
-            <span className="inline-flex items-center gap-1 font-medium text-sea-700">
+            <span className="inline-flex items-center gap-1 font-medium text-route-700">
               <MapPin size={12} strokeWidth={STROKE} aria-hidden />
               {distanceLabel}
               <span className="text-ink-300"> · </span>
@@ -93,7 +93,7 @@ export function PlaceCard({
           {place.area || categoryLabel}
         </p>
         {scheduled ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-sea-200 px-2.5 py-1 text-xs font-medium text-sea-700">
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-route-100 px-2.5 py-1 text-xs font-medium text-route-700">
             <CalendarCheck size={12} strokeWidth={STROKE} aria-hidden />
             {t("trip.placeCard.scheduled")}
           </span>

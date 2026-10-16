@@ -30,6 +30,8 @@ const polls = {
   closePoll: "סגור סקר",
   confirmDelete: "למחוק",
   deletePoll: "מחיקת סקר",
+  decided: "הקבוצה בחרה",
+  moreVoters: "+{count}",
   new: {
     title: "סקר חדש",
     questionLabel: "מה השאלה? *",
@@ -43,6 +45,8 @@ const polls = {
     creating: "יוצר…",
     submit: "פתח סקר",
     minOptions: "צריך לפחות שתי אפשרויות",
+    pickPlacesHint: "הקישו על מקום כדי להוסיף או להסיר אותו",
+    optionsEmpty: "בחרו מקומות או כתבו אפשרות, והן יופיעו כאן",
   },
   sheet: {
     title: "לאיזה סקר להוסיף?",

@@ -91,6 +91,18 @@ const money: PartialMessages["money"] = {
     emptyPrivateDescription: "أنتم وحدكم ترون ما ترفعونه هنا",
     wantPrivate: "تريدون مساحة خاصة أيضًا؟ انتقلوا إلى «مساحتي الخاصة» وسجّلوا الدخول باستخدام Google",
     someone: "شخص من المجموعة",
+    kicker: "محفظة الرحلة",
+    importCardTitle: "استيراد تأكيد حجز",
+    importCardHint: "رحلة طيران أو فندق أو معلم سياحي. يضيفه الذكاء الاصطناعي إلى البرنامج والخريطة",
+    openFile: "فتح {name}",
+    kind: {
+      flight: "رحلة",
+      ticket: "تذكرة",
+      stay: "إقامة",
+      pdf: "PDF",
+      image: "صورة",
+      file: "ملف",
+    },
     errors: {
       signIn: "لم يكتمل تسجيل الدخول. تأكدوا من السماح بالنوافذ المنبثقة وحاولوا مجددًا",
       tooLarge: "الملف كبير جدًا (حتى {max}MB)",

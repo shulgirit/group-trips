@@ -31,6 +31,8 @@ const polls: PartialMessages["polls"] = {
   closePoll: "Cerrar encuesta",
   confirmDelete: "Eliminar",
   deletePoll: "Eliminar encuesta",
+  decided: "El grupo eligió",
+  moreVoters: "+{count}",
   new: {
     title: "Nueva encuesta",
     questionLabel: "¿Cuál es la pregunta? *",
@@ -44,6 +46,8 @@ const polls: PartialMessages["polls"] = {
     creating: "Creando…",
     submit: "Abrir encuesta",
     minOptions: "Hacen falta al menos dos opciones",
+    pickPlacesHint: "Toca un lugar para añadirlo o quitarlo",
+    optionsEmpty: "Elige lugares o escribe una opción y aparecerán aquí",
   },
   sheet: {
     title: "¿A qué encuesta lo añadimos?",

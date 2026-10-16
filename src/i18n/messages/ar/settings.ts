@@ -2,6 +2,19 @@ import type { PartialMessages } from "../index";
 
 const settings: PartialMessages["settings"] = {
   title: "الإعدادات",
+  sections: {
+    jump: "الانتقال إلى قسم",
+    you: "أنت",
+    youHint: "حسابك، ومن أنت في الرحلة، واللغة",
+    trip: "هذه الرحلة",
+    tripHint: "التفاصيل والدعوات ومن سيأتي",
+  },
+  invite: {
+    lead: "أرسلوا رابطًا عبر واتساب وينضم الجميع بنقرة واحدة",
+  },
+  accountPage: {
+    preferences: "التفضيلات",
+  },
   account: {
     title: "حسابي",
     legacyHint: "يستخدم هذا الجهاز طريقة تسجيل الدخول القديمة. أكملوها مرة واحدة باستخدام Google.",
@@ -39,12 +52,22 @@ const settings: PartialMessages["settings"] = {
     soon: "قريبًا",
     myTrips: "رحلاتي",
     myTripsDescription: "الانتقال إلى رحلة أخرى أو بدء رحلة جديدة",
+    groupTrip: "في الرحلة",
+    groupApp: "الحساب والتطبيق",
   },
   families: {
     travelers: { one: "مسافر واحد", other: "{count} مسافرين" },
+    kids: { one: "طفل واحد", other: "{count} أطفال" },
+    kid: "طفل",
+    you: "هذا أنا",
+    yours: "عائلتي",
+    emptyTitle: "لا أحد هنا بعد",
+    emptyText: "عندما تنضم المجموعة إلى الرحلة سيظهر الجميع هنا",
   },
   notifications: {
     title: "الإشعارات",
+    statusOn: "الإشعارات مفعّلة على هذا الجهاز",
+    statusOff: "الإشعارات متوقفة على هذا الجهاز",
     checking: "جارٍ التحقق…",
     unsupported: "هذا المتصفح لا يدعم الإشعارات الفورية. جرّبوا من هاتفكم.",
     installFirst:

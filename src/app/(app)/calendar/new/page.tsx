@@ -1,9 +1,14 @@
 "use client";
 
+import { STROKE } from "@/components/ui/Icon";
+
+import { ChevronLeft } from "lucide-react";
+
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { EventGlyphPicker } from "@/components/events/EventGlyphPicker";
+import { DurationChips } from "@/components/events/DurationChips";
 import { useDayLabel, useT } from "@/i18n";
 import { addEvent } from "@/lib/db";
 import { useFamilies, usePlaces } from "@/lib/hooks";
@@ -72,9 +77,19 @@ function NewEventForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <h1 className="font-display text-2xl font-light text-ink-900">
-        {t("trip.eventForm.newTitle")}
-      </h1>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label={t("common.back")}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-cream-200 bg-white text-ink-700"
+        >
+          <ChevronLeft size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
+        </button>
+        <h1 className="font-display text-2xl font-medium text-ink-900">
+          {t("trip.eventForm.newTitle")}
+        </h1>
+      </div>
 
       <label className="block">
         <span className="mb-2 block text-sm font-medium text-ink-700">
@@ -82,6 +97,7 @@ function NewEventForm() {
         </span>
         <input
           type="text"
+          dir="auto"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("trip.eventForm.whatPlaceholder")}
@@ -134,34 +150,21 @@ function NewEventForm() {
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <label className="flex-1">
-          <span className="mb-2 block text-sm font-medium text-ink-700">
-            {t("trip.schedule.time")}
-          </span>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="field"
-          />
-        </label>
-        <label className="flex-1">
-          <span className="mb-2 block text-sm font-medium text-ink-700">
-            {t("trip.eventForm.durationMinutes")}
-          </span>
-          <input
-            type="number"
-            min={15}
-            step={15}
-            value={durationMin ?? ""}
-            onChange={(e) =>
-              setDurationMin(e.target.value ? Number(e.target.value) : null)
-            }
-            placeholder={t("trip.eventForm.open")}
-            className="field"
-          />
-        </label>
+      <label className="block">
+        <span className="mb-2 block text-sm font-medium text-ink-700">
+          {t("trip.schedule.time")}
+        </span>
+        <input
+          type="time"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          className="field max-w-[12rem] text-lg tabular-nums"
+        />
+      </label>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.eventForm.duration")}</p>
+        <DurationChips value={durationMin} onChange={setDurationMin} />
       </div>
 
       <div>
@@ -183,6 +186,7 @@ function NewEventForm() {
         </span>
         <input
           type="text"
+          dir="auto"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="field"
@@ -198,7 +202,7 @@ function NewEventForm() {
       <button
         type="submit"
         disabled={saving || !title.trim() || participantsInvalid}
-        className="btn-primary w-full py-3.5 text-base"
+        className="btn-primary sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-10 w-full py-3.5 text-base shadow-[var(--shadow-float)] lg:bottom-6"
       >
         {saving ? t("common.saving") : t("trip.schedule.submit")}
       </button>

@@ -5,6 +5,7 @@ import { Check, Lock } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
+import { SURFACE } from "@/components/settings/SettingsGroup";
 import {
   apiFetch,
   appleSignInAvailable,
@@ -51,26 +52,32 @@ export function SaveAccountCard() {
 
   if (done) {
     return (
-      <section className="card flex items-center gap-2.5 px-4 py-4 text-sm font-medium text-olive-500">
-        <Check size={18} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+      <div role="status" className={`${SURFACE} flex items-center gap-3 p-4 text-sm font-medium text-route-700`}>
+        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-route-100">
+          <Check size={18} strokeWidth={STROKE} />
+        </span>
         {t("product.saveAccount.done")}
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="card space-y-3 border-lemon-300 px-4 py-5">
-      <h2 className="flex items-center gap-2 font-display text-lg font-normal text-ink-900">
-        <Lock size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-lemon-500" />
-        {t("product.saveAccount.title")}
-      </h2>
-      <p className="text-sm leading-relaxed text-ink-700">{t("product.saveAccount.text")}</p>
-      <div className="flex gap-2">
+    <div className={`${SURFACE} p-4 ring-1 ring-route-300/70`}>
+      <div className="flex items-start gap-3">
+        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-route-100 text-route-700">
+          <Lock size={18} strokeWidth={STROKE} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] font-medium text-ink-900">{t("product.saveAccount.title")}</h3>
+          <p className="mt-0.5 text-sm leading-relaxed text-ink-500">{t("product.saveAccount.text")}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
         <button
           type="button"
           disabled={busy}
           onClick={() => link("google")}
-          className="btn flex-1 border border-cream-200 bg-white py-3 text-ink-900"
+          className="btn-outline min-h-11 flex-1 text-sm"
         >
           {busy ? t("product.saveAccount.wait") : "Google"}
         </button>
@@ -79,13 +86,13 @@ export function SaveAccountCard() {
             type="button"
             disabled={busy}
             onClick={() => link("apple")}
-            className="btn flex-1 bg-ink-900 py-3 text-cream-50"
+            className="btn min-h-11 flex-1 bg-ink-900 text-sm text-cream-50"
           >
             Apple
           </button>
         )}
       </div>
-      {message && <p className="text-sm text-terra-600">{message}</p>}
-    </section>
+      {message && <p role="alert" className="mt-2 text-sm text-terra-600">{message}</p>}
+    </div>
   );
 }

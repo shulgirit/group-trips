@@ -1,6 +1,19 @@
 /** Hebrew — source of truth for the "settings" namespace. */
 const settings = {
   title: "הגדרות",
+  sections: {
+    jump: "קפיצה לחלק בעמוד",
+    you: "אני",
+    youHint: "החשבון, מי אתם בטיול והשפה",
+    trip: "הטיול הזה",
+    tripHint: "פרטים, הזמנות ומי בטיול",
+  },
+  invite: {
+    lead: "שולחים קישור בוואטסאפ, וכל אחד מצטרף בלחיצה",
+  },
+  accountPage: {
+    preferences: "העדפות",
+  },
   account: {
     title: "החשבון שלי",
     legacyHint: "המכשיר הזה מחובר בכניסה הישנה. השלימו פעם אחת עם Google",
@@ -38,12 +51,22 @@ const settings = {
     soon: "בקרוב",
     myTrips: "הטיולים שלי",
     myTripsDescription: "מעבר לטיול אחר או יצירת טיול חדש",
+    groupTrip: "בטיול",
+    groupApp: "החשבון והאפליקציה",
   },
   families: {
     travelers: { one: "מטייל אחד", other: "{count} מטיילים" },
+    kids: { one: "ילד אחד", other: "{count} ילדים" },
+    kid: "ילד/ה",
+    you: "זה אני",
+    yours: "המשפחה שלי",
+    emptyTitle: "עדיין אין כאן אף אחד",
+    emptyText: "כשהחבורה תצטרף לטיול, כולם יופיעו כאן",
   },
   notifications: {
     title: "התראות",
+    statusOn: "ההתראות פעילות במכשיר הזה",
+    statusOff: "ההתראות כבויות במכשיר הזה",
     checking: "בודק…",
     unsupported: "הדפדפן הזה לא תומך בהתראות דחיפה. נסו מהטלפון",
     installFirst:

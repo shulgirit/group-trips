@@ -76,8 +76,12 @@ export async function POST(request: Request) {
   }
 
   // Membership claim lets Storage rules verify without a Firestore lookup
+  // Merge, never replace: the `t` map holds the self-serve trip claims
   await adminAuth()
-    .setCustomUserClaims(decoded.uid, { member: true })
+    .getUser(decoded.uid)
+    .then((user) =>
+      adminAuth().setCustomUserClaims(decoded.uid, { ...(user.customClaims ?? {}), member: true })
+    )
     .catch(() => undefined);
 
   const cookieStore = await cookies();

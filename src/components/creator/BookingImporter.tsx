@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ref, uploadBytes } from "firebase/storage";
+import { uploadToTrip } from "@/lib/firebase/upload";
 import {
   BedDouble,
   CarFront,
@@ -20,7 +20,7 @@ import {
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { tActive } from "@/i18n/active";
-import { apiFetch, auth, storage } from "@/lib/firebase/client";
+import { apiFetch, auth } from "@/lib/firebase/client";
 import type { BookingItem } from "@/lib/booking";
 
 const KIND_ICON: Record<BookingItem["kind"], LucideIcon> = {
@@ -124,7 +124,7 @@ export function BookingImporter({
       try {
         const safeName = file.name.replace(/[^\w.\-א-ת]+/g, "_").slice(-80);
         const storagePath = `trips/${tripId}/imports/${uid}/${Date.now()}-${safeName}`;
-        await uploadBytes(ref(storage(), storagePath), file, {
+        await uploadToTrip(storagePath, file, {
           contentType: file.type || "application/octet-stream",
         });
         await extract(key, { storagePath, fileName: file.name });
@@ -195,18 +195,18 @@ export function BookingImporter({
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
-          className="card flex flex-col items-center gap-2 border-dashed px-4 py-7 text-center transition active:scale-[0.99]"
+          className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-cream-300 bg-white px-4 py-7 text-center transition hover:border-route-300 active:scale-[0.99]"
         >
-          <FileUp size={24} strokeWidth={STROKE} aria-hidden className="text-sea-700" />
+          <FileUp size={24} strokeWidth={STROKE} aria-hidden className="text-route-500" />
           <span className="font-medium text-ink-900">{t("creator.booking.upload.title")}</span>
           <span className="text-xs text-ink-500">{t("creator.booking.upload.text")}</span>
         </button>
         <button
           type="button"
           onClick={() => setPasting((open) => !open)}
-          className="card flex flex-col items-center gap-2 px-4 py-7 text-center transition active:scale-[0.99]"
+          className={`flex flex-col items-center gap-2 rounded-2xl border bg-white px-4 py-7 text-center transition hover:border-route-300 active:scale-[0.99] ${pasting ? "border-route-500" : "border-chart-200"}`}
         >
-          <ClipboardPaste size={24} strokeWidth={STROKE} aria-hidden className="text-sea-700" />
+          <ClipboardPaste size={24} strokeWidth={STROKE} aria-hidden className="text-route-500" />
           <span className="font-medium text-ink-900">{t("creator.booking.paste.title")}</span>
           <span className="text-xs text-ink-500">{t("creator.booking.paste.text")}</span>
         </button>
@@ -241,9 +241,9 @@ export function BookingImporter({
         <div key={entry.key} className="card overflow-hidden">
           <div className="flex items-center gap-3 border-b border-cream-200/70 px-4 py-3">
             {entry.status === "uploading" || entry.status === "reading" || entry.status === "applying" ? (
-              <Loader2 size={20} strokeWidth={STROKE} aria-hidden className="animate-spin text-sea-600" />
+              <Loader2 size={20} strokeWidth={STROKE} aria-hidden className="animate-spin text-route-500" />
             ) : entry.status === "applied" ? (
-              <Check size={20} strokeWidth={STROKE} aria-hidden className="text-olive-500" />
+              <Check size={20} strokeWidth={STROKE} aria-hidden className="text-route-500" />
             ) : (
               <FileText size={20} strokeWidth={STROKE} aria-hidden className="text-ink-500" />
             )}
@@ -266,10 +266,10 @@ export function BookingImporter({
                   return (
                     <li
                       key={index}
-                      className={`rounded-2xl border px-3 py-2.5 transition ${item.include ? "border-sea-200 bg-white" : "border-cream-200 bg-cream-50 opacity-60"}`}
+                      className={`rounded-2xl border px-3 py-2.5 transition ${item.include ? "border-chart-200 bg-white" : "border-chart-200 bg-cream-50 opacity-60"}`}
                     >
                       <div className="flex items-center gap-2">
-                        <KindIcon size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-700" />
+                        <KindIcon size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-route-500" />
                         <input
                           className="min-w-0 flex-1 bg-transparent font-medium text-ink-900 outline-none"
                           value={item.title}
@@ -279,7 +279,7 @@ export function BookingImporter({
                           type="button"
                           onClick={() => updateItem(entry.key, index, { include: !item.include })}
                           aria-label={item.include ? t("creator.booking.exclude") : t("creator.booking.include")}
-                          className="p-1 text-ink-300"
+                          className="-me-2 flex h-10 w-10 shrink-0 items-center justify-center text-ink-400"
                         >
                           {item.include ? (
                             <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
@@ -311,7 +311,7 @@ export function BookingImporter({
                         </p>
                       )}
                       {!item.startDate && (
-                        <p className="mt-1 text-xs text-terra-600">
+                        <p className="mt-1 text-xs italic text-ink-500">
                           {t("creator.booking.placeOnly", { when: itemWhen(item) })}
                         </p>
                       )}
@@ -331,7 +331,7 @@ export function BookingImporter({
           )}
           {entry.message && (
             <p
-              className={`px-4 py-3 text-sm ${entry.status === "failed" ? "text-terra-600" : "text-olive-500"}`}
+              className={`px-4 py-3 text-sm ${entry.status === "failed" ? "text-terra-600" : "text-route-700"}`}
             >
               {entry.message}
             </p>

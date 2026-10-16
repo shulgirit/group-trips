@@ -8,6 +8,12 @@ const creator = {
     ai: "עוזר AI",
     launch: "יוצאים",
   },
+  wizard: {
+    progress: "שלב {n} מתוך {total}",
+    addDeparture: "הוספת שעת המראה",
+    addGroupName: "הוספת שם לחבורה",
+    inviteTitle: "שולחים את הקישור",
+  },
   signIn: {
     title: "טיול חדש",
     text: "התחברו כדי ליצור טיול ולהזמין את החבורה",
@@ -24,7 +30,8 @@ const creator = {
   },
   launched: {
     title: "{name} מוכן!",
-    text: "עכשיו מזמינים את החבורה — כל אחד בוחר את השם שלו ונכנס",
+    text: "עכשיו מזמינים את כולם. כל אחד נכנס ובוחר את השם שלו",
+    textOne: "עכשיו שולחים ל{name} את הקישור, וזהו. נכנסים ובוחרים שם",
     enter: "כניסה לטיול",
   },
   bookings: {

@@ -9,6 +9,12 @@ const creator: PartialMessages["creator"] = {
     ai: "Asistente de IA",
     launch: "Lanzar",
   },
+  wizard: {
+    progress: "Paso {n} de {total}",
+    addDeparture: "Añadir hora de salida",
+    addGroupName: "Ponle nombre al grupo",
+    inviteTitle: "Comparte el enlace",
+  },
   signIn: {
     title: "Nuevo viaje",
     text: "Inicia sesión para crear un viaje e invitar a tu grupo",
@@ -26,7 +32,8 @@ const creator: PartialMessages["creator"] = {
   },
   launched: {
     title: "¡{name} está listo!",
-    text: "Ahora invita al grupo: cada uno elige su nombre y se une",
+    text: "Ahora invita a todos. Cada uno abre el enlace y elige su nombre",
+    textOne: "Ahora envía el enlace a {name}. Lo abre, elige su nombre y listo",
     enter: "Entrar al viaje",
   },
   bookings: {

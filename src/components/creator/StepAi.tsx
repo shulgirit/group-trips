@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { translate } from "@/i18n/translate";
@@ -39,6 +39,7 @@ export function StepAi({
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState<{ q: string; a: string } | null>(null);
   const [asking, setAsking] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const ai = state.ai;
 
   function setAi(patch: Partial<CreatorState["ai"]>) {
@@ -103,10 +104,10 @@ export function StepAi({
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <header>
-        <h1 className="font-display text-3xl font-light text-ink-900">{t("creator.ai.title")}</h1>
-        <p className="mt-2 text-ink-500">{t("creator.ai.text")}</p>
+        <h1 className="font-display text-display-sm font-medium text-ink-900">{t("creator.ai.title")}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-500">{t("creator.ai.text")}</p>
       </header>
 
       <section className="grid grid-cols-2 gap-2">
@@ -182,19 +183,32 @@ export function StepAi({
         />
       </section>
 
-      <section className="space-y-2">
-        <p className="text-sm font-medium text-ink-700">
-          {t("creator.ai.aboutLabel")}{" "}
-          <span className="font-normal text-ink-300">{t("creator.ai.aboutHint")}</span>
-        </p>
-        <textarea
-          className="field min-h-24 text-sm"
-          placeholder={t("creator.ai.aboutPlaceholder")}
-          value={state.aboutUs}
-          maxLength={4000}
-          onChange={(event) => update({ aboutUs: event.target.value })}
-        />
-      </section>
+      {aboutOpen || state.aboutUs ? (
+        <section className="space-y-2">
+          <p className="text-sm font-medium text-ink-700">
+            {t("creator.ai.aboutLabel")}{" "}
+            <span className="font-normal text-ink-400">{t("creator.ai.aboutHint")}</span>
+          </p>
+          <textarea
+            className="field min-h-24 text-sm"
+            placeholder={t("creator.ai.aboutPlaceholder")}
+            value={state.aboutUs}
+            maxLength={4000}
+            autoFocus={aboutOpen && !state.aboutUs}
+            dir="auto"
+            onChange={(event) => update({ aboutUs: event.target.value })}
+          />
+        </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAboutOpen(true)}
+          className="-mt-3 flex min-h-11 items-center gap-1.5 text-sm font-medium text-route-700"
+        >
+          <Plus size={16} strokeWidth={STROKE} aria-hidden />
+          {t("creator.ai.aboutLabel")}
+        </button>
+      )}
 
       <section className="card space-y-3 px-4 py-5">
         <p className="kicker text-ink-500">{t("creator.ai.tryTitle")}</p>

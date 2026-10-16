@@ -91,6 +91,18 @@ const money: typeof he = {
     emptyPrivateDescription: "Only you can see what you upload here",
     wantPrivate: "Want a private area too? Switch to “My private area” and sign in with Google",
     someone: "Someone from the group",
+    kicker: "Travel wallet",
+    importCardTitle: "Import a booking confirmation",
+    importCardHint: "Flight, hotel or attraction. The AI adds it to the plan and the map",
+    openFile: "Open {name}",
+    kind: {
+      flight: "Flight",
+      ticket: "Ticket",
+      stay: "Stay",
+      pdf: "PDF",
+      image: "Image",
+      file: "File",
+    },
     errors: {
       signIn: "Sign-in didn't complete — make sure pop-ups are allowed and try again",
       tooLarge: "File is too large (up to {max}MB)",

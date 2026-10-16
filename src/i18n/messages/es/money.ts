@@ -91,6 +91,18 @@ const money: PartialMessages["money"] = {
     emptyPrivateDescription: "Solo tú puedes ver lo que subas aquí",
     wantPrivate: "¿Quieres también un espacio privado? Cambia a “Mi espacio privado” e inicia sesión con Google",
     someone: "Alguien del grupo",
+    kicker: "Cartera del viaje",
+    importCardTitle: "Importar una confirmación de reserva",
+    importCardHint: "Vuelo, hotel o atracción. La IA lo añade al plan y al mapa",
+    openFile: "Abrir {name}",
+    kind: {
+      flight: "Vuelo",
+      ticket: "Entrada",
+      stay: "Alojamiento",
+      pdf: "PDF",
+      image: "Imagen",
+      file: "Archivo",
+    },
     errors: {
       signIn: "No se completó el inicio de sesión. Comprueba que las ventanas emergentes estén permitidas e inténtalo de nuevo",
       tooLarge: "El archivo es demasiado grande (máximo {max} MB)",

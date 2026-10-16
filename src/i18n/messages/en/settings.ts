@@ -2,6 +2,19 @@ import type he from "../he/settings";
 
 const settings: typeof he = {
   title: "Settings",
+  sections: {
+    jump: "Jump to a section",
+    you: "You",
+    youHint: "Your account, who you are on the trip, and language",
+    trip: "This trip",
+    tripHint: "Details, invites and who's coming",
+  },
+  invite: {
+    lead: "Send a link on WhatsApp and everyone joins in one tap",
+  },
+  accountPage: {
+    preferences: "Preferences",
+  },
   account: {
     title: "My account",
     legacyHint: "This device uses the old sign-in. Complete it once with Google.",
@@ -39,12 +52,22 @@ const settings: typeof he = {
     soon: "Soon",
     myTrips: "My trips",
     myTripsDescription: "Switch to another trip or start a new one",
+    groupTrip: "On this trip",
+    groupApp: "Account and app",
   },
   families: {
     travelers: { one: "1 traveler", other: "{count} travelers" },
+    kids: { one: "1 kid", other: "{count} kids" },
+    kid: "Kid",
+    you: "That's me",
+    yours: "My family",
+    emptyTitle: "No one here yet",
+    emptyText: "Once the group joins the trip, everyone shows up here",
   },
   notifications: {
     title: "Notifications",
+    statusOn: "Notifications are on for this device",
+    statusOff: "Notifications are off for this device",
     checking: "Checking…",
     unsupported: "This browser doesn't support push notifications. Try from your phone.",
     installFirst:

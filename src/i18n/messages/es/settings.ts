@@ -2,6 +2,19 @@ import type { PartialMessages } from "../index";
 
 const settings: PartialMessages["settings"] = {
   title: "Ajustes",
+  sections: {
+    jump: "Ir a una sección",
+    you: "Tú",
+    youHint: "Tu cuenta, quién eres en el viaje y el idioma",
+    trip: "Este viaje",
+    tripHint: "Detalles, invitaciones y quién viene",
+  },
+  invite: {
+    lead: "Envía un enlace por WhatsApp y todos se unen con un toque",
+  },
+  accountPage: {
+    preferences: "Preferencias",
+  },
   account: {
     title: "Mi cuenta",
     legacyHint: "Este dispositivo usa el inicio de sesión antiguo. Complétalo una vez con Google.",
@@ -39,12 +52,22 @@ const settings: PartialMessages["settings"] = {
     soon: "Pronto",
     myTrips: "Mis viajes",
     myTripsDescription: "Cambia a otro viaje o empieza uno nuevo",
+    groupTrip: "En el viaje",
+    groupApp: "Cuenta y app",
   },
   families: {
     travelers: { one: "1 viajero", other: "{count} viajeros" },
+    kids: { one: "1 niño", other: "{count} niños" },
+    kid: "Niño/a",
+    you: "Soy yo",
+    yours: "Mi familia",
+    emptyTitle: "Todavía no hay nadie",
+    emptyText: "Cuando el grupo se una al viaje, todos aparecerán aquí",
   },
   notifications: {
     title: "Notificaciones",
+    statusOn: "Las notificaciones están activadas en este dispositivo",
+    statusOff: "Las notificaciones están desactivadas en este dispositivo",
     checking: "Comprobando…",
     unsupported: "Este navegador no admite notificaciones push. Prueba desde tu móvil.",
     installFirst:

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocationPrimer } from "@/components/permissions/LocationPrimer";
+
 import { CHART_MAP_STYLE } from "@/lib/map-style";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -151,7 +153,9 @@ export default function MapPage() {
   const [selected, setSelected] = useState<Place | null>(null);
   const { personal } = useFirebase();
   const { families } = useFamilies();
-  const { fix, status: locationStatus, start: startLocation } = useMyLocation();
+  const { fix, status: locationStatus, start: startLocationNow } = useMyLocation();
+  // first time: a short explanation before the system location prompt
+  const { request: startLocation, sheet: locationSheet } = useLocationPrimer(startLocationNow);
   const shared = useSharedLocations(fix);
   const [shareOpen, setShareOpen] = useState(false);
   const followRef = useRef(false);
@@ -413,6 +417,7 @@ export default function MapPage() {
 
   return (
     <div className="space-y-4">
+      {locationSheet}
       <div>
         <p className="kicker text-ink-500">{trip.legacy ? t("trip.map.kickerLegacy") : trip.shortName}</p>
         <h1 className="mt-1 font-display text-3xl font-light text-ink-900">{t("trip.map.title")}</h1>

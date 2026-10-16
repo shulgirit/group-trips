@@ -3,13 +3,21 @@
 import { useState } from "react";
 import Image from "next/image";
 import { doc, setDoc } from "firebase/firestore";
-import { BedDouble, CalendarDays, ChevronRight, Coins, Download, GraduationCap, UserRound } from "lucide-react";
+import { BedDouble, CalendarDays, Check, ChevronRight, Coins, Download, GraduationCap, UserRound } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { AboutUsSection } from "@/components/settings/AboutUsSection";
 import { NotificationsSection } from "@/components/settings/NotificationsSection";
-import { TripAdminSection } from "@/components/settings/TripAdminSection";
+import {
+  InviteCard,
+  KidDevicesCard,
+  MembersCard,
+  TripDangerZone,
+  useTripRole,
+} from "@/components/settings/TripAdminSection";
+import { LanguagePicker } from "@/components/settings/LanguagePicker";
+import { SettingsGroup, SURFACE } from "@/components/settings/SettingsGroup";
 import { SaveAccountCard } from "@/components/settings/SaveAccountCard";
-import { ListSkeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { STROKE } from "@/components/ui/Icon";
 import { db, signInWithGoogle } from "@/lib/firebase/client";
 import { logoutEverywhere } from "@/lib/logout";
@@ -17,8 +25,7 @@ import { useFamilies } from "@/lib/hooks";
 import { googleMapsUrl } from "@/lib/nav";
 import { tripDays } from "@/lib/trip";
 import { useTrip } from "@/components/providers/TripProvider";
-import { setLocalePreference, useDayLabel, useLocale, useT } from "@/i18n";
-import { LOCALES, LOCALE_LABEL } from "@/i18n/config";
+import { useDayLabel, useLocale, useT } from "@/i18n";
 import { intlLocale } from "@/i18n/format";
 
 function currencyNames(codes: string[], locale: string): string {
@@ -97,74 +104,104 @@ export default function SettingsPage() {
     }
   }
 
-  return (
-    <div className="space-y-8">
-      <h1 className="font-display text-2xl font-light text-ink-900">
-        {t("settings.title")}
-      </h1>
+  const role = useTripRole();
+  const jump: { id: string; label: string }[] = [
+    { id: "settings-you", label: t("settings.sections.you") },
+    { id: "settings-trip", label: t("settings.sections.trip") },
+    { id: "settings-notifications", label: t("settings.notifications.title") },
+    { id: "settings-app", label: t("settings.app.title") },
+  ];
 
-      {/* Personal identity */}
-      <section>
-        <h2 className="section-title mb-3 font-normal">{t("settings.account.title")}</h2>
+  return (
+    <div className="space-y-10">
+      <header className="space-y-4">
+        <div>
+          <p className="kicker text-ink-500">
+            <bdi>{trip.name}</bdi>
+          </p>
+          <h1 className="mt-1 font-display text-3xl font-light text-ink-900">
+            {t("settings.title")}
+          </h1>
+        </div>
+        <nav aria-label={t("settings.sections.jump")} className="no-scrollbar -mx-4 overflow-x-auto px-4">
+          <ul className="flex w-max gap-2">
+            {jump.map((item) => (
+              <li key={item.id}>
+                <a href={`#${item.id}`} className="chip min-h-11 px-4 text-ink-700">
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </header>
+
+      {/* ── You: identity, account, language ── */}
+      <SettingsGroup id="settings-you" title={t("settings.sections.you")} hint={t("settings.sections.youHint")}>
         {!personal ? (
-          <div className="card flex items-center gap-3 px-4 py-3.5">
-            <UserRound size={20} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-300" />
-            <p className="min-w-0 flex-1 text-sm leading-snug text-ink-500">
+          <div className={`${SURFACE} flex flex-wrap items-center gap-3 p-4`}>
+            <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-cream-200 text-ink-500">
+              <UserRound size={20} strokeWidth={STROKE} />
+            </span>
+            <p className="min-w-0 flex-1 basis-40 text-sm leading-snug text-ink-700">
               {t("settings.account.legacyHint")}
             </p>
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={busy}
-              className="btn-primary shrink-0 px-4 py-2.5 text-sm"
+              className="btn-primary min-h-11 shrink-0 px-5 text-sm"
             >
               {busy ? t("settings.account.wait") : t("settings.account.complete")}
             </button>
           </div>
         ) : (
-          <div className="rounded-3xl border border-cream-200 bg-white p-5">
-            <div className="flex items-center gap-3">
+          <div className={SURFACE}>
+            <div className="flex items-center gap-3 p-4">
               {user?.photoURL ? (
-                <Image
-                  src={user.photoURL}
-                  alt=""
-                  width={44}
-                  height={44}
-                  className="rounded-full"
-                />
+                <Image src={user.photoURL} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-full" />
               ) : (
-                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-cream-200 bg-cream-50 text-ink-500">
-                  <UserRound size={20} strokeWidth={STROKE} aria-hidden />
+                <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cream-100 text-ink-500">
+                  <UserRound size={22} strokeWidth={STROKE} />
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-ink-900">
-                  {user?.displayName}
+                <p className="truncate text-[15px] font-medium text-ink-900">
+                  <bdi>{user?.displayName}</bdi>
                 </p>
-                <p className="truncate text-sm text-ink-500">{user?.email}</p>
+                <p className="truncate text-sm text-ink-500">
+                  <bdi dir="ltr">{user?.email}</bdi>
+                </p>
               </div>
               <button
                 type="button"
                 onClick={handleSignOut}
                 disabled={busy}
-                className="rounded-full border border-cream-200 px-3.5 py-1.5 text-sm text-ink-700 transition active:bg-cream-100"
+                className="btn-outline min-h-11 shrink-0 px-4 text-sm"
               >
                 {t("settings.account.signOut")}
               </button>
             </div>
 
-            {/* Family member link */}
-            <div className="mt-5 border-t border-cream-200 pt-4">
+            {/* Which traveler this account is */}
+            <div className="border-t border-cream-200 p-4">
               <p className="mb-3 text-sm text-ink-700">
-                {linkedMember
-                  ? t("settings.account.linkedTo", {
-                      member: linkedMember.name,
-                      family: linkedFamily?.name ?? "",
-                    })
-                  : t("settings.account.whoAreYou")}
+                {linkedMember ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-route-500" />
+                    <bdi>
+                      {t("settings.account.linkedTo", {
+                        member: linkedMember.name,
+                        family: linkedFamily?.name ?? "",
+                      })}
+                    </bdi>
+                  </span>
+                ) : (
+                  t("settings.account.whoAreYou")
+                )}
               </p>
               {!families ? (
-                <ListSkeleton rows={1} />
+                <Skeleton className="h-11 w-full rounded-full" />
               ) : (
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
@@ -172,16 +209,15 @@ export default function SettingsPage() {
                       <button
                         key={family.id}
                         type="button"
+                        aria-expanded={pickingFamilyId === family.id}
                         onClick={() =>
-                          setPickingFamilyId(
-                            pickingFamilyId === family.id ? null : family.id
-                          )
+                          setPickingFamilyId(pickingFamilyId === family.id ? null : family.id)
                         }
-                        className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                        className={`min-h-11 rounded-full border px-4 text-sm transition ${
                           pickingFamilyId === family.id
                             ? "border-sea-900 bg-sea-900 text-cream-50"
                             : profile?.familyId === family.id
-                              ? "border-sea-200 bg-sea-100 text-sea-900"
+                              ? "border-route-300 bg-route-100 text-route-700"
                               : "border-cream-200 bg-white text-ink-700"
                         }`}
                       >
@@ -190,17 +226,16 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   {pickingFamilyId && (
-                    <div className="flex flex-wrap gap-2 rounded-2xl bg-cream-100 p-3">
+                    <div className="flex flex-wrap gap-2 rounded-2xl bg-cream-100 p-2">
                       {families
                         .find((f) => f.id === pickingFamilyId)
                         ?.members.map((member) => (
                           <button
                             key={member.id}
                             type="button"
-                            onClick={() =>
-                              linkMember(pickingFamilyId, member.id)
-                            }
-                            className={`rounded-full px-3.5 py-1.5 text-sm transition ${
+                            aria-pressed={profile?.memberId === member.id}
+                            onClick={() => linkMember(pickingFamilyId, member.id)}
+                            className={`min-h-11 rounded-full px-4 text-sm transition ${
                               profile?.memberId === member.id
                                 ? "bg-sea-900 text-cream-50"
                                 : "bg-white text-ink-700"
@@ -217,128 +252,103 @@ export default function SettingsPage() {
           </div>
         )}
         {message && (
-          <p
-            role="alert"
-            className="mt-2 rounded-2xl border border-terra-100 bg-terra-100 px-4 py-2.5 text-sm text-terra-600"
-          >
+          <p role="alert" className="rounded-2xl bg-terra-100 px-4 py-2.5 text-sm text-terra-600">
             {message}
           </p>
         )}
-      </section>
+        <SaveAccountCard />
+        <LanguagePicker />
+      </SettingsGroup>
 
-      <SaveAccountCard />
+      {/* ── This trip: invites first for organizers ── */}
+      <SettingsGroup id="settings-trip" title={t("settings.sections.trip")} hint={t("settings.sections.tripHint")}>
+        {role.isAdmin && (
+          <InviteCard
+            families={(families ?? []).map((f) => ({ id: f.id, name: f.name, members: f.members.length }))}
+            myFamilyId={profile?.familyId ?? null}
+          />
+        )}
 
-      <TripAdminSection />
-
-      {/* Language */}
-      <section>
-        <h2 className="section-title mb-3 font-normal">{t("common.language.title")}</h2>
-        <div className="rounded-3xl border border-cream-200 bg-white p-4">
-          <div
-            role="radiogroup"
-            aria-label={t("common.language.title")}
-            className="grid grid-cols-2 gap-1 rounded-full border border-cream-200 bg-cream-50 p-1"
-          >
-            {LOCALES.map((option) => {
-              const selected = option === locale;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  lang={option}
-                  onClick={() => {
-                    if (!selected) setLocalePreference(option);
-                  }}
-                  className={`rounded-full py-2 text-sm transition ${
-                    selected
-                      ? "bg-sea-900 text-cream-50 shadow-sm"
-                      : "text-ink-700 active:bg-cream-100"
-                  }`}
-                >
-                  {LOCALE_LABEL[option]}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-ink-500">
-            {t("common.language.hint")}
-          </p>
-        </div>
-      </section>
-
-      <NotificationsSection />
-
-      <AboutUsSection />
-
-      {/* Trip info */}
-      <section>
-        <h2 className="section-title mb-3 font-normal">{t("settings.trip.title")}</h2>
-        <div className="divide-y divide-cream-200 rounded-3xl border border-cream-200 bg-white">
-          <div className="flex gap-3 px-4 py-3.5">
-            <CalendarDays size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-300" />
+        <dl className={`${SURFACE} divide-y divide-cream-200`}>
+          <div className="flex gap-3 p-4">
+            <CalendarDays size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
             <div className="min-w-0">
-              <p className="text-xs text-ink-500">{t("settings.trip.dates")}</p>
-              <p className="mt-0.5 text-ink-900">
+              <dt className="text-xs text-ink-500">{t("settings.trip.dates")}</dt>
+              <dd className="mt-0.5 text-ink-900">
                 {dayLabel(trip.startDate)} – {dayLabel(trip.endDate)}{" "}
-                <span className="text-ink-500">
-                  · {t("settings.trip.days", { count: dayCount })}
-                </span>
-              </p>
+                <span className="text-ink-500">· {t("settings.trip.days", { count: dayCount })}</span>
+              </dd>
             </div>
           </div>
           {trip.homeBase && (
-            <div className="flex gap-3 px-4 py-3.5">
-              <BedDouble size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-300" />
+            <div className="flex gap-3 p-4">
+              <BedDouble size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
               <div className="min-w-0">
-                <p className="text-xs text-ink-500">{t("settings.trip.homeBase")}</p>
-                <p className="mt-0.5 text-ink-900">{trip.homeBase.name}</p>
-                <a
-                  href={googleMapsUrl(trip.homeBase, trip.searchRegionHint)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-0.5 inline-flex items-center gap-1 text-sm text-sea-700"
-                >
-                  {trip.homeBase.address}
-                  <ChevronRight size={14} strokeWidth={STROKE} aria-hidden className="shrink-0 rtl:rotate-180" />
-                </a>
+                <dt className="text-xs text-ink-500">{t("settings.trip.homeBase")}</dt>
+                <dd className="mt-0.5">
+                  <p className="text-ink-900"><bdi>{trip.homeBase.name}</bdi></p>
+                  <a
+                    href={googleMapsUrl(trip.homeBase, trip.searchRegionHint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 inline-flex min-h-8 items-center gap-1 text-sm text-route-700"
+                  >
+                    <bdi>{trip.homeBase.address}</bdi>
+                    <ChevronRight size={14} strokeWidth={STROKE} aria-hidden className="shrink-0 rtl:rotate-180" />
+                  </a>
+                </dd>
               </div>
             </div>
           )}
-          <div className="flex gap-3 px-4 py-3.5">
-            <Coins size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-300" />
+          <div className="flex gap-3 p-4">
+            <Coins size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
             <div className="min-w-0">
-              <p className="text-xs text-ink-500">{t("settings.trip.currency")}</p>
-              <p className="mt-0.5 text-ink-900">
-                {currencyNames(currencies, intlLocale(locale))}
-              </p>
+              <dt className="text-xs text-ink-500">{t("settings.trip.currency")}</dt>
+              <dd className="mt-0.5 text-ink-900">{currencyNames(currencies, intlLocale(locale))}</dd>
             </div>
           </div>
-        </div>
-      </section>
+        </dl>
 
-      {/* App */}
-      <section>
-        <h2 className="section-title mb-3 font-normal">{t("settings.app.title")}</h2>
-        <div className="rounded-3xl border border-cream-200 bg-white px-4 py-4 text-sm leading-relaxed text-ink-500">
-          <p className="flex gap-3">
-            <Download size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-300" />
-            <span>{t("settings.app.install")}</span>
-          </p>
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new Event("open-app-tour"))}
-            className="btn-soft mt-4 w-full py-2.5 text-sm"
-          >
-            <GraduationCap size={16} strokeWidth={STROKE} aria-hidden />
-            {t("settings.app.replayTour")}
-          </button>
-        </div>
-        <p className="mt-6 text-center text-xs tracking-wide text-ink-300">
-          {trip.signature}
-        </p>
-      </section>
+        {role.isAdmin && <MembersCard />}
+        {role.ready && !role.isKid && <KidDevicesCard />}
+        <AboutUsSection />
+      </SettingsGroup>
+
+      <div className="space-y-10 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+        {/* ── Notifications ── */}
+        <SettingsGroup id="settings-notifications" title={t("settings.notifications.title")}>
+          <NotificationsSection />
+        </SettingsGroup>
+
+        {/* ── App ── */}
+        <SettingsGroup id="settings-app" title={t("settings.app.title")}>
+          <div className={`${SURFACE} p-4`}>
+            <p className="flex gap-3 text-sm leading-relaxed text-ink-500">
+              <Download size={18} strokeWidth={STROKE} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
+              <span>{t("settings.app.install")}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("open-app-tour"))}
+              className="btn-soft mt-3 min-h-11 w-full text-sm"
+            >
+              <GraduationCap size={16} strokeWidth={STROKE} aria-hidden />
+              {t("settings.app.replayTour")}
+            </button>
+          </div>
+        </SettingsGroup>
+      </div>
+
+      {/* ── Danger zone, always last ── */}
+      {role.ready && !role.isKid && (
+        <SettingsGroup id="settings-danger" title={t("product.admin.dangerTitle")}>
+          <TripDangerZone isOwner={role.isOwner} />
+        </SettingsGroup>
+      )}
+
+      <p className="text-center text-xs text-ink-400">
+        <bdi>{trip.signature}</bdi>
+      </p>
     </div>
   );
 }

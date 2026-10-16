@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CalendarX, ChevronLeft, Trash2 } from "lucide-react";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { EventGlyphPicker } from "@/components/events/EventGlyphPicker";
+import { DurationChips } from "@/components/events/DurationChips";
 import { STROKE } from "@/components/ui/Icon";
 import { useDayLabel, useT } from "@/i18n";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -109,8 +110,14 @@ export default function EditEventPage({
   }
 
   async function handleDelete() {
-    await deleteEvent(eventId);
-    router.replace(`${prefix}/calendar`);
+    setError("");
+    try {
+      await deleteEvent(eventId);
+      router.replace(`${prefix}/calendar`);
+    } catch {
+      setError(t("trip.eventForm.deleteFailed"));
+      setConfirmDelete(false);
+    }
   }
 
   return (
@@ -124,7 +131,7 @@ export default function EditEventPage({
         >
           <ChevronLeft size={20} strokeWidth={STROKE} aria-hidden className="rtl:rotate-180" />
         </button>
-        <h1 className="font-display text-2xl font-light text-ink-900">
+        <h1 className="font-display text-2xl font-medium text-ink-900">
           {t("trip.eventForm.editTitle")}
         </h1>
       </div>
@@ -135,6 +142,7 @@ export default function EditEventPage({
         </span>
         <input
           type="text"
+          dir="auto"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -184,34 +192,21 @@ export default function EditEventPage({
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <label className="flex-1">
-          <span className="mb-2 block text-sm font-medium text-ink-700">
-            {t("trip.schedule.time")}
-          </span>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="field"
-          />
-        </label>
-        <label className="flex-1">
-          <span className="mb-2 block text-sm font-medium text-ink-700">
-            {t("trip.eventForm.durationMinutes")}
-          </span>
-          <input
-            type="number"
-            min={15}
-            step={15}
-            value={durationMin ?? ""}
-            onChange={(e) =>
-              setDurationMin(e.target.value ? Number(e.target.value) : null)
-            }
-            placeholder={t("trip.eventForm.open")}
-            className="field"
-          />
-        </label>
+      <label className="block">
+        <span className="mb-2 block text-sm font-medium text-ink-700">
+          {t("trip.schedule.time")}
+        </span>
+        <input
+          type="time"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          className="field max-w-[12rem] text-lg tabular-nums"
+        />
+      </label>
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-ink-700">{t("trip.eventForm.duration")}</p>
+        <DurationChips value={durationMin} onChange={setDurationMin} />
       </div>
 
       <div>
@@ -233,6 +228,7 @@ export default function EditEventPage({
         </span>
         <input
           type="text"
+          dir="auto"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="field"
@@ -248,7 +244,7 @@ export default function EditEventPage({
       <button
         type="submit"
         disabled={saving || !title.trim() || participantsInvalid}
-        className="btn-primary w-full py-3.5 text-base"
+        className="btn-primary sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-10 w-full py-3.5 text-base shadow-[var(--shadow-float)] lg:bottom-6"
       >
         {saving ? t("common.saving") : t("trip.eventForm.saveChanges")}
       </button>
