@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ownsBottomEdge } from "@/lib/chrome";
 import { usePathname } from "next/navigation";
 import { useTrip } from "@/components/providers/TripProvider";
 import { STROKE } from "@/components/ui/Icon";
@@ -48,8 +49,7 @@ export function QuickAdd() {
     };
   }, [open]);
 
-  // The chat input owns the bottom edge on the concierge screen
-  if (pathname.startsWith(`${trip.prefix}/ai`)) return null;
+  if (ownsBottomEdge(pathname, trip.prefix)) return null;
 
   return (
     <>

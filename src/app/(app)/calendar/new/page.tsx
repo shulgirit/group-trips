@@ -202,7 +202,7 @@ function NewEventForm() {
       <button
         type="submit"
         disabled={saving || !title.trim() || participantsInvalid}
-        className="btn-primary sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-10 w-full py-3.5 text-base shadow-[var(--shadow-float)] lg:bottom-6"
+        className="btn-primary sticky bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-10 w-full py-3.5 text-base shadow-[var(--shadow-float)] lg:bottom-6 disabled:bg-cream-300 disabled:text-ink-500 disabled:opacity-100"
       >
         {saving ? t("common.saving") : t("trip.schedule.submit")}
       </button>

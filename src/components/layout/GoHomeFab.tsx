@@ -1,5 +1,6 @@
 "use client";
 
+import { ownsBottomEdge } from "@/lib/chrome";
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
 import { useHomeBase } from "@/lib/hooks";
@@ -17,8 +18,7 @@ export function GoHomeFab() {
   const t = useT();
   const { home } = useHomeBase();
 
-  // The chat input owns the bottom edge on the concierge screen
-  if (pathname.startsWith(`${trip.prefix}/ai`)) return null;
+  if (ownsBottomEdge(pathname, trip.prefix)) return null;
 
   const target = home ?? trip.homeBase;
   if (!target) return null;
