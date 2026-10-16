@@ -1,3 +1,4 @@
+import { contentLocale } from "@/i18n/config";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enrichSavedPlace } from "@/lib/server/enrich";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   const trip = access.trip;
 
   try {
-    const result = await enrichSavedPlace(trip, placeId, url, await requestLocale());
+    const result = await enrichSavedPlace(trip, placeId, url, contentLocale(await requestLocale()));
     return NextResponse.json(result);
   } catch (error) {
     console.error("[import/enrich]", error);

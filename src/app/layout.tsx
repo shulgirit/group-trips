@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { frank, jost, plex } from "@/lib/fonts";
+import { amiri, frank, jost, plex, plexArabic } from "@/lib/fonts";
 import "./globals.css";
 import { NativeBridge } from "@/components/native/NativeBridge";
 import { LocaleProvider } from "@/i18n";
@@ -38,7 +38,7 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await requestLocale();
   return (
-    <html lang={locale} dir={dirFor(locale)} className={`${plex.variable} ${jost.variable} ${frank.variable}`}>
+    <html lang={locale} dir={dirFor(locale)} className={`${plex.variable} ${jost.variable} ${frank.variable} ${plexArabic.variable} ${amiri.variable}`}>
       <body className="antialiased">
         <LocaleProvider locale={locale}>
           <NativeBridge />

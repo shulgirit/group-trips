@@ -1,4 +1,4 @@
-import { Frank_Ruhl_Libre, IBM_Plex_Sans_Hebrew, Jost } from "next/font/google";
+import { Amiri, Frank_Ruhl_Libre, IBM_Plex_Sans_Arabic, IBM_Plex_Sans_Hebrew, Jost } from "next/font/google";
 
 /** UI face — Hebrew + Latin in one family. */
 export const plex = IBM_Plex_Sans_Hebrew({
@@ -22,4 +22,24 @@ export const frank = Frank_Ruhl_Libre({
   weight: "variable",
   variable: "--font-frank",
   display: "swap",
+});
+
+/**
+ * Arabic companions. Not preloaded: browsers fetch these files only when
+ * Arabic glyphs are on screen (unicode-range), so other languages pay nothing.
+ */
+export const plexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-arabic",
+  display: "swap",
+  preload: false,
+});
+
+export const amiri = Amiri({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-amiri",
+  display: "swap",
+  preload: false,
 });

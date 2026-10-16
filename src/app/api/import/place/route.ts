@@ -1,3 +1,4 @@
+import { contentLocale } from "@/i18n/config";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeTrip } from "@/lib/server/auth";
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   const trip = access.trip;
 
   try {
-    const draft = await importPlaceFromUrl(url, trip.searchRegionHint, await requestLocale());
+    const draft = await importPlaceFromUrl(url, trip.searchRegionHint, contentLocale(await requestLocale()));
     return NextResponse.json({ draft });
   } catch (error) {
     const reason = error instanceof ImportError ? error.reason : "extract_failed";

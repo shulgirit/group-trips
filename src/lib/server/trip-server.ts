@@ -56,10 +56,17 @@ export async function getJoinCode(trip: TripConfig): Promise<string | null> {
 
 // Operational rules shared by every trip persona — keep in sync with the
 // tool loop's behavior, not with any one trip.
+const LANGUAGE_NAME: Record<Locale, string> = {
+  he: "Hebrew",
+  en: "English",
+  ar: "Arabic",
+  es: "Spanish",
+};
+
 function languageRule(locale: Locale): string {
-  return locale === "he"
-    ? "- ענה תמיד בעברית, בטון חם וקצר."
-    : "- Always reply in English, warm and concise (the rules below are in Hebrew, but every reply, candidate description and summary must be in English). Keep proper names as they are.";
+  if (locale === "he") return "- ענה תמיד בעברית, בטון חם וקצר.";
+  const language = LANGUAGE_NAME[locale];
+  return `- Always reply in ${language}, warm and concise (the rules below are in Hebrew, but every reply, candidate description and summary must be in ${language}). Keep proper names as they are.`;
 }
 
 const SHARED_RULES = `כללים:

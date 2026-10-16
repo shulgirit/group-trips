@@ -25,26 +25,32 @@ function whenIdle(callback: () => void): () => void {
  * The landing globe. three.js is fetched only after first paint, so the
  * headline and the sign-in button never wait for WebGL. Without WebGL the
  * static poster stays — the hero is complete either way.
+ *
+ * Labels are DOM (crisp text, real fonts, RTL-safe); their positions are
+ * written imperatively each frame, so React never re-renders per frame.
  */
 export function Globe({
   scenes,
   layout,
   labels,
+  dragHint,
   className = "",
 }: {
   scenes: GlobeScene[];
   layout: GlobeOptions["layout"];
-  /** Destination names keyed by scene id (already translated) */
+  /** Translated names keyed by scene id (destinations) and city id (origins) */
   labels: Record<string, string>;
+  dragHint: string;
   className?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const labelRef = useRef<HTMLDivElement>(null);
+  const labelLayerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<GlobeHandle | null>(null);
   const layoutRef = useRef(layout);
   const [ready, setReady] = useState(false);
-  const [labelId, setLabelId] = useState(scenes[0]?.id ?? "");
+  const [interacted, setInteracted] = useState(false);
+  const [labelIds, setLabelIds] = useState<string[]>([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -53,15 +59,50 @@ export function Globe({
     let destroyed = false;
     let observer: IntersectionObserver | null = null;
     let resizeObserver: ResizeObserver | null = null;
+    let currentKey = "";
+    const sizes = new Map<string, { w: number; h: number }>();
 
-    const onLabel = (label: GlobeLabel) => {
-      const node = labelRef.current;
-      if (!node) return;
-      node.style.transform = `translate3d(${label.x}px, ${label.y}px, 0)`;
-      node.style.opacity = String(label.visible ? label.arrived : 0);
-      if (node.dataset.id !== label.id) {
-        node.dataset.id = label.id;
-        setLabelId(label.id);
+    const onLabels = (items: GlobeLabel[]) => {
+      const key = items.map((item) => item.id).join("|");
+      if (key !== currentKey) {
+        currentKey = key;
+        setLabelIds(items.map((item) => item.id));
+      }
+      const layer = labelLayerRef.current;
+      if (!layer) return;
+      // Destination first, then origins in route order; a label that would
+      // overlap one already placed steps aside (sizes cached — no layout per frame)
+      const placed: { left: number; right: number; top: number; bottom: number }[] = [];
+      const ordered = [items[items.length - 1], ...items.slice(0, -1)];
+      for (const item of ordered) {
+        if (!item) continue;
+        const node = layer.querySelector<HTMLElement>(`[data-label="${item.id}"]`);
+        if (!node) continue;
+        let size = sizes.get(item.id);
+        if (!size) {
+          const inner = node.firstElementChild as HTMLElement | null;
+          if (inner && inner.offsetWidth > 0) {
+            size = { w: inner.offsetWidth, h: inner.offsetHeight };
+            sizes.set(item.id, size);
+          }
+        }
+        let opacity = item.opacity;
+        if (size && opacity > 0.05) {
+          const gap = item.kind === "destination" ? 14 : 8;
+          const box = {
+            left: item.x - size.w / 2 - 4,
+            right: item.x + size.w / 2 + 4,
+            top: item.y - size.h - gap - 2,
+            bottom: item.y - gap + 2,
+          };
+          const hit = placed.some(
+            (other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top
+          );
+          if (hit) opacity = 0;
+          else placed.push(box);
+        }
+        node.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+        node.style.opacity = opacity.toFixed(3);
       }
     };
 
@@ -69,7 +110,7 @@ export function Globe({
       const { createGlobe } = await import("./engine");
       if (destroyed) return;
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const hiRes = window.innerWidth >= 1024 && (window.devicePixelRatio || 1) >= 1;
+      const hiRes = window.innerWidth >= 1024;
       try {
         const handle = await createGlobe({
           canvas,
@@ -77,7 +118,8 @@ export function Globe({
           layout: layoutRef.current,
           reducedMotion,
           hiRes,
-          onLabel,
+          onLabels,
+          onInteract: () => !destroyed && setInteracted(true),
           onReady: () => !destroyed && setReady(true),
         });
         if (destroyed) {
@@ -120,9 +162,10 @@ export function Globe({
   }, [layout]);
 
   return (
-    <div ref={wrapRef} className={className} aria-hidden>
-      {/* Poster: a lit limb of a planet, drawn in CSS — shown until WebGL is ready */}
+    <div ref={wrapRef} className={className}>
+      {/* Poster: a lit planet drawn in CSS — shown until WebGL is ready */}
       <div
+        aria-hidden
         className={`globe-poster absolute inset-0 transition-opacity duration-1000 ${
           ready ? "opacity-0" : "opacity-100"
         }`}
@@ -130,16 +173,34 @@ export function Globe({
       />
       <canvas
         ref={canvasRef}
-        className={`absolute inset-0 h-full w-full touch-pan-y transition-opacity duration-1000 ${
+        aria-hidden
+        className={`absolute inset-0 h-full w-full cursor-grab touch-pan-y transition-opacity duration-1000 active:cursor-grabbing ${
           ready ? "opacity-100" : "opacity-0"
         }`}
       />
-      <div
-        ref={labelRef}
-        className="pointer-events-none absolute left-0 top-0 opacity-0 transition-opacity duration-500"
-      >
-        <span className="globe-label">{labels[labelId]}</span>
+      <div ref={labelLayerRef} aria-hidden className="pointer-events-none absolute inset-0">
+        {labelIds.map((id, index) => (
+          <span
+            key={id}
+            data-label={id}
+            className="absolute left-0 top-0 opacity-0"
+            style={{ willChange: "transform, opacity" }}
+          >
+            <span className={index === labelIds.length - 1 ? "globe-label" : "globe-label-origin"}>
+              {labels[id]}
+            </span>
+          </span>
+        ))}
       </div>
+      {ready && (
+        <p
+          className={`pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs text-cream-50/55 transition-opacity duration-700 ${
+            interacted ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {dragHint}
+        </p>
+      )}
     </div>
   );
 }

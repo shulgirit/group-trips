@@ -33,6 +33,8 @@ import {
 export interface GlobePlace {
   lat: number;
   lng: number;
+  /** Label id (origins); the destination uses the scene id */
+  id?: string;
 }
 
 export interface GlobeScene {
@@ -43,11 +45,11 @@ export interface GlobeScene {
 
 export interface GlobeLabel {
   id: string;
+  kind: "destination" | "origin";
   x: number;
   y: number;
-  visible: boolean;
-  /** 0 → 1 once the routes have arrived */
-  arrived: number;
+  /** 0 hidden → 1 fully shown (facing the camera, route drawn, scene not fading) */
+  opacity: number;
 }
 
 export interface GlobeOptions {
@@ -57,7 +59,9 @@ export interface GlobeOptions {
   layout: "end-ltr" | "end-rtl" | "below";
   reducedMotion: boolean;
   hiRes: boolean;
-  onLabel?: (label: GlobeLabel) => void;
+  onLabels?: (labels: GlobeLabel[]) => void;
+  /** First time the visitor grabs the globe */
+  onInteract?: () => void;
   onReady?: () => void;
 }
 
@@ -442,12 +446,13 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     if (layout === "below") {
-      // Planet rising from the bottom edge — never swallows the screen
-      camera.position.set(0, 0, 5.4);
-      camera.setViewOffset(width, height, 0, height * -0.24, width, height);
-      const scale = Math.max(1, (height / width) * 0.62);
-      globe.scale.setScalar(scale);
-      atmosphere.scale.setScalar(scale);
+      // The whole planet, fitted to its own frame under the text
+      camera.clearViewOffset();
+      const tan = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+      const span = Math.min(1, camera.aspect);
+      camera.position.set(0, 0, (RADIUS * 1.16) / (0.92 * tan * span));
+      globe.scale.setScalar(1);
+      atmosphere.scale.setScalar(1);
     } else {
       camera.position.set(0, 0, 5.2);
       const shift = layout === "end-ltr" ? -0.24 : 0.24;
@@ -467,58 +472,103 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
   let to = { ...rotation };
   let sceneStart = performance.now();
 
-  // Gentle pointer parallax + horizontal drag (touch keeps vertical scroll)
+  // Spin by hand: horizontal drag everywhere (touch keeps vertical page
+  // scroll), vertical tilt with a mouse. Release keeps a little momentum;
+  // the tour pauses while you play and resumes a few seconds later.
   const pointer = { x: 0, y: 0 };
   const tilt = { x: 0, y: 0 };
   let dragOffset = 0;
-  let dragging: { x: number; base: number } | null = null;
+  let dragTilt = 0;
+  let velocity = 0;
+  let lastInteraction = -Infinity;
+  let interacted = false;
+  let dragging: { x: number; y: number; t: number; mouse: boolean } | null = null;
   const onPointerMove = (event: PointerEvent) => {
     const rect = canvas.getBoundingClientRect();
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-    if (dragging) dragOffset = dragging.base + (event.clientX - dragging.x) * 0.006;
+    if (!dragging) return;
+    const now = performance.now();
+    const dx = (event.clientX - dragging.x) * 0.0065;
+    dragOffset += dx;
+    velocity = dx / Math.max(8, now - dragging.t) * 16;
+    if (dragging.mouse) {
+      dragTilt = Math.max(-0.5, Math.min(0.5, dragTilt + (event.clientY - dragging.y) * 0.004));
+    }
+    dragging = { ...dragging, x: event.clientX, y: event.clientY, t: now };
+    lastInteraction = now;
+    if (reduced) resume();
   };
   const onPointerDown = (event: PointerEvent) => {
-    dragging = { x: event.clientX, base: dragOffset };
+    dragging = { x: event.clientX, y: event.clientY, t: performance.now(), mouse: event.pointerType === "mouse" };
+    velocity = 0;
+    lastInteraction = performance.now();
+    if (!interacted) {
+      interacted = true;
+      options.onInteract?.();
+    }
   };
   const onPointerUp = () => {
     dragging = null;
+    lastInteraction = performance.now();
   };
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointerup", onPointerUp);
 
   const projected = new Vector3();
-  function emitLabel(arrived: number) {
-    if (!options.onLabel) return;
-    const destination = scenes[sceneIndex].destination;
-    projected.copy(toVector(destination, RADIUS * 1.01));
+  const toCamera = new Vector3();
+  function place(point: GlobePlace) {
+    projected.copy(toVector(point, RADIUS * 1.01));
     globe.localToWorld(projected);
-    const facing = projected.clone().normalize().dot(camera.position.clone().normalize()) > 0.15;
+    toCamera.copy(camera.position).sub(projected).normalize();
+    // how squarely the point faces the viewer (fades out toward the limb)
+    const facing = clamp01((projected.clone().normalize().dot(toCamera) - 0.1) / 0.3);
     projected.project(camera);
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    options.onLabel({
-      id: scenes[sceneIndex].id,
-      x: ((projected.x + 1) / 2) * width,
-      y: ((1 - projected.y) / 2) * height,
-      visible: facing,
-      arrived,
+    return {
+      x: ((projected.x + 1) / 2) * canvas.clientWidth,
+      y: ((1 - projected.y) / 2) * canvas.clientHeight,
+      facing,
+    };
+  }
+  /** shown: destination opacity; originShown(i): per-origin opacity */
+  function emitLabels(shown: number, originShown: (index: number) => number) {
+    if (!options.onLabels) return;
+    const current = scenes[sceneIndex];
+    const labels: GlobeLabel[] = current.origins.map((origin, index) => {
+      const p = place(origin);
+      return { id: origin.id ?? `o${index}`, kind: "origin", x: p.x, y: p.y, opacity: p.facing * originShown(index) };
     });
+    const d = place(current.destination);
+    labels.push({ id: current.id, kind: "destination", x: d.x, y: d.y, opacity: d.facing * shown });
+    options.onLabels(labels);
   }
 
   let raf = 0;
   let active = true;
   let readySent = false;
   const clockStart = performance.now();
+  let lastFrame = performance.now();
 
   function render(now: number) {
+    const delta = Math.min(64, now - lastFrame);
+    lastFrame = now;
+    // Hands on the globe: hold the tour (routes stay drawn) until released + 3.5s
+    if (dragging || now - lastInteraction < 3500) sceneStart += delta;
+    if (!dragging && Math.abs(velocity) > 0.0001) {
+      dragOffset += velocity;
+      velocity *= 0.94;
+    }
+    if (!dragging && now - lastInteraction > 1500) dragTilt *= 0.96;
     const elapsed = now - sceneStart;
 
     if (!reduced) {
       if (elapsed > SCENE_MS && scenes.length > 1) {
         sceneIndex = (sceneIndex + 1) % scenes.length;
         buildRoutes(sceneIndex);
+        // fold the visitor's spin into the tour so the next place still faces them
+        rotation.y += dragOffset;
+        dragOffset = 0;
         from = { ...rotation };
         const next = facingRotation(scenes[sceneIndex].destination);
         // shortest way round
@@ -533,7 +583,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       const drift = Math.sin((now - clockStart) / 9000) * 0.05;
       tilt.x += (pointer.y * 0.08 - tilt.x) * 0.04;
       tilt.y += (pointer.x * 0.12 - tilt.y) * 0.04;
-      globe.rotation.set(rotation.x + tilt.x, rotation.y + tilt.y + drift + dragOffset, 0);
+      globe.rotation.set(rotation.x + tilt.x + dragTilt, rotation.y + tilt.y + drift + dragOffset, 0);
 
       const drawStart = 900;
       for (const arc of arcs) {
@@ -548,10 +598,14 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
         points?.scale.setScalar(pulse);
       }
       starMaterial.uniforms.time.value = (now - clockStart) / 1000;
-      emitLabel(arrival * (1 - clamp01((elapsed - (SCENE_MS - 700)) / 600)));
+      const fading = 1 - clamp01((elapsed - (SCENE_MS - 700)) / 600);
+      emitLabels(arrival * fading, (index) => {
+        const delay = arcs[index]?.delay ?? 0;
+        return clamp01((elapsed - drawStart - delay) / 450) * fading;
+      });
     } else {
-      globe.rotation.set(rotation.x, rotation.y + dragOffset, 0);
-      emitLabel(1);
+      globe.rotation.set(rotation.x + dragTilt, rotation.y + dragOffset, 0);
+      emitLabels(1, () => 1);
     }
 
     renderer.render(scene, camera);

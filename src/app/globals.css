@@ -88,10 +88,10 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-mark: var(--font-jost), "Helvetica Neue", Arial, sans-serif;
-  --font-serif: var(--font-frank), "Times New Roman", serif;
+  --font-serif: var(--font-frank), var(--font-amiri), "Times New Roman", serif;
 }
 
 /* ── base ─────────────────────────────────────────────────── */
@@ -233,17 +233,13 @@ body {
     radial-gradient(circle closest-side at 50% 50%, transparent 0 86%, rgb(127 182 196 / 0.24) 93%, transparent 100%),
     radial-gradient(circle closest-side at 50% 50%, #2c4a63 0%, #12233a 50%, #08111d 84%, transparent 86%);
   background-repeat: no-repeat;
-  background-size: 150vw 150vw;
-  background-position: 50% 30vh;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+  background-size: 84% 84%;
+  background-position: 50% 50%;
 }
 @media (min-width: 1024px) {
   .globe-poster {
     background-size: 78vh 78vh;
     background-position: 76% 50%;
-    -webkit-mask-image: none;
-    mask-image: none;
   }
   [dir="rtl"] .globe-poster {
     background-position: 24% 50%;
@@ -261,6 +257,15 @@ body {
   [dir="rtl"] .hero-veil {
     background: linear-gradient(to left, rgb(7 12 22 / 0.85) 0%, rgb(7 12 22 / 0.35) 40%, transparent 60%);
   }
+}
+
+.globe-label-origin {
+  display: inline-block;
+  transform: translate(-50%, calc(-100% - 8px));
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: rgb(241 243 239 / 0.85);
+  text-shadow: 0 1px 6px rgb(7 12 22 / 0.9);
 }
 
 .globe-label {

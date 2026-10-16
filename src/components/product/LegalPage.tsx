@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
+import { contentLocale } from "@/i18n/config";
 import { requestLocale } from "@/i18n/server";
 import { translate } from "@/i18n/translate";
 import { BRAND } from "@/lib/brand";
@@ -27,7 +28,9 @@ function Block({ block }: { block: LegalBlock }) {
 /** Privacy Policy / Terms of Use, in the reader's language (server component). */
 export async function LegalPage({ doc: key }: { doc: LegalDocKey }) {
   const locale = await requestLocale();
-  const doc = LEGAL_DOCS[key][locale];
+  // Legal texts exist in he/en; other languages read the English version
+  const docLocale = contentLocale(locale);
+  const doc = LEGAL_DOCS[key][docLocale];
   const other: LegalDocKey = key === "privacy" ? "terms" : "privacy";
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
@@ -40,7 +43,7 @@ export async function LegalPage({ doc: key }: { doc: LegalDocKey }) {
       </Link>
       <h1 className="mt-6 font-display text-3xl font-light text-ink-900">{doc.title}</h1>
       <p className="mt-2 text-sm text-ink-500">
-        {translate(locale, "product.legal.updated", { date: OPERATOR.effectiveDate[locale] })}
+        {translate(locale, "product.legal.updated", { date: OPERATOR.effectiveDate[docLocale] })}
       </p>
       <p className="mt-4 leading-relaxed text-ink-700">{doc.summary}</p>
 
@@ -73,7 +76,7 @@ export async function LegalPage({ doc: key }: { doc: LegalDocKey }) {
 
       <p className="mt-12 border-t border-cream-200 pt-6 text-sm text-ink-500">
         <Link href={`/${other}`} className="text-sea-700 underline-offset-4 hover:underline">
-          {LEGAL_DOCS[other][locale].title}
+          {LEGAL_DOCS[other][docLocale].title}
         </Link>
       </p>
     </main>

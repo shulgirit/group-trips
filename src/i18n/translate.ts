@@ -44,7 +44,7 @@ function interpolate(template: string, vars?: TVars): string {
  * Missing keys fall back to Hebrew (source of truth), then the key itself.
  */
 export function translate(locale: Locale, key: TKey, vars?: TVars & { count?: number }): string {
-  let value = lookup(locale, key) ?? lookup("he", key);
+  let value = lookup(locale, key) ?? (locale === "he" ? undefined : lookup("en", key)) ?? lookup("he", key);
   if (value && typeof value === "object") {
     const forms = value as PluralForms;
     const count = Number(vars?.count ?? 0);

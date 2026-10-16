@@ -18,6 +18,7 @@ import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
+import { intlLocale } from "@/i18n/format";
 
 /* ── shared pieces ─────────────────────────────────────────── */
 
@@ -64,12 +65,18 @@ function SectionText({
   );
 }
 
-const PEOPLE: { key: TKey; initial: string; tone: string }[] = [
-  { key: "landing.invite.people.noa", initial: "N", tone: "bg-route-300 text-night-950" },
-  { key: "landing.invite.people.dad", initial: "D", tone: "bg-cream-200 text-night-950" },
-  { key: "landing.invite.people.grandma", initial: "R", tone: "bg-brass-300 text-night-950" },
-  { key: "landing.invite.people.levi", initial: "L", tone: "bg-night-700 text-cream-50" },
+const PEOPLE: { key: TKey; tone: string }[] = [
+  { key: "landing.invite.people.p1", tone: "bg-route-300 text-night-950" },
+  { key: "landing.invite.people.p2", tone: "bg-cream-200 text-night-950" },
+  { key: "landing.invite.people.p3", tone: "bg-brass-300 text-night-950" },
+  { key: "landing.invite.people.p4", tone: "bg-night-700 text-cream-50" },
 ];
+
+/** "Grandma Sharon" → S, "The Millers" → M, "משפחת לוי" → ל */
+function initialOf(name: string): string {
+  const words = name.trim().split(/\s+/);
+  return (words[words.length - 1] ?? "").slice(0, 1).toUpperCase();
+}
 
 /* ── 1. invite: separate people, one link (night) ──────────── */
 
@@ -116,7 +123,7 @@ function InviteSection() {
                 <span
                   className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ${person.tone}`}
                 >
-                  {person.initial}
+                  {initialOf(t(person.key))}
                 </span>
                 <span className="text-sm">
                   {t(person.key)}{" "}
@@ -320,7 +327,7 @@ function AiSection() {
 function TogetherSection() {
   const t = useT();
   const { locale } = useLocale();
-  const euro = new Intl.NumberFormat(locale === "he" ? "he-IL" : "en-GB", {
+  const euro = new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,

@@ -1,4 +1,4 @@
-import type { Locale } from "@/i18n/config";
+import type { CompleteLocale } from "@/i18n/config";
 import privacyEn from "./privacy.en";
 import privacyHe from "./privacy.he";
 import termsEn from "./terms.en";
@@ -8,7 +8,7 @@ import type { LegalDoc } from "./types";
 export const LEGAL_DOCS = {
   privacy: { en: privacyEn, he: privacyHe },
   terms: { en: termsEn, he: termsHe },
-} satisfies Record<string, Record<Locale, LegalDoc>>;
+} satisfies Record<string, Record<CompleteLocale, LegalDoc>>;
 
 export type LegalDocKey = keyof typeof LEGAL_DOCS;
 export { OPERATOR } from "./operator";
