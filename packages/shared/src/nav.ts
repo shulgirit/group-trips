@@ -1,4 +1,4 @@
-import type { Place } from "@/types";
+import type { Place } from "./types";
 
 type NavTarget = Pick<Place, "name" | "address" | "lat" | "lng">;
 

@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { ChevronLeft } from "lucide-react";
 import { auth, signInWithGoogle } from "@/lib/firebase/client";
-import { TRIPS, type TripKey } from "@/lib/trips";
+import { TRIPS, type TripKey } from "@together/shared/trips";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 

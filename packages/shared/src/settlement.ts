@@ -1,4 +1,4 @@
-import type { Expense, Family } from "@/types";
+import type { Expense, Family } from "./types";
 
 export interface FamilyBalance {
   familyId: string;

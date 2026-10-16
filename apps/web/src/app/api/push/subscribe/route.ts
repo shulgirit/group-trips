@@ -4,7 +4,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { sendFcmTo, sendPushTo, subscriptionDocId } from "@/lib/server/push";
 import { authorizeTrip } from "@/lib/server/auth";
 import { requestLocale } from "@/i18n/server";
-import { translate } from "@/i18n/translate";
+import { translate } from "@together/i18n/translate";
 
 const SubscriptionSchema = z.object({
   endpoint: z.string().url(),

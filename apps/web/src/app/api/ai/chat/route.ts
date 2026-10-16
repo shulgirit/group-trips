@@ -3,20 +3,20 @@ import OpenAI from "openai";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
-import { wazeUrl } from "@/lib/nav";
-import { samePlaceName } from "@/lib/place-name";
+import { wazeUrl } from "@together/shared/nav";
+import { samePlaceName } from "@together/shared/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
 import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
 import { sendPushToAll } from "@/lib/server/push";
-import type { Locale } from "@/i18n/config";
+import type { Locale } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";
-import { translate } from "@/i18n/translate";
+import { translate } from "@together/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 import { systemPromptFor } from "@/lib/server/trip-server";
 import { checkAiQuota, recordAiUsage } from "@/lib/server/usage";
-import type { TripConfig } from "@/lib/trips";
-import { stopForDay } from "@/lib/trip-doc";
-import { PLACE_CATEGORIES } from "@/types";
+import type { TripConfig } from "@together/shared/trips";
+import { stopForDay } from "@together/shared/trip-doc";
+import { PLACE_CATEGORIES } from "@together/shared/types";
 
 export const maxDuration = 300;
 

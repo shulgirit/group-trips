@@ -4,7 +4,7 @@ import { ownsBottomEdge } from "@/lib/chrome";
 import { usePathname } from "next/navigation";
 import { Home } from "lucide-react";
 import { useHomeBase } from "@/lib/hooks";
-import { wazeUrl } from "@/lib/nav";
+import { wazeUrl } from "@together/shared/nav";
 import { useTrip } from "@/components/providers/TripProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";

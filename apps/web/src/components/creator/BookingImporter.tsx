@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { tActive } from "@/i18n/active";
+import { tActive } from "@together/i18n/active";
 import { apiFetch, auth } from "@/lib/firebase/client";
-import type { BookingItem } from "@/lib/booking";
+import type { BookingItem } from "@together/shared/booking";
 
 const KIND_ICON: Record<BookingItem["kind"], LucideIcon> = {
   flight: Plane,

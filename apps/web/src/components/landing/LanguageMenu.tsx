@@ -2,7 +2,7 @@
 
 import { Globe2 } from "lucide-react";
 import { setLocalePreference, useLocale } from "@/i18n";
-import { LOCALES, LOCALE_LABEL, type Locale } from "@/i18n/config";
+import { LOCALES, LOCALE_LABEL, type Locale } from "@together/i18n/config";
 import { STROKE } from "@/components/ui/Icon";
 
 /** Compact language picker for the landing header (native select = accessible everywhere). */

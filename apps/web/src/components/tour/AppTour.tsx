@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { activeTrip } from "@/lib/active-trip";
-import type { TripConfig } from "@/lib/trips";
+import type { TripConfig } from "@together/shared/trips";
 import { useTrip } from "@/components/providers/TripProvider";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";

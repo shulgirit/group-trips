@@ -12,13 +12,13 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import type { PollOption } from "@/types";
+import type { PollOption } from "@together/shared/types";
 import { auth, db, isPersonalUser } from "@/lib/firebase/client";
-import { wazeUrl } from "@/lib/nav";
+import { wazeUrl } from "@together/shared/nav";
 import { notifyGroup } from "@/lib/push-client";
-import { formatDayLabel } from "@/lib/trip";
+import { formatDayLabel } from "@together/shared/trip";
 import { activeTrip, activeTripPath } from "@/lib/active-trip";
-import { tActive } from "@/i18n/active";
+import { tActive } from "@together/i18n/active";
 import {
   PlaceInputSchema,
   EventInputSchema,
@@ -30,8 +30,8 @@ import {
   type ExpenseInput,
   type ExpenseSplitInput,
   type PollInput,
-} from "@/lib/schemas";
-import type { Place } from "@/types";
+} from "@together/shared/schemas";
+import type { Place } from "@together/shared/types";
 
 /** Removes undefined values — Firestore rejects them. */
 function compact<T extends Record<string, unknown>>(value: T): T {
@@ -40,8 +40,8 @@ function compact<T extends Record<string, unknown>>(value: T): T {
   ) as T;
 }
 
-import { samePlaceName } from "@/lib/place-name";
-export { normalizePlaceName, samePlaceName } from "@/lib/place-name";
+import { samePlaceName } from "@together/shared/place-name";
+export { normalizePlaceName, samePlaceName } from "@together/shared/place-name";
 
 export async function addPlace(
   input: PlaceInput

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cookies, headers } from "next/headers";
-import { LOCALE_COOKIE, resolveLocale, type Locale } from "./config";
+import { LOCALE_COOKIE, resolveLocale, type Locale } from "@together/i18n/config";
 
 /** Request locale for server components and route handlers. */
 export async function requestLocale(): Promise<Locale> {

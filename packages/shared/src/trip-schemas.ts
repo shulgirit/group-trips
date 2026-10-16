@@ -1,4 +1,4 @@
-import { AVATAR_PATTERN } from "@/lib/avatars";
+import { AVATAR_PATTERN } from "./avatars";
 import { z } from "zod";
 
 /** Payloads of the trip creator — validated on the server, typed on the client. */

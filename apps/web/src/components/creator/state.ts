@@ -1,8 +1,8 @@
 "use client";
 
-import { tActive } from "@/i18n/active";
-import type { AiPreset, GroupKind } from "@/lib/trip-doc";
-import type { TripInput } from "@/lib/trip-schemas";
+import { tActive } from "@together/i18n/active";
+import type { AiPreset, GroupKind } from "@together/shared/trip-doc";
+import type { TripInput } from "@together/shared/trip-schemas";
 
 export interface CreatorDestination {
   label: string;

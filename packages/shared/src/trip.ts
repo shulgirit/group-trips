@@ -1,5 +1,5 @@
-import { activeLocale } from "@/i18n/active";
-import { formatDayLabel as formatDay } from "@/i18n/format";
+import { activeLocale } from "@together/i18n/active";
+import { formatDayLabel as formatDay } from "@together/i18n/format";
 /** All trip days as ISO date strings (YYYY-MM-DD), inclusive. */
 export function tripDays(
   trip: { startDate: string; endDate: string }

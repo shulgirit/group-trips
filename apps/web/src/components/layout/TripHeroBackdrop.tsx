@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { TripConfig } from "@/lib/trips";
+import type { TripConfig } from "@together/shared/trips";
 import { Glyph } from "@/components/ui/Icon";
 
 /**

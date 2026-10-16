@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sendPushToAll, type PushPayload } from "@/lib/server/push";
-import type { Locale } from "@/i18n/config";
-import { translate, type TKey } from "@/i18n/translate";
+import type { Locale } from "@together/i18n/config";
+import { translate, type TKey } from "@together/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 
 const RequestSchema = z.object({

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { lookupInvite } from "@/lib/server/invites";
-import { itineraryName, stopsOf, type InvitePreview } from "@/lib/trip-doc";
-import { avatarSrc } from "@/lib/avatars";
+import { itineraryName, stopsOf, type InvitePreview } from "@together/shared/trip-doc";
+import { avatarSrc } from "@together/shared/avatars";
 import { ensureTripCover } from "@/lib/server/photos";
 
 /**

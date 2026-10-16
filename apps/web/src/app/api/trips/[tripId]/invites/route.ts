@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip } from "@/lib/server/auth";
 import { createInvite } from "@/lib/server/trips";
-import { InviteCreateSchema } from "@/lib/trip-schemas";
+import { InviteCreateSchema } from "@together/shared/trip-schemas";
 
 type Params = { params: Promise<{ tripId: string }> };
 

@@ -9,9 +9,9 @@ import {
   tripPhase,
   type TripDoc,
   type TripStatus,
-} from "@/lib/trip-doc";
-import { TRIPS } from "@/lib/trips";
-import { todayIso } from "@/lib/trip";
+} from "@together/shared/trip-doc";
+import { TRIPS } from "@together/shared/trips";
+import { todayIso } from "@together/shared/trip";
 
 export interface TripSummary {
   id: string;

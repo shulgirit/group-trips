@@ -7,7 +7,7 @@ import { uploadToTrip } from "@/lib/firebase/upload";
 import { Check, ImagePlus, Loader2 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
-import { avatarSrc, BOT_AVATARS } from "@/lib/avatars";
+import { avatarSrc, BOT_AVATARS } from "@together/shared/avatars";
 import { auth } from "@/lib/firebase/client";
 
 /** Square-crops and shrinks an image on the device (384px JPEG). */

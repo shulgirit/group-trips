@@ -27,7 +27,7 @@ import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
-import { intlLocale } from "@/i18n/format";
+import { intlLocale } from "@together/i18n/format";
 
 /* ── shared pieces ─────────────────────────────────────────── */
 

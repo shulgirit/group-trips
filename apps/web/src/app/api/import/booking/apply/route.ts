@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
-import { BookingItemSchema } from "@/lib/booking";
+import { BookingItemSchema } from "@together/shared/booking";
 import { authorizeTrip } from "@/lib/server/auth";
 import { requestLocale } from "@/i18n/server";
-import { translate } from "@/i18n/translate";
+import { translate } from "@together/i18n/translate";
 import { applyBookings } from "@/lib/server/booking-import";
 
 export const maxDuration = 60;

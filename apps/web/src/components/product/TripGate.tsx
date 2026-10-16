@@ -10,7 +10,7 @@ import { STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useT } from "@/i18n";
 import { db } from "@/lib/firebase/client";
-import { tripConfigFromDoc, type TripDoc } from "@/lib/trip-doc";
+import { tripConfigFromDoc, type TripDoc } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 type State =

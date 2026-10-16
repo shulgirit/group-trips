@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useLocale, useT } from "@/i18n";
 import { useFamilies } from "@/lib/hooks";
-import type { FamilyMember } from "@/types";
+import type { FamilyMember } from "@together/shared/types";
 
 /** Family identity colors (data, not decoration): dot + avatar tint. */
 const FAMILY_TONE: Record<string, { dot: string; avatar: string }> = {

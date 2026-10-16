@@ -17,7 +17,7 @@ import {
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { db } from "@/lib/firebase/client";
-import type { GroupKind } from "@/lib/trip-doc";
+import type { GroupKind } from "@together/shared/trip-doc";
 import type { TripSummary } from "@/lib/my-trips";
 import {
   peopleCounts,

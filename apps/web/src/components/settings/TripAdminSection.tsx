@@ -12,7 +12,7 @@ import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { apiFetch } from "@/lib/firebase/client";
 import { useCollectionData, useDocData } from "@/lib/hooks";
-import type { TripMember } from "@/lib/trip-doc";
+import type { TripMember } from "@together/shared/trip-doc";
 
 const ROLE_LABEL: Record<string, TKey | null> = {
   owner: "product.admin.roles.owner",

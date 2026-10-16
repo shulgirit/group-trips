@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { TripAppShell } from "@/components/layout/TripAppShell";
-import { TRIPS } from "@/lib/trips";
+import { TRIPS } from "@together/shared/trips";
 
 const SARDINIA = TRIPS.sardinia;
 

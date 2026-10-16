@@ -1,4 +1,4 @@
-import type { CompleteLocale } from "@/i18n/config";
+import type { CompleteLocale } from "@together/i18n/config";
 import privacyEn from "./privacy.en";
 import privacyHe from "./privacy.he";
 import termsEn from "./terms.en";

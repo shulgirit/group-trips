@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect } from "react";
 import { setActiveTrip } from "@/lib/active-trip";
-import { DEFAULT_TRIP, TRIPS, type TripConfig, type TripKey } from "@/lib/trips";
+import { DEFAULT_TRIP, TRIPS, type TripConfig, type TripKey } from "@together/shared/trips";
 
 const TripContext = createContext<TripConfig>(DEFAULT_TRIP);
 

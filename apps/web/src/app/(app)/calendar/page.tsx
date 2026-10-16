@@ -20,13 +20,13 @@ import { CategoryIcon, Glyph, STROKE } from "@/components/ui/Icon";
 import { useDayLabel, useT } from "@/i18n";
 import { deleteEvent } from "@/lib/db";
 import { useEvents, useFamilies, usePlaces } from "@/lib/hooks";
-import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import { participantsIntersect, participantsLabel } from "@/lib/participants";
-import { todayIso, tripDayNumber, tripDays } from "@/lib/trip";
-import type { Family, Place, TripEvent } from "@/types";
+import { googleMapsUrl, wazeUrl } from "@together/shared/nav";
+import { participantsIntersect, participantsLabel } from "@together/shared/participants";
+import { todayIso, tripDayNumber, tripDays } from "@together/shared/trip";
+import type { Family, Place, TripEvent } from "@together/shared/types";
 import { usePlacePhoto } from "@/lib/place-photo";
 import { useTrip } from "@/components/providers/TripProvider";
-import { stopForDay } from "@/lib/trip-doc";
+import { stopForDay } from "@together/shared/trip-doc";
 
 const DEFAULT_DURATION_MIN = 90;
 

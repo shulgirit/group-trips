@@ -26,17 +26,17 @@ import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { usePlacePhoto, useTripCover } from "@/lib/place-photo";
 import { NotifyNudge } from "@/components/permissions/NotifyNudge";
 import { useDayLabel, useLocale, useT, type TKey } from "@/i18n";
-import { intlLocale } from "@/i18n/format";
+import { intlLocale } from "@together/i18n/format";
 import { useDocData, useEvents, useFamilies, usePlaces } from "@/lib/hooks";
-import { stopForDay, type TripMember } from "@/lib/trip-doc";
-import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import { participantsLabel } from "@/lib/participants";
+import { stopForDay, type TripMember } from "@together/shared/trip-doc";
+import { googleMapsUrl, wazeUrl } from "@together/shared/nav";
+import { participantsLabel } from "@together/shared/participants";
 import {
   todayIso,
   tripDayNumber,
   tripDays,
-} from "@/lib/trip";
-import type { Place, TripEvent } from "@/types";
+} from "@together/shared/trip";
+import type { Place, TripEvent } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { TripHeroBackdrop } from "@/components/layout/TripHeroBackdrop";
 

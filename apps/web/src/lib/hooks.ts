@@ -5,9 +5,9 @@ import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
-import { resolveHomeBase } from "@/lib/home-base";
-import { todayIso } from "@/lib/trip";
-import type { Expense, Family, Place, Poll, TripEvent } from "@/types";
+import { resolveHomeBase } from "@together/shared/home-base";
+import { todayIso } from "@together/shared/trip";
+import type { Expense, Family, Place, Poll, TripEvent } from "@together/shared/types";
 
 export function useCollectionData<T extends { id: string }>(path: string) {
   const { ready, epoch } = useFirebase();

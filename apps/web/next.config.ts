@@ -6,6 +6,8 @@ const repoRoot = path.join(__dirname, "../..");
 
 const nextConfig: NextConfig = {
   turbopack: { root: repoRoot },
+  // Workspace packages ship TypeScript source
+  transpilePackages: ["@together/i18n", "@together/shared"],
   outputFileTracingRoot: repoRoot,
   // iOS fetches the universal-links file without an extension — it must be JSON
   async headers() {

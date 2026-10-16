@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeTrip } from "@/lib/server/auth";
-import type { PlaceCategory } from "@/types";
+import type { PlaceCategory } from "@together/shared/types";
 
 const RequestSchema = z.object({
   query: z.string().trim().min(2).max(120),

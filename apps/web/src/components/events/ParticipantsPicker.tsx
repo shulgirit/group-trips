@@ -2,7 +2,7 @@
 
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
-import type { Family, Participants } from "@/types";
+import type { Family, Participants } from "@together/shared/types";
 import { useT } from "@/i18n";
 
 export function ParticipantsPicker({

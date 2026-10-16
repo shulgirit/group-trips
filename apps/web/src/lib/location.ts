@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { tActive } from "@/i18n/active";
+import { tActive } from "@together/i18n/active";
 
 /**
  * Device location — native GPS inside the Capacitor app (better accuracy,

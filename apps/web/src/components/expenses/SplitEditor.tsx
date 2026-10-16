@@ -1,14 +1,14 @@
 "use client";
 
 import { Check, Minus, Plus } from "lucide-react";
-import type { Family } from "@/types";
-import { currencySymbol, type Currency } from "@/lib/currency";
+import type { Family } from "@together/shared/types";
+import { currencySymbol, type Currency } from "@together/shared/currency";
 import { activeTrip } from "@/lib/active-trip";
 import { useTrip } from "@/components/providers/TripProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/i18n";
-import { tActive } from "@/i18n/active";
-import { formatNumber } from "@/i18n/format";
+import { tActive } from "@together/i18n/active";
+import { formatNumber } from "@together/i18n/format";
 
 /** Stored Hebrew family names start with "Family" (mishpachat) — drop it in tight UI. */
 const FAMILY_PREFIX = "\u05DE\u05E9\u05E4\u05D7\u05EA ";

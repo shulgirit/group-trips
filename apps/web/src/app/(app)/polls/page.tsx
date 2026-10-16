@@ -27,11 +27,11 @@ import {
   votePoll,
 } from "@/lib/db";
 import { useFamilies, usePlaces, usePolls } from "@/lib/hooks";
-import type { Family, Place, Poll } from "@/types";
+import type { Family, Place, Poll } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { tActive } from "@/i18n/active";
+import { tActive } from "@together/i18n/active";
 
 const CARD_SHADOW =
   "shadow-[0_1px_2px_rgb(15_27_45/0.05),0_10px_28px_-22px_rgb(15_27_45/0.45)]";

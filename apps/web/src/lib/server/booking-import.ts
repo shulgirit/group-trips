@@ -3,12 +3,12 @@ import "server-only";
 import OpenAI from "openai";
 import { z } from "zod";
 import { adminBucket, adminDb } from "@/lib/firebase/admin";
-import { BookingItemSchema, type BookingItem } from "@/lib/booking";
-import { samePlaceName } from "@/lib/place-name";
+import { BookingItemSchema, type BookingItem } from "@together/shared/booking";
+import { samePlaceName } from "@together/shared/place-name";
 import { geocodePlace } from "@/lib/server/import-place";
-import type { TripConfig } from "@/lib/trips";
-import type { Locale } from "@/i18n/config";
-import { translate } from "@/i18n/translate";
+import type { TripConfig } from "@together/shared/trips";
+import type { Locale } from "@together/i18n/config";
+import { translate } from "@together/i18n/translate";
 
 const ExtractionSchema = z.object({ items: z.array(BookingItemSchema) });
 

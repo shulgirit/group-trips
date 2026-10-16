@@ -40,9 +40,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { deletePlace, updatePlace } from "@/lib/db";
 import { useEvents, usePlace } from "@/lib/hooks";
-import { googleMapsUrl, wazeUrl } from "@/lib/nav";
+import { googleMapsUrl, wazeUrl } from "@together/shared/nav";
 import { useTrip } from "@/components/providers/TripProvider";
-import { stopForDay } from "@/lib/trip-doc";
+import { stopForDay } from "@together/shared/trip-doc";
 import { STROKE } from "@/components/ui/Icon";
 import { useDayLabel, useT } from "@/i18n";
 

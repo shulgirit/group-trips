@@ -1,4 +1,4 @@
-import { contentLocale } from "@/i18n/config";
+import { contentLocale } from "@together/i18n/config";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enrichSavedPlace } from "@/lib/server/enrich";

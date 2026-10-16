@@ -11,9 +11,9 @@ import { ProductShell } from "@/components/product/ProductShell";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useT, type TKey } from "@/i18n";
-import { formatShortDate } from "@/i18n/format";
+import { formatShortDate } from "@together/i18n/format";
 import { apiFetch, auth, signInAsGuest } from "@/lib/firebase/client";
-import type { InvitePreview } from "@/lib/trip-doc";
+import type { InvitePreview } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 type Preview = InvitePreview & {

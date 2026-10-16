@@ -1,5 +1,5 @@
-import type { Family, Participants } from "@/types";
-import { tActive } from "@/i18n/active";
+import type { Family, Participants } from "./types";
+import { tActive } from "@together/i18n/active";
 
 /** Stored family names are Hebrew data ("Mishpachat X") — show just "X". */
 const FAMILY_PREFIX = "\u05DE\u05E9\u05E4\u05D7\u05EA ";

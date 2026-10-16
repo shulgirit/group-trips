@@ -4,7 +4,7 @@ import { GateForm } from "@/app/gate/GateForm";
 import { Logo } from "@/components/brand/Logo";
 import { TripHeroBackdrop } from "@/components/layout/TripHeroBackdrop";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
-import { TRIPS, type TripKey } from "@/lib/trips";
+import { TRIPS, type TripKey } from "@together/shared/trips";
 
 /** Shared login screen for the legacy trips, branded per trip. */
 export async function GateScreen({ tripKey }: { tripKey: TripKey }) {

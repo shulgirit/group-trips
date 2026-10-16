@@ -3,7 +3,7 @@ import { amiri, frank, jost, openSans, plex, plexArabic } from "@/lib/fonts";
 import "./globals.css";
 import { NativeBridge } from "@/components/native/NativeBridge";
 import { LocaleProvider } from "@/i18n";
-import { dirFor } from "@/i18n/config";
+import { dirFor } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";
 
 export const metadata: Metadata = {

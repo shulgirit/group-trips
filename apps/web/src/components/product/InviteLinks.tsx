@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Link2, QrCode, Share2, Users, X, type LucideIcon } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { tActive } from "@/i18n/active";
+import { tActive } from "@together/i18n/active";
 import { apiFetch } from "@/lib/firebase/client";
 
 interface Invite {

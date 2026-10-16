@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/server/auth";
 import { lookupInvite } from "@/lib/server/invites";
 import { addMember, memberCount } from "@/lib/server/membership";
 import { FREE_LIMITS } from "@/lib/server/usage";
-import { RedeemSchema } from "@/lib/trip-schemas";
+import { RedeemSchema } from "@together/shared/trip-schemas";
 
 /** Joins the caller to the invite's trip, optionally as a chosen member. */
 export async function POST(request: Request) {

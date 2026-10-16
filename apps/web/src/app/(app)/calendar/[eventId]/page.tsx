@@ -14,8 +14,8 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { deleteEvent, updateEvent } from "@/lib/db";
 import { useDocData, useFamilies, usePlaces } from "@/lib/hooks";
 import { useTrip } from "@/components/providers/TripProvider";
-import { todayIso, tripDays } from "@/lib/trip";
-import type { Participants, TripEvent } from "@/types";
+import { todayIso, tripDays } from "@together/shared/trip";
+import type { Participants, TripEvent } from "@together/shared/types";
 
 export default function EditEventPage({
   params,

@@ -1,5 +1,5 @@
 import type { GlobePlace, GlobeScene } from "./globe/engine";
-import type { Locale } from "@/i18n/config";
+import type { Locale } from "@together/i18n/config";
 import type { TKey } from "@/i18n";
 
 /**

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { adminDb } from "@/lib/firebase/admin";
-import type { TripDoc } from "@/lib/trip-doc";
+import type { TripDoc } from "@together/shared/trip-doc";
 
 export interface InviteRecord {
   tripId: string;

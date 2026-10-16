@@ -1,4 +1,4 @@
-import { activeLocale } from "@/i18n/active";
+import { activeLocale } from "@together/i18n/active";
 
 /** ISO 4217 code ("EUR", "THB", …). Legacy trips only ever use EUR/ILS/USD. */
 export type Currency = string;

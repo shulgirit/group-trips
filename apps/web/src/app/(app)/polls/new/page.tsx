@@ -10,7 +10,7 @@ import { Check, ChevronRight, Lightbulb, Plus, Vote, X } from "lucide-react";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { usePlacePhoto } from "@/lib/place-photo";
-import type { Place } from "@/types";
+import type { Place } from "@together/shared/types";
 import { useT } from "@/i18n";
 
 let optionCounter = 0;

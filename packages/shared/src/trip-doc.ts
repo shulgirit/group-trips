@@ -8,11 +8,11 @@
  * the existing pages render it unchanged.
  */
 
-import { avatarSrc } from "@/lib/avatars";
-import type { TripConfig } from "@/lib/trips";
-import { activeLocale } from "@/i18n/active";
-import type { Locale } from "@/i18n/config";
-import { translate } from "@/i18n/translate";
+import { avatarSrc } from "./avatars";
+import type { TripConfig } from "./trips";
+import { activeLocale } from "@together/i18n/active";
+import type { Locale } from "@together/i18n/config";
+import { translate } from "@together/i18n/translate";
 
 export type GroupKind = "families" | "friends" | "couple" | "other";
 export type TripStatus = "draft" | "active" | "archived";

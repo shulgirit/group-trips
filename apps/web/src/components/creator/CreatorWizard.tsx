@@ -18,17 +18,17 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { RouteArt } from "@/components/journal/RouteArt";
-import { avatarSrc } from "@/lib/avatars";
+import { avatarSrc } from "@together/shared/avatars";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
 import { InviteLinks } from "@/components/product/InviteLinks";
 import { Glyph, STROKE } from "@/components/ui/Icon";
-import { formatShortDate } from "@/i18n/format";
+import { formatShortDate } from "@together/i18n/format";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useLocale, useT, type TKey } from "@/i18n";
 import { apiFetch, auth, db } from "@/lib/firebase/client";
 import { useMyTrips } from "@/lib/my-trips";
-import { stopsOf, type TripDoc } from "@/lib/trip-doc";
+import { stopsOf, type TripDoc } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 import { BookingImporter } from "./BookingImporter";
 import { StepAi } from "./StepAi";

@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Plus, Send } from "lucide-react";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
-import { translate } from "@/i18n/translate";
+import { translate } from "@together/i18n/translate";
 import { apiFetch } from "@/lib/firebase/client";
-import { PRESET_AVATAR } from "@/lib/avatars";
+import { PRESET_AVATAR } from "@together/shared/avatars";
 import { AvatarPicker } from "./AvatarPicker";
-import { AI_PRESETS, AI_RULES, type AiPreset } from "@/lib/trip-doc";
+import { AI_PRESETS, AI_RULES, type AiPreset } from "@together/shared/trip-doc";
 import { peopleCounts, primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
 
 const PRESET_ORDER: Exclude<AiPreset, "custom">[] = ["butler", "pilot", "buddy", "guide"];

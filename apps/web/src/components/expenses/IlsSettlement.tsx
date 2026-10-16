@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { calcCombinedBalances, calcSettlement } from "@/lib/settlement";
-import type { Expense, Family } from "@/types";
+import { calcCombinedBalances, calcSettlement } from "@together/shared/settlement";
+import type { Expense, Family } from "@together/shared/types";
 import { apiFetch } from "@/lib/firebase/client";
-import { currencyName, currencySymbol } from "@/lib/currency";
+import { currencyName, currencySymbol } from "@together/shared/currency";
 import { ArrowRight } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { shortFamilyName } from "@/components/expenses/SplitEditor";
 import { useLocale, useT } from "@/i18n";
-import { activeLocale } from "@/i18n/active";
-import { formatNumber, intlLocale } from "@/i18n/format";
+import { activeLocale } from "@together/i18n/active";
+import { formatNumber, intlLocale } from "@together/i18n/format";
 
 function familyName(families: Family[], id: string): string {
   const name = families.find((f) => f.id === id)?.name;

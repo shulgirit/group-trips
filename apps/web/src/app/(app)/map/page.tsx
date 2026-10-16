@@ -20,10 +20,10 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useEvents, usePlaces } from "@/lib/hooks";
-import { resolveHomeBase } from "@/lib/home-base";
-import { todayIso } from "@/lib/trip";
-import { googleMapsUrl, wazeUrl } from "@/lib/nav";
-import type { Place, PlaceCategory } from "@/types";
+import { resolveHomeBase } from "@together/shared/home-base";
+import { todayIso } from "@together/shared/trip";
+import { googleMapsUrl, wazeUrl } from "@together/shared/nav";
+import type { Place, PlaceCategory } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -32,8 +32,8 @@ import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
 import { SHARE_DURATIONS, useSharedLocations } from "@/lib/shared-location";
 import { CATEGORY_ICON, CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useLocale, useT } from "@/i18n";
-import { activeLocale, tActive } from "@/i18n/active";
-import { intlLocale } from "@/i18n/format";
+import { activeLocale, tActive } from "@together/i18n/active";
+import { intlLocale } from "@together/i18n/format";
 
 const FAMILY_HEX: Record<string, string> = {
   sea: "#3a4c66",

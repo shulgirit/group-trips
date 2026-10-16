@@ -1,8 +1,8 @@
 import "server-only";
 
 import { adminDb } from "@/lib/firebase/admin";
-import { FAMILY_COLORS, randomId, type TripDoc } from "@/lib/trip-doc";
-import type { TripInput, FamilyInput } from "@/lib/trip-schemas";
+import { FAMILY_COLORS, randomId, type TripDoc } from "@together/shared/trip-doc";
+import type { TripInput, FamilyInput } from "@together/shared/trip-schemas";
 
 /** Trip-doc fields an organizer controls (everything but ownership/meta). */
 export function tripFieldsFromInput(

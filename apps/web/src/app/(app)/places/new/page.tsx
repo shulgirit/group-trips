@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { addPlace, samePlaceName } from "@/lib/db";
 import { usePlaces } from "@/lib/hooks";
-import { PLACE_CATEGORIES, type PlaceCategory } from "@/types";
+import { PLACE_CATEGORIES, type PlaceCategory } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { apiFetch } from "@/lib/firebase/client";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";

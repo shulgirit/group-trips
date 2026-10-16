@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { constantTimeEquals } from "@/lib/auth/session";
 import { adminDb } from "@/lib/firebase/admin";
-import { wazeUrl } from "@/lib/nav";
+import { wazeUrl } from "@together/shared/nav";
 import { sendPushToAll } from "@/lib/server/push";
 import { deleteExpiredLocations } from "@/lib/server/purge";
-import { translate } from "@/i18n/translate";
+import { translate } from "@together/i18n/translate";
 import { authorizeTrip } from "@/lib/server/auth";
 import { loadTrip } from "@/lib/server/trip-server";
-import { TRIPS, type TripConfig } from "@/lib/trips";
+import { TRIPS, type TripConfig } from "@together/shared/trips";
 
 const REMINDER_WINDOW_MIN = 50;
 const REMINDER_MIN_LEAD_MIN = 10;

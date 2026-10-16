@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import webpush from "web-push";
 import { adminDb, adminMessaging } from "@/lib/firebase/admin";
-import { isLocale, type Locale } from "@/i18n/config";
+import { isLocale, type Locale } from "@together/i18n/config";
 
 export interface PushPayload {
   title: string;

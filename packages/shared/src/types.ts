@@ -1,4 +1,4 @@
-import type { Currency } from "@/lib/currency";
+import type { Currency } from "./currency";
 
 /** Category keys. `label` is the Hebrew name used in AI prompts; the UI
  *  shows t(`trip.categories.<key>`) and <CategoryIcon>. */

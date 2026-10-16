@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { TripGate } from "@/components/product/TripGate";
-import { BRAND } from "@/lib/brand";
+import { BRAND } from "@together/shared/brand";
 
 export const metadata: Metadata = {
   title: { default: BRAND.name, template: `%s · ${BRAND.name}` },

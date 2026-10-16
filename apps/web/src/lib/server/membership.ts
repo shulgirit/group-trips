@@ -2,7 +2,7 @@ import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import type { TripMember, TripRole } from "@/lib/trip-doc";
+import type { TripMember, TripRole } from "@together/shared/trip-doc";
 
 /** Storage rules read trip membership from the `t` claim map. */
 const MAX_TRIP_CLAIMS = 40;

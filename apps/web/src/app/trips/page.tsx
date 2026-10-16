@@ -11,7 +11,7 @@ import { STROKE } from "@/components/ui/Icon";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { useT } from "@/i18n";
 import { useMyTrips } from "@/lib/my-trips";
-import { todayIso } from "@/lib/trip";
+import { todayIso } from "@together/shared/trip";
 import { useAuthUser } from "@/lib/use-auth-user";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

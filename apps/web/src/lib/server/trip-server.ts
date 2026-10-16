@@ -6,9 +6,9 @@ import {
   composePersona,
   tripConfigFromDoc,
   type TripDoc,
-} from "@/lib/trip-doc";
-import type { Locale } from "@/i18n/config";
-import { DEFAULT_TRIP, legacyTripById, type TripConfig } from "@/lib/trips";
+} from "@together/shared/trip-doc";
+import type { Locale } from "@together/i18n/config";
+import { DEFAULT_TRIP, legacyTripById, type TripConfig } from "@together/shared/trips";
 
 /**
  * Legacy-only resolver for the password/join-code auth routes. Returns

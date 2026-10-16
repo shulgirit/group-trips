@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_TRIP, type TripConfig } from "@/lib/trips";
+import { DEFAULT_TRIP, type TripConfig } from "@together/shared/trips";
 
 /**
  * Module-global active trip for non-React code paths (src/lib/db.ts's

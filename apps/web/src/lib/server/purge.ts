@@ -3,8 +3,8 @@ import "server-only";
 import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
 import { adminAuth, adminBucket, adminDb } from "@/lib/firebase/admin";
 import { revokeTripClaim } from "@/lib/server/membership";
-import { TRIPS } from "@/lib/trips";
-import type { TripMember } from "@/lib/trip-doc";
+import { TRIPS } from "@together/shared/trips";
+import type { TripMember } from "@together/shared/trip-doc";
 
 /**
  * Permanent data deletion — the implementation behind "delete trip",

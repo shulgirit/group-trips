@@ -12,8 +12,8 @@ import { DurationChips } from "@/components/events/DurationChips";
 import { useDayLabel, useT } from "@/i18n";
 import { addEvent } from "@/lib/db";
 import { useFamilies, usePlaces } from "@/lib/hooks";
-import { todayIso, tripDays } from "@/lib/trip";
-import type { Participants } from "@/types";
+import { todayIso, tripDays } from "@together/shared/trip";
+import type { Participants } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 
 function NewEventForm() {

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarCheck, Heart, MapPin } from "lucide-react";
-import type { Place, PlaceCategory } from "@/types";
+import type { Place, PlaceCategory } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";

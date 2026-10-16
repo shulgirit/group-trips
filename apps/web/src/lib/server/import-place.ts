@@ -1,7 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 import { z } from "zod";
-import { PLACE_CATEGORIES } from "@/types";
+import { PLACE_CATEGORIES } from "@together/shared/types";
 
 /** Shared Firecrawl → OpenAI → geocode pipeline, used by the import API
  *  route and by the AI agent's enrich_place tool. */

@@ -3,8 +3,8 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip, requirePersonalUser } from "@/lib/server/auth";
-import { composePersona, type TripDoc } from "@/lib/trip-doc";
-import { AiInputSchema } from "@/lib/trip-schemas";
+import { composePersona, type TripDoc } from "@together/shared/trip-doc";
+import { AiInputSchema } from "@together/shared/trip-schemas";
 import { requestLocale } from "@/i18n/server";
 
 export const maxDuration = 60;

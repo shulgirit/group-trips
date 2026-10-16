@@ -8,7 +8,7 @@ import {
   importPlaceFromUrl,
   type PlaceDraft,
 } from "@/lib/server/import-place";
-import type { TripConfig } from "@/lib/trips";
+import type { TripConfig } from "@together/shared/trips";
 
 export interface EnrichResult {
   ok: boolean;

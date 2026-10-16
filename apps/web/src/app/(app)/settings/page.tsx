@@ -22,11 +22,11 @@ import { STROKE } from "@/components/ui/Icon";
 import { db, signInWithGoogle } from "@/lib/firebase/client";
 import { logoutEverywhere } from "@/lib/logout";
 import { useFamilies } from "@/lib/hooks";
-import { googleMapsUrl } from "@/lib/nav";
-import { tripDays } from "@/lib/trip";
+import { googleMapsUrl } from "@together/shared/nav";
+import { tripDays } from "@together/shared/trip";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useDayLabel, useLocale, useT } from "@/i18n";
-import { intlLocale } from "@/i18n/format";
+import { intlLocale } from "@together/i18n/format";
 
 function currencyNames(codes: string[], locale: string): string {
   let names: Intl.DisplayNames | null = null;

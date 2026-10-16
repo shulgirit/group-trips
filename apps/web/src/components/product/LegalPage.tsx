@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
-import { contentLocale } from "@/i18n/config";
+import { contentLocale } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";
-import { translate } from "@/i18n/translate";
-import { BRAND } from "@/lib/brand";
+import { translate } from "@together/i18n/translate";
+import { BRAND } from "@together/shared/brand";
 import { LEGAL_DOCS, OPERATOR, type LegalBlock, type LegalDocKey } from "@/legal";
 
 function Block({ block }: { block: LegalBlock }) {

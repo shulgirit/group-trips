@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { GateScreen } from "@/components/gate/GateScreen";
 import { requestLocale } from "@/i18n/server";
-import { translate } from "@/i18n/translate";
-import { TRIPS } from "@/lib/trips";
+import { translate } from "@together/i18n/translate";
+import { TRIPS } from "@together/shared/trips";
 
 const SARDINIA = TRIPS.sardinia;
 

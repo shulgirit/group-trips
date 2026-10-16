@@ -46,14 +46,14 @@ import { db, apiFetch } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
-import { formatNumber } from "@/i18n/format";
+import { formatNumber } from "@together/i18n/format";
 import {
   PLACE_CATEGORIES,
   type ChatCandidate,
   type ChatMessage,
   type ChatSession,
   type PlaceCategory,
-} from "@/types";
+} from "@together/shared/types";
 
 
 /** What the guide's tools really do (same list as the landing page) */

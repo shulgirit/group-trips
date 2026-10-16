@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLACE_CATEGORIES } from "@/types";
+import { PLACE_CATEGORIES } from "./types";
 
 const optionalTrimmed = z
   .string()

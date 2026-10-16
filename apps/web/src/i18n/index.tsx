@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import { setActiveLocale } from "./active";
-import { LOCALE_COOKIE, dirFor, type Locale } from "./config";
-import { formatDayLabel } from "./format";
-import { translate, type TKey, type TVars } from "./translate";
+import { setActiveLocale } from "@together/i18n/active";
+import { LOCALE_COOKIE, dirFor, type Locale } from "@together/i18n/config";
+import { formatDayLabel } from "@together/i18n/format";
+import { translate, type TKey, type TVars } from "@together/i18n/translate";
 
 interface LocaleState {
   locale: Locale;

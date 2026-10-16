@@ -10,7 +10,7 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { useEvents, usePlaces } from "@/lib/hooks";
-import type { Place } from "@/types";
+import type { Place } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { distanceMeters, formatDistance, useMyLocation } from "@/lib/location";
 

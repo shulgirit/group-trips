@@ -9,10 +9,10 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { addExpense, deleteExpense, recordSettlement, updateExpenseSplit } from "@/lib/db";
 import { useExpenses, useFamilies } from "@/lib/hooks";
-import { calcBalances, calcSettlement } from "@/lib/settlement";
+import { calcBalances, calcSettlement } from "@together/shared/settlement";
 import { IlsSettlement } from "@/components/expenses/IlsSettlement";
-import { todayIso } from "@/lib/trip";
-import type { Expense, Family } from "@/types";
+import { todayIso } from "@together/shared/trip";
+import type { Expense, Family } from "@together/shared/types";
 import {
   DEFAULT_SPLIT,
   SplitEditor,
@@ -27,12 +27,12 @@ import {
   currencySymbol,
   tripCurrencies,
   type Currency,
-} from "@/lib/currency";
+} from "@together/shared/currency";
 import { useTrip } from "@/components/providers/TripProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useDayLabel, useT } from "@/i18n";
-import { activeLocale } from "@/i18n/active";
-import { formatNumber, formatShortDate } from "@/i18n/format";
+import { activeLocale } from "@together/i18n/active";
+import { formatNumber, formatShortDate } from "@together/i18n/format";
 
 function familyName(families: Family[], id: string): string {
   const name = families.find((f) => f.id === id)?.name;

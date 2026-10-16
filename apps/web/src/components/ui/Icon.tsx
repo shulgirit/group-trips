@@ -36,7 +36,7 @@ import {
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
-import type { PlaceCategory } from "@/types";
+import type { PlaceCategory } from "@together/shared/types";
 
 /**
  * One icon language for the whole product: lucide outlines at a thin,

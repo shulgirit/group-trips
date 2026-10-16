@@ -2,8 +2,8 @@ import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase/admin";
-import type { TripDoc } from "@/lib/trip-doc";
-import type { TripConfig } from "@/lib/trips";
+import type { TripDoc } from "@together/shared/trip-doc";
+import type { TripConfig } from "@together/shared/trips";
 
 /**
  * Free-plan guardrails. Everything is free today; these limits keep AI

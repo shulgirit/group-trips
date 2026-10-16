@@ -6,8 +6,8 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { loadTrip } from "@/lib/server/trip-server";
-import type { TripDoc, TripMember, TripRole } from "@/lib/trip-doc";
-import { legacyTripById, type TripConfig } from "@/lib/trips";
+import type { TripDoc, TripMember, TripRole } from "@together/shared/trip-doc";
+import { legacyTripById, type TripConfig } from "@together/shared/trips";
 
 /**
  * Per-request authorization for API routes.

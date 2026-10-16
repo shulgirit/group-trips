@@ -18,7 +18,7 @@ import {
 } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useT } from "@/i18n";
-import type { UserProfile } from "@/types";
+import type { UserProfile } from "@together/shared/types";
 
 interface FirebaseState {
   ready: boolean;

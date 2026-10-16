@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { TRIPS } from "@/lib/trips";
+import { TRIPS } from "@together/shared/trips";
 
 const SARDINIA = TRIPS.sardinia;
 

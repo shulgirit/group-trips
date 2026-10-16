@@ -3,7 +3,7 @@
 import { Languages } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { setLocalePreference, useLocale, useT } from "@/i18n";
-import { LOCALES, LOCALE_LABEL } from "@/i18n/config";
+import { LOCALES, LOCALE_LABEL } from "@together/i18n/config";
 import { SURFACE } from "@/components/settings/SettingsGroup";
 
 /** The four-locale switcher (reloads the page on change). */

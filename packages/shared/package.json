@@ -1,0 +1,23 @@
+{
+  "name": "@together/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@together/i18n": "workspace:*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@together/config": "workspace:*",
+    "typescript": "^5",
+    "vitest": "5.0.4"
+  }
+}

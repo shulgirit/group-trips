@@ -9,8 +9,8 @@ import {
   writeFamilies,
 } from "@/lib/server/trips";
 import { FREE_LIMITS } from "@/lib/server/usage";
-import { randomId, type TripDoc } from "@/lib/trip-doc";
-import { TripInputSchema } from "@/lib/trip-schemas";
+import { randomId, type TripDoc } from "@together/shared/trip-doc";
+import { TripInputSchema } from "@together/shared/trip-schemas";
 
 /** Creates a self-serve trip (draft or active); the caller becomes owner. */
 export async function POST(request: Request) {

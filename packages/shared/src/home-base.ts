@@ -1,4 +1,4 @@
-import type { Place } from "@/types";
+import type { Place } from "./types";
 
 /**
  * Resolves the trip's current "home base":

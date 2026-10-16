@@ -37,10 +37,10 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { db, signInWithGoogle, storage } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import { BookingImporter } from "@/components/creator/BookingImporter";
-import type { TripDocument } from "@/types";
+import type { TripDocument } from "@together/shared/types";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
-import { intlLocale } from "@/i18n/format";
+import { intlLocale } from "@together/i18n/format";
 
 const MAX_FILE_MB = 20;
 

@@ -8,7 +8,7 @@ import {
   tripFieldsFromInput,
   writeFamilies,
 } from "@/lib/server/trips";
-import { TripInputSchema } from "@/lib/trip-schemas";
+import { TripInputSchema } from "@together/shared/trip-schemas";
 
 type Params = { params: Promise<{ tripId: string }> };
 

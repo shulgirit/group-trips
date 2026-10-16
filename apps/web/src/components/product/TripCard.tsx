@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { RouteArt } from "@/components/journal/RouteArt";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { formatShortDate } from "@/i18n/format";
+import { formatShortDate } from "@together/i18n/format";
 import type { TripSummary } from "@/lib/my-trips";
 import { useTripCover } from "@/lib/place-photo";
 import { useState } from "react";

@@ -6,8 +6,8 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
 import { useFamilies } from "@/lib/hooks";
 import { addEvent } from "@/lib/db";
-import { tripDays, todayIso } from "@/lib/trip";
-import type { Participants, Place } from "@/types";
+import { tripDays, todayIso } from "@together/shared/trip";
+import type { Participants, Place } from "@together/shared/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useDayLabel, useT, type TKey } from "@/i18n";
 
