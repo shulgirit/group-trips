@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { LogoutRow } from "@/components/tour/LogoutRow";
 import { TourRow } from "@/components/tour/TourRow";
+import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
@@ -27,12 +28,13 @@ interface MoreSection {
 
 export default function MorePage() {
   const trip = useTrip();
+  const { personal } = useFirebase();
   const t = useT();
   const aiHref = `${trip.prefix}/ai`;
 
   const sections: MoreSection[] = [
-    // Legacy trips run on a shared password, so there's no "My trips" for them
-    ...(trip.legacy
+    // Shared-password logins on legacy trips have no "My trips"; Google accounts do
+    ...(trip.legacy && !personal
       ? []
       : [
           {

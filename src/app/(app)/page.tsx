@@ -114,7 +114,7 @@ export default function HomePage() {
   const dayNumber = tripDayNumber(today, trip);
 
   const { locale } = useLocale();
-  const { user } = useFirebase();
+  const { user, personal } = useFirebase();
   const { data: me } = useDocData<TripMember>(
     trip.legacy ? "_/_" : `${trip.path}/members/${user?.uid ?? "_"}`
   );
@@ -151,7 +151,7 @@ export default function HomePage() {
         <div className="relative h-[360px] md:h-[420px]">
           {trip.heroImage ? <TripHeroBackdrop trip={trip} /> : <RouteArt seed={trip.id} focus="top" />}
           <div className="hero-overlay absolute inset-0" />
-          {!trip.legacy && (
+          {(!trip.legacy || personal) && (
             <Link
               href="/trips"
               className="absolute end-4 top-[max(1rem,env(safe-area-inset-top))] inline-flex items-center gap-1.5 rounded-full bg-night-950/45 px-3 py-1.5 text-xs font-medium text-cream-50 backdrop-blur"
