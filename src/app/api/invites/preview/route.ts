@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { lookupInvite } from "@/lib/server/invites";
 import { itineraryName, stopsOf, type InvitePreview } from "@/lib/trip-doc";
+import { avatarSrc } from "@/lib/avatars";
+import { ensureTripCover } from "@/lib/server/photos";
 
 /**
  * Public: what the invite landing page shows before sign-in. Holding the
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
     families: typeof families;
     aiName: string;
     aiEmoji: string;
+    aiAvatar: string | null;
   } = {
     tripId: invite.tripId,
     name: trip.name,
@@ -44,7 +47,8 @@ export async function GET(request: Request) {
     destination: itineraryName(stopsOf(trip)),
     startDate: trip.startDate,
     endDate: trip.endDate,
-    coverImage: trip.coverImage,
+    // the first visitor already sees the destination, even if the organizer never opened the trip
+    coverImage: trip.coverImage ?? (await ensureTripCover(invite.tripId, stopsOf(trip)[0]?.label ?? trip.name).catch(() => null)),
     groupName: trip.groupName,
     familyName: family?.name ?? null,
     memberCount: membersCount.data().count,
@@ -54,6 +58,7 @@ export async function GET(request: Request) {
     families,
     aiName: trip.ai.name,
     aiEmoji: trip.ai.emoji,
+    aiAvatar: avatarSrc(trip.ai.avatar),
   };
   return NextResponse.json(preview);
 }

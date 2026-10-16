@@ -5,6 +5,7 @@ import { Glyph } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { formatShortDate } from "@/i18n/format";
 import type { TripSummary } from "@/lib/my-trips";
+import { useTripCover } from "@/lib/place-photo";
 
 function daysUntil(dateIso: string, todayIso: string): number {
   return Math.round(
@@ -21,6 +22,8 @@ export function TripCard({
   today: string;
 }) {
   const t = useT();
+  // trips without a cover get their destination's photo (once, server-side)
+  useTripCover(trip.id, !trip.coverImage && !trip.legacy);
   const isDraft = trip.status === "draft";
   const days = daysUntil(trip.startDate, today);
   const badge = isDraft

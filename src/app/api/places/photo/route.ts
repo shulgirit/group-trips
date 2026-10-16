@@ -3,13 +3,14 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip } from "@/lib/server/auth";
 import { geocodePlace } from "@/lib/server/import-place";
+import { ensureTripCover, PHOTO_RETRY_MS } from "@/lib/server/photos";
 
 /**
  * Backfills a real photo for a saved place (or a trip's cover) from Google
  * Places, once. Any member may trigger it; the result is shared with the
  * whole trip. Misses are remembered for a week so we don't pay to ask again.
  */
-const RETRY_MS = 7 * 24 * 60 * 60 * 1000;
+const RETRY_MS = PHOTO_RETRY_MS;
 
 const RequestSchema = z.union([
   z.object({ tripId: z.string().min(1), placeId: z.string().min(1) }),
@@ -28,17 +29,8 @@ export async function POST(request: Request) {
 
   if ("cover" in body) {
     if (trip.legacy || !doc) return NextResponse.json({ imageUrl: trip.heroImage ?? null });
-    const ref = adminDb().doc(`trips/${body.tripId}`);
-    const snapshot = await ref.get();
-    const data = snapshot.data() ?? {};
-    if (data.coverImage) return NextResponse.json({ imageUrl: data.coverImage });
-    if (typeof data.coverTriedAt === "number" && now - data.coverTriedAt < RETRY_MS) {
-      return NextResponse.json({ imageUrl: null });
-    }
-    const stop = trip.stops[0];
-    const geo = await geocodePlace(stop?.label ?? trip.name, "");
-    await ref.set(geo?.photoUrl ? { coverImage: geo.photoUrl } : { coverTriedAt: now }, { merge: true });
-    return NextResponse.json({ imageUrl: geo?.photoUrl ?? null });
+    const imageUrl = await ensureTripCover(body.tripId, trip.stops[0]?.label ?? trip.name);
+    return NextResponse.json({ imageUrl });
   }
 
   const ref = adminDb().doc(`${trip.path}/places/${body.placeId}`);

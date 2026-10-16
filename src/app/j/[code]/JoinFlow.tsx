@@ -24,6 +24,7 @@ type Preview = InvitePreview & {
   }[];
   aiName: string;
   aiEmoji: string;
+  aiAvatar?: string | null;
 };
 
 const ERRORS: Record<string, TKey> = {
@@ -159,7 +160,12 @@ export function JoinFlow({ code }: { code: string }) {
               </li>
             )}
             <li className="flex items-center gap-2.5">
-              <Glyph value={preview.aiEmoji} size={16} className="shrink-0 text-ink-500" />
+              {preview.aiAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element -- small avatar
+                <img src={preview.aiAvatar} alt="" className="h-8 w-8 shrink-0 rounded-full bg-night-900 object-cover ring-1 ring-brass-300" />
+              ) : (
+                <Glyph value={preview.aiEmoji} size={16} className="shrink-0 text-ink-500" />
+              )}
               {t("product.join.aiWaiting", { name: preview.aiName })}
             </li>
             {preview.memberCount > 1 && (
