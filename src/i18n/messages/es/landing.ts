@@ -102,6 +102,23 @@ const landing: PartialMessages["landing"] = {
     title: "¿Adónde vamos esta vez?",
     text: "Crea un viaje en pocos minutos. Todos lo reciben en su móvil.",
   },
+  app: {
+    start: "Empezar",
+    haveInvite: "Tengo un enlace de invitación",
+    skip: "Saltar",
+    next: "Siguiente",
+    cards: {
+      together: { title: "Todo el grupo, un solo viaje", text: "Envía un enlace y todos —padres, niños y amigos— planifican juntos." },
+      guide: { title: "Conoce a tu guía", text: "Dale un nombre, una personalidad y un aspecto. Sugiere, organiza el itinerario y abre encuestas." },
+      organized: { title: "Todo en un lugar", text: "Itinerario, mapa, entradas y cuentas, en el móvil de todos." },
+    },
+    signInTitle: "Inicia sesión para empezar",
+    signInText: "Una cuenta para todos tus viajes. Sin contraseñas.",
+    invitePlaceholder: "Pega tu enlace de invitación",
+    inviteGo: "Unirme",
+    inviteInvalid: "Eso no parece un enlace de invitación de Together",
+    stepOf: "{n} de {total}",
+  },
   footer: {
     legacy: "¿Viajas con Sicilia 2026 o Cerdeña?",
     legacyLink: "Entra con el código del viaje",

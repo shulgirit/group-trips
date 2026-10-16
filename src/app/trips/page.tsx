@@ -11,13 +11,22 @@ import { useT } from "@/i18n";
 import { useMyTrips } from "@/lib/my-trips";
 import { todayIso } from "@/lib/trip";
 import { useAuthUser } from "@/lib/use-auth-user";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { isNative } from "@/lib/native";
 
 export default function MyTripsPage() {
   const t = useT();
+  const router = useRouter();
   const { user, personal, loading: authLoading } = useAuthUser();
   const guest = Boolean(user?.isAnonymous);
   const { trips, loading } = useMyTrips(personal || guest ? user!.uid : null);
   const today = todayIso();
+  const native = isNative();
+  const signedOut = !authLoading && !personal && !guest;
+  useEffect(() => {
+    if (signedOut && native) router.replace("/welcome");
+  }, [signedOut, native, router]);
 
   if (authLoading) {
     return (
@@ -28,6 +37,8 @@ export default function MyTripsPage() {
   }
 
   if (!personal && !guest) {
+    // The store app opens here: signed-out people get the app onboarding
+    if (native) return <main className="min-h-dvh bg-night-950" />;
     return (
       <ProductShell>
         <div className="card mx-auto max-w-sm px-6 py-8 text-center">

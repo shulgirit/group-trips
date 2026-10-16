@@ -116,6 +116,23 @@ const landing: typeof he = {
     title: "Where to next?",
     text: "Start a trip in a few minutes. Everyone gets it on their phone.",
   },
+  app: {
+    start: "Get started",
+    haveInvite: "I have an invite link",
+    skip: "Skip",
+    next: "Next",
+    cards: {
+      together: { title: "The whole group, one trip", text: "Send one link, and everyone — parents, kids and friends — plans together." },
+      guide: { title: "Meet your guide", text: "Give it a name, a personality and a look. It suggests, schedules and opens polls." },
+      organized: { title: "Everything in one place", text: "Schedule, map, tickets and settling up — on everyone's phone." },
+    },
+    signInTitle: "Sign in to start",
+    signInText: "One account for all your trips. No passwords.",
+    invitePlaceholder: "Paste your invite link",
+    inviteGo: "Join",
+    inviteInvalid: "That doesn't look like a Together invite link",
+    stepOf: "{n} of {total}",
+  },
   footer: {
     legacy: "Traveling with Sicily 2026 or Sardinia?",
     legacyLink: "Enter with your trip code",
