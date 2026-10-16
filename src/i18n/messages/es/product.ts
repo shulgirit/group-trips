@@ -1,15 +1,13 @@
 import type { PartialMessages } from "../index";
 
 const product: PartialMessages["product"] = {
-  shell: { account: "Mi cuenta", guest: "Invitado (sin cuenta)", logout: "Cerrar sesión" },
-  signIn: {
-    google: "Continuar con Google",
-    apple: "Continuar con Apple",
-    connecting: "Iniciando sesión…",
-    failed: "No se pudo iniciar sesión. Inténtalo de nuevo",
-    network: "Sin conexión. Inténtalo de nuevo",
+  shell: {
+    account: "Mi cuenta",
+    guest: "Invitado (sin cuenta)",
+    logout: "Cerrar sesión",
   },
   welcome: {
+    lead: "Planifica un viaje en minutos, invita a tu grupo por WhatsApp y todo lo que necesitáis (itinerario, mapa, gastos y un asistente con IA) os espera en una sola app.",
     consent: {
       before: "Al iniciar sesión aceptas los ",
       terms: "Términos de uso",
@@ -17,9 +15,206 @@ const product: PartialMessages["product"] = {
       privacy: "Política de privacidad",
       after: ".",
     },
+    features: {
+      ai: {
+        title: "Un asistente de IA personal para el grupo",
+        text: "Tú eliges su nombre y su personalidad. Recomienda lugares, los añade al itinerario y abre encuestas",
+      },
+      bookings: {
+        title: "Sube billetes y reservas",
+        text: "Vuelos, hoteles y atracciones aparecen solos en el itinerario y en el mapa",
+      },
+      map: {
+        title: "Mapa, itinerario y navegación",
+        text: "Mira dónde estás y qué toca después, y llega con un toque en Waze",
+      },
+      money: {
+        title: "Gastos y encuestas",
+        text: "Quién pagó, quién debe, y decidid juntos sin discusiones",
+      },
+    },
+    legacy: {
+      question: "¿Viajas con Sicilia 2026 o Cerdeña?",
+      link: "Entra con el código de tu viaje",
+    },
   },
-  account: { privacyLink: "Política de privacidad", termsLink: "Términos de uso" },
-  legal: { updated: "Vigente desde el {date}", contents: "Contenido" },
+  signIn: {
+    google: "Continuar con Google",
+    apple: "Continuar con Apple",
+    connecting: "Iniciando sesión…",
+    failed: "No se pudo iniciar sesión. Inténtalo de nuevo",
+    network: "Sin conexión. Inténtalo de nuevo",
+  },
+  trips: {
+    title: "Mis viajes",
+    signedOutText: "Inicia sesión para ver tus viajes y empezar uno nuevo",
+    greeting: "Hola, {name}",
+    greetingAnon: "Hola",
+    subtitle: "¿Adónde esta vez?",
+    guestNote:
+      "Has entrado como invitado. Para crear tu propio viaje, cierra sesión e inicia sesión con Google o Apple, o guarda tu cuenta desde los ajustes del viaje.",
+    newTrip: {
+      title: "Nuevo viaje",
+      text: "Destino, grupo, reservas y un asistente de IA, en pocos minutos",
+    },
+    current: "Próximos y en curso",
+    past: "Viajes anteriores",
+    empty: "Aún no tienes viajes. ¿Te han invitado? Abre el enlace desde WhatsApp",
+  },
+  card: {
+    draft: "Borrador. Continuar",
+    live: "De viaje ahora",
+    tomorrow: "Mañana",
+    inDays: "En {count} días",
+    past: "Recuerdos",
+  },
+  gate: {
+    signInTitle: "Entrar al viaje",
+    signInText: "Inicia sesión con la cuenta con la que te uniste a este viaje",
+    notFound: "Viaje no encontrado",
+    noAccess: "No tienes acceso a este viaje",
+    noAccessText:
+      "Pide a los organizadores un enlace de invitación y ábrelo en tu móvil. Si te uniste con otra cuenta, cierra sesión y entra con esa.",
+    myTrips: "Ir a mis viajes",
+  },
+  account: {
+    title: "Mi cuenta",
+    deleteTitle: "Eliminar cuenta",
+    deleteText:
+      "Elimina de forma permanente tu cuenta y todos los datos tuyos que guardamos. No se puede recuperar.",
+    dialogTitle: "¿Eliminar tu cuenta para siempre?",
+    dialogText:
+      "Tu cuenta y todos tus datos personales se borrarán de nuestros servidores de inmediato y para siempre. No podemos restaurarlos, aunque nos lo pidas.",
+    items: {
+      profile: "Tu perfil, inicio de sesión y preferencias",
+      chats: "Tus conversaciones con el asistente de IA",
+      documents: "Documentos, archivos y reservas que subiste",
+      location: "Ubicación compartida, dispositivos de notificaciones y votos en encuestas",
+      trips:
+        "Los viajes que organizas pasan a otro adulto del viaje; un viaje sin nadie más se elimina por completo",
+      shared:
+        "Los lugares y eventos que compartiste se quedan con el grupo, sin tu nombre",
+    },
+    confirmDelete: "Eliminar la cuenta para siempre",
+    yourData: "Tus datos",
+    privacyLink: "Política de privacidad",
+    termsLink: "Términos de uso",
+    deleting: "Eliminando…",
+    deleteFailed:
+      "No se pudo eliminar. Si iniciaste sesión hace tiempo, cierra sesión, vuelve a entrar e inténtalo de nuevo.",
+  },
+  join: {
+    errors: {
+      notFound: "Este enlace no existe. Comprueba que lo copiaste entero",
+      expired: "Este enlace ha caducado. Pide uno nuevo a los organizadores",
+      usedUp: "Este enlace ya se ha usado todas las veces posibles. Pide uno nuevo",
+      revoked: "Los organizadores han anulado este enlace",
+      tripClosed: "Este viaje ya está cerrado",
+      tripFull: "Este viaje está completo. Contacta con los organizadores",
+      signInRequired: "Inicia sesión con Google o Apple",
+      failed: "No se pudo unir. Inténtalo de nuevo",
+      failedNetwork: "No se pudo unir. Revisa tu conexión e inténtalo de nuevo",
+    },
+    invited: "Estás invitado",
+    organizers: "Organizado por {name}",
+    aiWaiting: "{name}, el asistente de IA del viaje, ya te está esperando",
+    alreadyIn: "{count} ya se han unido",
+    signInTitle: "Inicia sesión para unirte",
+    signInText: "Una cuenta para todos tus viajes, sin contraseñas",
+    guest: "Continuar sin cuenta",
+    guestNote:
+      "¿No tienes Gmail? No pasa nada: elige tu nombre y listo. El acceso se guarda en este móvil y puedes conectar una cuenta más tarde en los ajustes.",
+    whoKids: "¿Quién eres?",
+    whoGroup: "¿Quién de vosotros eres?",
+    pickFamily: "Elige tu familia y luego tu nombre",
+    joining: "Uniéndote…",
+    notListed: "No estoy en la lista. Unirme de todos modos",
+    signedInAs: "Sesión iniciada como {name}",
+    guestHint: "Te unes como invitado. El acceso se guarda en este móvil",
+  },
+  invite: {
+    qr: "Código QR",
+    qrAlt: "Código QR para unirse",
+    qrHint: "Escanéalo con la cámara para unirte",
+    copyLink: "Copiar enlace",
+    send: "Enviar",
+    loadFailed: "No se pudieron cargar los enlaces de invitación",
+    create: "Crear un enlace de invitación",
+    creating: "Creando…",
+    general: "Enlace general para todo el grupo",
+    joined: "{uses}/{max} unidos",
+    footnote:
+      "Un enlace de familia ya selecciona la familia: solo hay que elegir el nombre. Los enlaces son válidos durante 60 días.",
+    message: {
+      title: "¡Estás invitado a \"{trip}\"{who}!",
+      body: "Nuestro itinerario, mapa, gastos y asistente de IA, todo en un mismo lugar.",
+      join: "Únete aquí: {url}",
+    },
+  },
+  saveAccount: {
+    title: "Conserva tu acceso",
+    text: "Te uniste sin cuenta, así que tu acceso solo está guardado en este móvil. Conecta Google o Apple para no perderlo. Todo seguirá exactamente igual.",
+    alreadyExists:
+      "Esta cuenta ya existe. Cierra sesión, entra con ella y vuelve a abrir el enlace de invitación.",
+    failed: "No se pudo conectar. Inténtalo de nuevo",
+    done: "Cuenta guardada. Ya puedes abrir el viaje en cualquier móvil",
+    wait: "Un momento…",
+  },
+  admin: {
+    inviteTitle: "Invita al grupo",
+    editTrip: "Editar viaje",
+    kidsTitle: "Conecta los móviles de los niños",
+    kidsText:
+      "Sin correo ni contraseña: abre el enlace en el móvil del niño, elige un nombre y listo. El enlace es válido durante 24 horas.",
+    copyLink: "Copiar enlace",
+    createKidLink: "Crear un enlace para los niños",
+    wait: "Un momento…",
+    kidLinkFailed: "No se pudo crear el enlace. Inténtalo de nuevo",
+    members: "Quién va en el viaje ({count})",
+    noName: "Sin nombre",
+    guest: "Invitado",
+    remove: "Quitar",
+    removeConfirm: "¿Quitar a {name} del viaje?",
+    removeText:
+      "{name} saldrá del viaje y se eliminarán todos sus datos personales en él: chats con la IA, documentos, ubicación y votos. Los lugares y eventos que compartió se quedan.",
+    removeFailed: "No se pudo quitar. Inténtalo de nuevo",
+    theParticipant: "este participante",
+    leave: "Salir del viaje y borrar mis datos",
+    leaveConfirm: "¿Salir del viaje y borrar tus datos?",
+    leaveText:
+      "Saldrás del viaje y todos tus datos personales en él se borrarán para siempre. Solo podrás volver con un nuevo enlace de invitación.",
+    leaveItems: {
+      chats: "Tus conversaciones con el asistente de IA en este viaje",
+      documents: "Documentos y archivos que subiste, incluidos los compartidos",
+      location: "Ubicación compartida, notificaciones y votos en encuestas",
+      shared: "Los lugares y eventos que compartiste se quedan con el grupo, sin tu nombre",
+    },
+    leaveAction: "Salir y borrar",
+    leaveFailed: "No se pudo salir. Inténtalo de nuevo",
+    dangerTitle: "Zona de peligro",
+    deleteTrip: "Eliminar el viaje para siempre",
+    deleteTripHint:
+      "Elimina el viaje para todos los participantes, con todo su contenido y archivos.",
+    deleteTripTitle: "¿Eliminar “{name}” para siempre?",
+    deleteTripText:
+      "El viaje se eliminará para todos los participantes, de inmediato y para siempre. Nadie podrá restaurarlo.",
+    deleteTripItems: {
+      content: "Itinerario, lugares, encuestas, gastos y liquidación",
+      files: "Todos los documentos, fotos y archivos de reservas subidos",
+      chats: "Todas las conversaciones con el asistente de IA",
+      people: "Participantes, familias, enlaces de invitación y ubicaciones",
+    },
+    deleteTripFailed: "No se pudo eliminar. Inténtalo de nuevo",
+    roles: {
+      owner: "Organizador",
+      admin: "Administrador",
+      kid: "Niño",
+    },
+  },
+  legal: {
+    updated: "Vigente desde el {date}",
+    contents: "Contenido",
+  },
 };
 
 export default product;

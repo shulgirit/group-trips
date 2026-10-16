@@ -57,7 +57,7 @@ export function QuickAdd() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t("trip.quickAdd.aria")}
-        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] end-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl border border-cream-200 bg-white text-sea-900 shadow-[var(--shadow-float)] transition active:scale-95"
+        className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] lg:bottom-8 end-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl border border-cream-200 bg-white text-sea-900 shadow-[var(--shadow-float)] transition active:scale-95"
       >
         <Plus size={24} strokeWidth={STROKE} aria-hidden />
       </button>

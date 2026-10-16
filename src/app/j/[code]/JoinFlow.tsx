@@ -219,7 +219,7 @@ export function JoinFlow({ code }: { code: string }) {
                     onClick={() => setFamilyId(family.id)}
                     className={`chip ${familyId === family.id ? "chip-active" : ""}`}
                   >
-                    {family.name}
+                    <bdi>{family.name}</bdi>
                   </button>
                 ))}
               </div>
@@ -236,7 +236,7 @@ export function JoinFlow({ code }: { code: string }) {
                       onClick={() => join(familyId ?? families[0].id, member.id)}
                       className="rounded-full bg-sea-700 px-5 py-3 text-base font-medium text-cream-50 transition active:scale-[0.97] disabled:opacity-50"
                     >
-                      {member.name}
+                      <bdi>{member.name}</bdi>
                     </button>
                   ))}
               </div>

@@ -474,7 +474,7 @@ export function StepWhere({
                 }}
                 className="chip text-ink-700"
               >
-                {option.name}
+                <bdi>{option.name}</bdi>
               </button>
             ))}
             <button

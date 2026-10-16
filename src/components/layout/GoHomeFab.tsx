@@ -29,7 +29,7 @@ export function GoHomeFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={trip.homeBase?.navAria ?? t("trip.goHome")}
-      className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] start-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-sea-900 text-cream-50 shadow-[var(--shadow-float)] transition active:scale-95"
+      className="fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] lg:bottom-8 start-4 lg:start-28 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-sea-900 text-cream-50 shadow-[var(--shadow-float)] transition active:scale-95"
     >
       <Home size={22} strokeWidth={STROKE} aria-hidden />
     </a>

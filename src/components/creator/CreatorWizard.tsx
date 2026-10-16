@@ -355,7 +355,7 @@ export function CreatorWizard() {
                 className={`h-0.5 w-full rounded-full transition ${index <= step ? "bg-sea-700" : "bg-cream-200"}`}
               />
               <span
-                className={`text-[11px] font-medium ${index === step ? "text-sea-700" : "text-ink-300"}`}
+                className={`text-xs font-medium ${index === step ? "text-sea-700" : "text-ink-300"}`}
               >
                 {t(s.label)}
               </span>

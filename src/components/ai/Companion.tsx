@@ -11,7 +11,7 @@ export type CompanionState = "idle" | "thinking";
 
 const PALETTE = ["#d8b277", "#6f9fb3", "#1c2a43"]; // brass · sea-glass · deep ink
 // Must match the surface exactly, or the orb shows as a tinted square
-const BACKGROUND = { page: "#f7f5f0", light: "#f1f3ef", white: "#ffffff", night: "#070c16" } as const;
+const BACKGROUND = { page: "#f1f3ef", light: "#f1f3ef", white: "#ffffff", night: "#070c16" } as const;
 
 /**
  * The trip's AI guide made visible: a living brass-and-sea orb. Calm while

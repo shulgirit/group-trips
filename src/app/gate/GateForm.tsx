@@ -287,7 +287,7 @@ export function GateForm({ tripKey = "sicily" }: { tripKey?: TripKey }) {
                       : "border-cream-300 bg-white text-ink-700"
                   }`}
                 >
-                  {family.name}
+                  <bdi>{family.name}</bdi>
                 </button>
               ))}
             </div>

@@ -263,7 +263,7 @@ export default function PlaceDetailPage({
             {place.area ? ` · ${place.area}` : ""}
           </p>
           <h1 className="mt-2 font-display text-3xl font-light leading-tight text-cream-50">
-            {place.name}
+            <bdi>{place.name}</bdi>
           </h1>
         </div>
       </div>

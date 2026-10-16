@@ -119,7 +119,7 @@ export function AddToPollSheet({
               <Vote size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-sea-600" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium text-ink-900">
-                  {poll.question}
+                  <bdi>{poll.question}</bdi>
                 </span>
                 <span className="block text-xs text-ink-500">
                   {t("polls.sheet.optionsCount", { count: poll.options.length })}

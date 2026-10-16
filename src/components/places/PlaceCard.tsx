@@ -77,7 +77,7 @@ export function PlaceCard({
         {/* Name over image */}
         <div className="absolute inset-x-0 bottom-0 px-4 pb-2.5">
           <h3 className="truncate font-display text-xl font-light text-cream-50">
-            {place.name}
+            <bdi>{place.name}</bdi>
           </h3>
         </div>
       </div>

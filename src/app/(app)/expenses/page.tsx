@@ -266,7 +266,7 @@ function EditSplitSheet({
     <BottomSheet open onClose={onClose} title={t("money.editSplit.title")}>
       <div className="space-y-5">
         <div className="rounded-2xl border border-cream-200 bg-cream-50 px-4 py-3">
-          <p className="text-ink-900">{expense.description}</p>
+          <p className="text-ink-900"><bdi>{expense.description}</bdi></p>
           <p className="text-sm text-ink-500">
             {t("money.paidBy", { name: familyName(families, expense.payerFamilyId) })}{" "}
             <span dir="ltr" className="numerals tabular-nums">
@@ -522,7 +522,7 @@ function ExpensesContent() {
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-ink-900">
-                    {expense.description}
+                    <bdi>{expense.description}</bdi>
                   </p>
                   <p className="text-sm text-ink-500">
                     {familyName(families, expense.payerFamilyId)} ·{" "}

@@ -233,7 +233,7 @@ export default function HomePage() {
           </span>
           <div className="min-w-0">
             <p className="text-xs text-cream-50/70">{t("trip.home.happeningNow")}</p>
-            <p className="truncate text-lg font-medium">{currentEvent.title}</p>
+            <p className="truncate text-lg font-medium"><bdi>{currentEvent.title}</bdi></p>
           </div>
         </section>
       )}
@@ -276,15 +276,15 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="min-w-0 flex-1 border-s border-chart-200 ps-4">
-                  <p className="text-lg font-medium leading-snug text-ink-900">{nextEvent.title}</p>
-                  {nextPlace && <p className="mt-0.5 truncate text-sm text-ink-500">{nextPlace.name}</p>}
+                  <p className="text-lg font-medium leading-snug text-ink-900"><bdi>{nextEvent.title}</bdi></p>
+                  {nextPlace && <p className="mt-0.5 truncate text-sm text-ink-500"><bdi>{nextPlace.name}</bdi></p>}
                   {families && (
                     <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-500">
                       <Users size={15} strokeWidth={STROKE} aria-hidden className="shrink-0" />
                       <span className="truncate">{participantsLabel(nextEvent.participants, families)}</span>
                     </p>
                   )}
-                  {nextEvent.notes && <p className="mt-2 text-sm leading-relaxed text-ink-700">{nextEvent.notes}</p>}
+                  {nextEvent.notes && <p className="mt-2 text-sm leading-relaxed text-ink-700"><bdi>{nextEvent.notes}</bdi></p>}
                 </div>
               </div>
               <div className="mt-5 flex gap-2">
@@ -391,7 +391,7 @@ export default function HomePage() {
                       <Glyph value={event.emoji} fallback={CalendarDays} size={16} className="shrink-0 text-ink-500" />
                     )}
                     <span className={`min-w-0 flex-1 truncate ${isCurrent ? "font-medium text-ink-900" : isPast ? "" : "text-ink-900"}`}>
-                      {event.title}
+                      <bdi>{event.title}</bdi>
                     </span>
                     {isCurrent ? (
                       <span className="shrink-0 text-xs font-medium text-brass-600">{t("trip.home.timelineNow")}</span>

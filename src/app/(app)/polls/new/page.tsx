@@ -102,7 +102,7 @@ export default function NewPollPage() {
                 }`}
               >
                 <CategoryIcon category={place.category} size={15} />
-                {place.name}
+                <bdi>{place.name}</bdi>
               </button>
             ))}
           </div>
@@ -150,7 +150,7 @@ export default function NewPollPage() {
                 key={option.id}
                 className="flex items-center justify-between px-4 py-3"
               >
-                <span className="text-ink-900">{option.label}</span>
+                <span className="text-ink-900"><bdi>{option.label}</bdi></span>
                 <button
                   type="button"
                   onClick={() =>

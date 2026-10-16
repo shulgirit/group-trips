@@ -80,7 +80,7 @@ export function ParticipantsPicker({
                   : "border-cream-200 bg-white text-ink-700"
               }`}
             >
-              {family.name}
+              <bdi>{family.name}</bdi>
             </button>
           ))}
         </div>
@@ -91,7 +91,7 @@ export function ParticipantsPicker({
           {families.map((family) => (
             <div key={family.id}>
               <p className="mb-1.5 text-sm text-ink-500">
-                {family.name}
+                <bdi>{family.name}</bdi>
               </p>
               <div className="flex flex-wrap gap-2">
                 {family.members.map((member) => (
@@ -105,7 +105,7 @@ export function ParticipantsPicker({
                         : "border-cream-200 bg-white text-ink-700"
                     }`}
                   >
-                    {member.name}
+                    <bdi>{member.name}</bdi>
                   </button>
                 ))}
               </div>

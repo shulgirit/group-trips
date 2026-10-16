@@ -9,11 +9,12 @@
    ───────────────────────────────────────────────────────────── */
 
 @theme {
-  /* Ivory grounds & hairlines */
-  --color-cream-50: #f7f5f0;
-  --color-cream-100: #efebe3;
-  --color-cream-200: #e4dfd4;
-  --color-cream-300: #cfc7b8;
+  /* Journal grounds & hairlines — the pale grey-green of chart paper
+     (formerly ivory; the "cream" names stay so every class follows) */
+  --color-cream-50: #f1f3ef;
+  --color-cream-100: #e7eae4;
+  --color-cream-200: #dce0d8;
+  --color-cream-300: #c6ccc2;
 
   /* Text */
   --color-ink-900: #0f1b2d;
@@ -89,7 +90,8 @@
 
 @theme inline {
   --font-sans: var(--font-plex), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  /* Headlines speak in the serif; everything else stays Plex */
+  --font-display: var(--font-frank), var(--font-amiri), "Times New Roman", serif;
   --font-mark: var(--font-jost), "Helvetica Neue", Arial, sans-serif;
   --font-serif: var(--font-frank), var(--font-amiri), "Times New Roman", serif;
 }
@@ -200,13 +202,12 @@ body {
   }
 }
 
-/* Small caps label used for editorial kickers */
+/* Small label above content — sentence case, quiet (no tracked all-caps) */
 .kicker {
-  font-family: var(--font-mark);
-  font-size: 0.6875rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  font-weight: 500;
 }
 
 /* Brand display numerals (countdown, totals) */

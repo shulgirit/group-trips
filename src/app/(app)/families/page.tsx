@@ -42,7 +42,7 @@ export default function FamiliesPage() {
                   }`}
                 />
                 <h2 className="font-display text-lg font-normal text-ink-900">
-                  {family.name}
+                  <bdi>{family.name}</bdi>
                 </h2>
                 <span className="ms-auto text-sm text-ink-500">
                   {family.members.length}
@@ -51,7 +51,7 @@ export default function FamiliesPage() {
               <div className="flex flex-wrap gap-2 px-4 py-3.5">
                 {family.members.map((member) => (
                   <span key={member.id} className="chip text-ink-700">
-                    {member.name}
+                    <bdi>{member.name}</bdi>
                   </span>
                 ))}
               </div>

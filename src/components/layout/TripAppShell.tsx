@@ -24,8 +24,8 @@ export function TripAppShell({
         <ReminderPinger />
         <TourLauncher />
         <IdentityPrompt />
-        <div className="min-h-dvh">
-          <main className="mx-auto w-full max-w-lg px-4 pb-36 pt-4 md:max-w-xl">
+        <div className="min-h-dvh lg:ps-24">
+          <main className="mx-auto w-full max-w-lg px-4 pb-36 pt-4 md:max-w-xl lg:max-w-3xl lg:px-8 lg:pb-16 lg:pt-8">
             {children}
           </main>
           <QuickAdd />

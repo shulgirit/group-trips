@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -9,7 +9,6 @@ import {
   Compass,
   Map as MapIcon,
   Plus,
-  Pencil,
   Split,
   Trash2,
   TriangleAlert,
@@ -24,7 +23,8 @@ import { useEvents, useFamilies, usePlaces } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { participantsIntersect, participantsLabel } from "@/lib/participants";
 import { todayIso, tripDayNumber, tripDays } from "@/lib/trip";
-import type { Family, TripEvent } from "@/types";
+import type { Family, Place, TripEvent } from "@/types";
+import { usePlacePhoto } from "@/lib/place-photo";
 import { useTrip } from "@/components/providers/TripProvider";
 import { stopForDay } from "@/lib/trip-doc";
 
@@ -65,6 +65,26 @@ function analyzeDay(dayEvents: TripEvent[], families: Family[]) {
   return flags;
 }
 
+/** Place photo (fetched once if missing) or the event's own glyph. */
+function EventThumb({ tripId, place, emoji }: { tripId: string; place: Place | null; emoji?: string }) {
+  usePlacePhoto(tripId, place);
+  return (
+    <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl">
+      {place?.imageUrl ? (
+        <Image src={place.imageUrl} alt="" fill sizes="84px" className="object-cover" />
+      ) : (
+        <div className="flex h-full items-center justify-center bg-cream-100 text-route-700">
+          {place ? (
+            <CategoryIcon category={place.category} size={24} />
+          ) : (
+            <Glyph value={emoji} fallback={CalendarDays} size={24} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalendarContent() {
   const { prefix } = useTrip();
   const trip = useTrip();
@@ -85,6 +105,16 @@ function CalendarContent() {
   const { places } = usePlaces();
   const { families } = useFamilies();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const first = setTimeout(tick, 0);
+    const interval = setInterval(tick, 60_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+  }, []);
 
   const dayEvents = useMemo(
     () => (events ?? []).filter((event) => event.day === selectedDay),
@@ -135,7 +165,7 @@ function CalendarContent() {
                     : "border-cream-200 bg-white text-ink-500"
               }`}
             >
-              <span className="text-[11px] opacity-75">
+              <span className="text-xs opacity-75">
                 {t("trip.calendar.dayN", { n: index + 1 })}
               </span>
               <span dir="ltr" className="numerals text-sm">
@@ -177,170 +207,146 @@ function CalendarContent() {
           }
         />
       ) : (
-        <ol className="relative space-y-3 border-e border-cream-200 pe-5">
-          {dayEvents.map((event) => {
+        <ol>
+          {dayEvents.map((event, index) => {
             const place = event.placeId
               ? places?.find((p) => p.id === event.placeId)
               : null;
             const flag = flags.get(event.id);
+            const region = stopForDay(trip.stops, event.day).region;
+            const last = index === dayEvents.length - 1;
+            const past =
+              now !== null &&
+              event.day === today &&
+              toMinutes(event.startTime) + (event.durationMin ?? DEFAULT_DURATION_MIN) <
+                now.getHours() * 60 + now.getMinutes();
             return (
-              <li key={event.id} className="relative">
-                {/* Timeline dot */}
-                <span
-                  aria-hidden
-                  className={`absolute -end-[28.5px] top-6 flex h-4 w-4 items-center justify-center rounded-full border-2 border-cream-50 ${
-                    flag?.conflict
-                      ? "bg-terra-500"
-                      : flag?.split
-                        ? "bg-lemon-400"
-                        : "bg-sea-700"
-                  }`}
-                />
+              <li key={event.id} className={`relative flex gap-3 ${past ? "opacity-60" : ""}`}>
+                {/* time + route spine */}
+                <div className="flex w-14 shrink-0 flex-col items-center">
+                  <p dir="ltr" className="font-display text-xl leading-none text-ink-900 tabular-nums">
+                    {event.startTime}
+                  </p>
+                  {event.durationMin ? (
+                    <p className="mt-1 text-xs text-ink-400">
+                      {event.durationMin >= 60
+                        ? t("trip.units.hoursShort", { value: +(event.durationMin / 60).toFixed(1) })
+                        : t("trip.units.minutesShort", { value: event.durationMin })}
+                    </p>
+                  ) : null}
+                  <span
+                    aria-hidden
+                    className={`mt-2 h-3 w-3 shrink-0 rounded-full ${
+                      flag?.conflict
+                        ? "bg-terra-500"
+                        : flag?.split
+                          ? "bg-brass-500"
+                          : past
+                            ? "bg-route-500"
+                            : "border-2 border-route-500 bg-white"
+                    }`}
+                  />
+                  {!last && <span aria-hidden className="mt-1 w-px flex-1 bg-route-300" />}
+                </div>
+
                 <div
-                  className={`card overflow-hidden ${
-                    flag?.conflict
-                      ? "border-terra-400"
-                      : flag?.split
-                        ? "border-lemon-300"
-                        : ""
+                  className={`mb-4 min-w-0 flex-1 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_27_45/0.05),0_10px_28px_-22px_rgb(15_27_45/0.45)] ${
+                    flag?.conflict ? "ring-1 ring-terra-400" : flag?.split ? "ring-1 ring-brass-300" : ""
                   }`}
                 >
                   <Link
                     href={`${prefix}/calendar/${event.id}`}
-                    className="flex items-stretch transition active:bg-cream-100/60"
+                    className="flex items-stretch gap-3 p-3 transition active:bg-cream-100/60"
                   >
-                    {/* Visual side */}
-                    <div className="relative w-20 shrink-0">
-                      {place?.imageUrl ? (
-                        <Image
-                          src={place.imageUrl}
-                          alt=""
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-cream-100 text-sea-700">
-                          {place ? (
-                            <CategoryIcon category={place.category} size={22} />
-                          ) : (
-                            <Glyph value={event.emoji} fallback={CalendarDays} size={22} />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div className="min-w-0 flex-1 px-4 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="min-w-0 truncate text-lg font-normal text-ink-900">
-                          {event.title}
+                    <div className="min-w-0 flex-1 py-0.5 ps-1">
+                      <p dir="auto" className="truncate text-[17px] font-medium text-ink-900">
+                        {event.title}
+                      </p>
+                      {place && (
+                        <p dir="auto" className="mt-0.5 truncate text-sm text-ink-500">
+                          {place.name}
                         </p>
-                        <div className="text-end">
-                          <p
-                            dir="ltr"
-                            className="numerals text-xl text-sea-700"
-                          >
-                            {event.startTime}
-                          </p>
-                          {event.durationMin && (
-                            <p className="text-[11px] text-ink-300">
-                              {event.durationMin >= 60
-                                ? t("trip.units.hoursShort", { value: +(event.durationMin / 60).toFixed(1) })
-                                : t("trip.units.minutesShort", { value: event.durationMin })}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                      )}
                       {families && (
-                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-ink-500">
-                          <Users size={13} strokeWidth={STROKE} aria-hidden />
-                          <span className="truncate">
-                            {participantsLabel(event.participants, families)}
-                          </span>
+                        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-ink-500">
+                          <Users size={14} strokeWidth={STROKE} aria-hidden className="shrink-0" />
+                          <span className="truncate">{participantsLabel(event.participants, families)}</span>
                         </p>
                       )}
                       {event.notes && (
-                        <p className="mt-1 truncate text-sm text-ink-500">
+                        <p dir="auto" className="mt-1 line-clamp-2 text-sm text-ink-700">
                           {event.notes}
                         </p>
                       )}
                       {flag?.conflict && (
-                        <p className="mt-1 flex items-center gap-1 text-sm font-medium text-terra-600">
-                          <TriangleAlert size={13} strokeWidth={STROKE} aria-hidden />
+                        <p className="mt-1.5 flex items-center gap-1 text-sm font-medium text-terra-600">
+                          <TriangleAlert size={14} strokeWidth={STROKE} aria-hidden />
                           {t("trip.calendar.conflict")}
                         </p>
                       )}
-                      <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-300">
-                        <Pencil size={10} strokeWidth={STROKE} aria-hidden />
-                        {t("trip.calendar.tapToEdit")}
-                      </p>
                     </div>
+                    <EventThumb tripId={trip.id} place={place ?? null} emoji={event.emoji} />
                   </Link>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 border-t border-cream-200 px-3 py-2">
-                    {place && (
-                      <>
+                  {(
+                    <div className="flex items-center gap-2 border-t border-cream-100 px-3 py-2">
+                      {place && (
                         <a
-                          href={wazeUrl(place)}
+                          href={wazeUrl(place, region)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn-soft gap-1.5 px-3 py-1.5 text-sm text-sea-700"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-route-100 px-3 py-1.5 text-sm font-medium text-route-700"
                         >
-                          <Compass size={14} strokeWidth={STROKE} aria-hidden />
+                          <Compass size={15} strokeWidth={STROKE} aria-hidden />
                           {t("trip.home.navigate")}
                         </a>
+                      )}
+                      {place && (
                         <a
-                          href={googleMapsUrl(place)}
+                          href={googleMapsUrl(place, region)}
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label="Google Maps"
-                          className="btn-soft px-2.5 py-1.5"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-500"
                         >
-                          <MapIcon size={14} strokeWidth={STROKE} aria-hidden />
+                          <MapIcon size={15} strokeWidth={STROKE} aria-hidden />
                         </a>
-                        <Link
-                          href={`${prefix}/places/${place.id}`}
-                          className="btn-soft px-3 py-1.5 text-sm"
-                        >
-                          {t("trip.home.details")}
-                        </Link>
-                      </>
-                    )}
-                    {event.createdByName && (
-                      <span className="ms-1 truncate text-[11px] text-ink-300">
-                        {event.createdByName}
-                      </span>
-                    )}
-                    <span className="flex-1" />
-                    {deletingId === event.id ? (
-                      <>
+                      )}
+                      {event.createdByName && (
+                        <span dir="auto" className="ms-1 truncate text-xs text-ink-400">
+                          {event.createdByName}
+                        </span>
+                      )}
+                      <span className="flex-1" />
+                      {deletingId === event.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => deleteEvent(event.id)}
+                            className="btn bg-terra-600 px-3 py-1.5 text-sm text-cream-50"
+                          >
+                            {t("common.delete")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingId(null)}
+                            className="btn-soft px-3 py-1.5 text-sm"
+                          >
+                            {t("common.cancel")}
+                          </button>
+                        </>
+                      ) : (
                         <button
                           type="button"
-                          onClick={() => deleteEvent(event.id)}
-                          className="btn bg-terra-600 px-3 py-1.5 text-sm text-cream-50"
+                          onClick={() => setDeletingId(event.id)}
+                          aria-label={t("trip.calendar.deleteEvent")}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-300"
                         >
-                          {t("common.delete")}
+                          <Trash2 size={15} strokeWidth={STROKE} aria-hidden />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingId(null)}
-                          className="btn-soft px-3 py-1.5 text-sm"
-                        >
-                          {t("common.cancel")}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setDeletingId(event.id)}
-                        aria-label={t("trip.calendar.deleteEvent")}
-                        className="px-2 text-ink-300"
-                      >
-                        <Trash2 size={16} strokeWidth={STROKE} aria-hidden />
-                      </button>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             );

@@ -35,10 +35,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label={t("trip.nav.aria")}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-safe"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-safe lg:inset-y-0 lg:end-auto lg:start-0 lg:w-24 lg:pb-0"
     >
-      <div className="pointer-events-auto mx-auto mb-2.5 w-[min(100%-1.5rem,30rem)] rounded-[1.75rem] border border-cream-200 bg-cream-50/90 shadow-[var(--shadow-float)] backdrop-blur-xl">
-        <ul className="flex items-end justify-between px-1 py-1">
+      <div className="pointer-events-auto mx-auto mb-2.5 w-[min(100%-1.5rem,30rem)] rounded-[1.75rem] border border-cream-200 bg-cream-50/90 shadow-[var(--shadow-float)] backdrop-blur-xl lg:m-0 lg:flex lg:h-full lg:w-full lg:items-center lg:rounded-none lg:border-y-0 lg:border-s-0 lg:bg-white/70 lg:shadow-none">
+        <ul className="flex items-end justify-between px-1 py-1 lg:w-full lg:flex-col lg:items-stretch lg:justify-center lg:gap-3 lg:px-2">
           {navItems.map(({ href, label, icon: Icon, hero }) => {
             const active =
               href === homeHref
@@ -50,7 +50,7 @@ export function BottomNav() {
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex flex-col items-center gap-0.5 rounded-3xl px-0.5 py-2 text-[10px] tracking-wide transition ${
+                    className={`flex flex-col items-center gap-0.5 rounded-3xl px-0.5 py-2 text-xs tracking-wide transition ${
                       active ? "font-medium text-sea-900" : "text-ink-700"
                     }`}
                   >
@@ -76,7 +76,7 @@ export function BottomNav() {
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-col items-center gap-0.5 rounded-3xl px-0.5 py-2 text-[10px] tracking-wide transition ${
+                  className={`flex flex-col items-center gap-0.5 rounded-3xl px-0.5 py-2 text-xs tracking-wide transition ${
                     active
                       ? "font-medium text-sea-900"
                       : "text-ink-500 active:text-sea-700"

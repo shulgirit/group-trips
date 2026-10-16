@@ -1,9 +1,30 @@
 import type { PartialMessages } from "../index";
 import common from "./common";
 import product from "./product";
-import landing from "./landing";
+import creator from "./creator";
+import trip from "./trip";
 import ai from "./ai";
+import money from "./money";
+import polls from "./polls";
+import settings from "./settings";
+import tour from "./tour";
+import config from "./config";
+import server from "./server";
+import landing from "./landing";
 
-const messages: PartialMessages = { common, product, landing, ai };
+const messages: PartialMessages = {
+  common,
+  product,
+  creator,
+  trip,
+  ai,
+  money,
+  polls,
+  settings,
+  tour,
+  config,
+  server,
+  landing,
+};
 
 export default messages;

@@ -502,7 +502,7 @@ export default function AiPage() {
                     sessionId === session.id ? "text-cream-50" : "text-ink-700"
                   }`}
                 >
-                  {session.title}
+                  <bdi>{session.title}</bdi>
                 </button>
                 <button
                   type="button"
@@ -600,7 +600,7 @@ export default function AiPage() {
                   className="mb-2 max-h-52 w-full rounded-2xl object-cover"
                 />
               )}
-              {message.content}
+              <bdi>{message.content}</bdi>
             </div>
 
             {message.candidates && message.candidates.length > 0 && (
@@ -636,7 +636,7 @@ export default function AiPage() {
                           )}
                           <div className="min-w-0">
                             <p className="truncate font-display text-lg font-normal text-ink-900">
-                              {candidate.name}
+                              <bdi>{candidate.name}</bdi>
                             </p>
                             <p className="text-sm text-ink-500">
                               {t(`trip.categories.${categoryKey}`)}
@@ -678,7 +678,7 @@ export default function AiPage() {
                         </button>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-ink-700">
-                        {candidate.description}
+                        <bdi>{candidate.description}</bdi>
                       </p>
                       <p className="mt-2 flex items-start gap-1.5 text-sm text-terra-600">
                         <Heart

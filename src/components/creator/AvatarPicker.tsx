@@ -101,7 +101,7 @@ export function AvatarPicker({
           ) : uploaded ? (
             <img src={uploaded} alt="" className="h-full w-full object-cover" />
           ) : (
-            <span className="flex flex-col items-center gap-1 px-1 text-center text-[11px] leading-tight">
+            <span className="flex flex-col items-center gap-1 px-1 text-center text-xs leading-tight">
               <ImagePlus size={20} strokeWidth={STROKE} aria-hidden />
               {t("creator.ai.avatar.upload")}
             </span>

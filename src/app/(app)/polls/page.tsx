@@ -111,7 +111,7 @@ function PollCard({
     <div className={`card p-5 ${poll.pinned ? "border-lemon-300" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-display text-xl font-light text-ink-900">
-          {poll.question}
+          <bdi>{poll.question}</bdi>
         </h3>
         <span
           className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs ${
@@ -237,7 +237,7 @@ function PollCard({
                         className="shrink-0 text-sea-700"
                       />
                     )}
-                    <span className="truncate">{option.label}</span>
+                    <span className="truncate"><bdi>{option.label}</bdi></span>
                   </span>
                   <span className="numerals px-4 font-display text-lg font-light tabular-nums text-sea-700">
                     {count}
@@ -332,7 +332,7 @@ function PollCard({
             return (
               <div key={option.id}>
                 <p className="text-xs font-medium text-ink-500">
-                  {option.label}
+                  <bdi>{option.label}</bdi>
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {voters.map((vote) => (

@@ -89,7 +89,7 @@ export function IdentityPrompt() {
                     : "border-cream-200 bg-white text-ink-700"
                 }`}
               >
-                {family.name}
+                <bdi>{family.name}</bdi>
               </button>
             )
           )}

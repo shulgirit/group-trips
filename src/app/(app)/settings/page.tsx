@@ -185,7 +185,7 @@ export default function SettingsPage() {
                               : "border-cream-200 bg-white text-ink-700"
                         }`}
                       >
-                        {family.name}
+                        <bdi>{family.name}</bdi>
                       </button>
                     ))}
                   </div>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
                                 : "bg-white text-ink-700"
                             }`}
                           >
-                            {member.name}
+                            <bdi>{member.name}</bdi>
                           </button>
                         ))}
                     </div>
