@@ -21,6 +21,11 @@ export async function sendOtpEmail(
   ctx: MutationCtx | ActionCtx,
   { email, otp, locale }: { email: string; otp: string; locale?: string }
 ) {
+  // Local development without Resend: opt-in only, never set on production
+  if (process.env.AUTH_DEV_LOG_OTP === "1") {
+    console.log(`[auth] sign-in code for ${email}: ${otp}`);
+    return;
+  }
   const lang = (locale && locale in COPY ? locale : "en") as keyof typeof COPY;
   const copy = COPY[lang];
   const dir = lang === "he" || lang === "ar" ? "rtl" : "ltr";
