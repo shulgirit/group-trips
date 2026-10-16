@@ -7,7 +7,7 @@ const landing: typeof he = {
   },
   hero: {
     title: "Every trip is better together.",
-    lead: "Together is the group trip planner for families and friends: itinerary, map, bookings, expenses and an AI travel guide — on everyone's phone.",
+    lead: "Together is the group trip planner for families and friends: itinerary, map, bookings, expenses and an AI travel guide, on everyone's phone.",
     free: "Free. No credit card.",
     scroll: "See how it works",
   },
@@ -40,7 +40,7 @@ const landing: typeof he = {
   drag: "Drag to spin",
   invite: {
     title: "One link, and everyone's in.",
-    text: "Send one link on WhatsApp. Grandparents, kids and friends join in seconds — kids without an email or a password.",
+    text: "Send one link on WhatsApp. Grandparents, kids and friends join in seconds. Kids don't need an email or a password.",
     message: "Join our trip to Sicily",
     joined: "joined",
     people: {
@@ -51,13 +51,13 @@ const landing: typeof he = {
     },
   },
   sorted: {
-    title: "From scattered to sorted.",
+    title: "Every booking, one plan.",
     text: "Forward the flight email, upload the hotel confirmation. Together reads them and builds the schedule and the map for you.",
     scattered: "What you have now",
     organized: "What everyone gets",
     items: {
       flight: "Flight confirmation BA 2580",
-      hotel: "Villa Ortensia — booking.pdf",
+      hotel: "Villa Ortensia booking.pdf",
       link: "maps.app.goo.gl/…",
       note: "Don't forget: Etna tickets",
     },
@@ -108,8 +108,8 @@ const landing: typeof he = {
     steps: {
       create: { title: "Create the trip", text: "Destination, dates and who's coming. Several countries in one trip, too." },
       invite: { title: "Invite the group", text: "A link for each family, on WhatsApp or as a QR code." },
-      plan: { title: "Plan together", text: "Places, schedule, polls and bookings — updated on everyone's phone." },
-      go: { title: "Travel together", text: "What's now, where to drive and where the tickets are — one tap away." },
+      plan: { title: "Plan together", text: "Places, schedule, polls and bookings, updated on everyone's phone." },
+      go: { title: "Travel together", text: "What's now, where to drive and where the tickets are, one tap away." },
     },
   },
   final: {
@@ -122,9 +122,9 @@ const landing: typeof he = {
     skip: "Skip",
     next: "Next",
     cards: {
-      together: { title: "The whole group, one trip", text: "Send one link, and everyone — parents, kids and friends — plans together." },
+      together: { title: "The whole group, one trip", text: "Send one link, and parents, kids and friends plan together." },
       guide: { title: "Meet your guide", text: "Give it a name, a personality and a look. It suggests, schedules and opens polls." },
-      organized: { title: "Everything in one place", text: "Schedule, map, tickets and settling up — on everyone's phone." },
+      organized: { title: "Everything in one place", text: "Schedule, map, tickets and settling up, on everyone's phone." },
     },
     signInTitle: "Sign in to start",
     signInText: "One account for all your trips. No passwords.",

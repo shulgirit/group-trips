@@ -5,12 +5,13 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, LazyMotion, MotionConfig, m } from "motion/react";
-import { CalendarDays, Check, ChevronLeft, Link2, Map as MapIcon, Ticket, Wallet } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, Map as MapIcon, Ticket, Wallet } from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
 import { CITY_IDS, globeScenes } from "@/components/landing/scenes";
+import { InviteCodeEntry } from "./InviteCodeEntry";
 
 const Globe = dynamic(() => import("@/components/landing/globe/Globe").then((mod) => mod.Globe), {
   ssr: false,
@@ -46,13 +47,6 @@ function markSeen() {
   }
 }
 
-/** Accepts a full invite URL (…/j/<code>) or a bare code. */
-function inviteCode(input: string): string | null {
-  const value = input.trim();
-  const fromUrl = value.match(/\/j\/([A-Za-z0-9_-]{4,40})/);
-  if (fromUrl) return fromUrl[1];
-  return /^[A-Za-z0-9_-]{4,40}$/.test(value) ? value : null;
-}
 
 /* ── card visuals ─────────────────────────────────────────── */
 
@@ -130,9 +124,7 @@ export function AppOnboarding() {
   const router = useRouter();
   const { locale, dir } = useLocale();
   const [step, setStep] = useState<Step>("intro");
-  const [invite, setInvite] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteError, setInviteError] = useState("");
   const scenes = useMemo(() => globeScenes(locale), [locale]);
   const labels = useMemo(
     () => ({
@@ -157,15 +149,7 @@ export function AppOnboarding() {
   const cardIndex = typeof step === "number" ? step : null;
   const forward = dir === "rtl" ? -1 : 1;
 
-  function submitInvite() {
-    const code = inviteCode(invite);
-    if (!code) {
-      setInviteError(t("landing.app.inviteInvalid"));
-      return;
-    }
-    markSeen();
-    router.push(`/j/${code}`);
-  }
+
 
   return (
     <LazyMotion features={loadFeatures} strict>
@@ -301,42 +285,7 @@ export function AppOnboarding() {
                     <SignInPanel tone="dark" onSignedIn={() => router.replace("/trips")} />
                   </div>
 
-                  <div className="mt-6">
-                    {inviteOpen ? (
-                      <form
-                        className="flex gap-2"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          submitInvite();
-                        }}
-                      >
-                        <input
-                          value={invite}
-                          onChange={(event) => {
-                            setInvite(event.target.value);
-                            setInviteError("");
-                          }}
-                          placeholder={t("landing.app.invitePlaceholder")}
-                          dir="ltr"
-                          autoFocus
-                          className="min-w-0 flex-1 rounded-xl border border-cream-50/15 bg-night-900 px-4 py-3 text-cream-50 outline-none placeholder:text-cream-50/40 focus:border-brass-500"
-                        />
-                        <button type="submit" className="btn rounded-xl bg-brass-500 px-4 font-semibold text-night-950">
-                          {t("landing.app.inviteGo")}
-                        </button>
-                      </form>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setInviteOpen(true)}
-                        className="flex w-full items-center justify-center gap-2 py-2 text-sm text-cream-50/80"
-                      >
-                        <Link2 size={16} strokeWidth={STROKE} aria-hidden />
-                        {t("landing.app.haveInvite")}
-                      </button>
-                    )}
-                    {inviteError && <p className="mt-2 text-sm text-terra-200">{inviteError}</p>}
-                  </div>
+                  <InviteCodeEntry key={inviteOpen ? "open" : "closed"} startOpen={inviteOpen} onBeforeGo={markSeen} className="mt-6" />
                 </div>
                 <p className="relative mt-6 text-center text-xs leading-relaxed text-cream-50/55">
                   {t("product.welcome.consent.before")}

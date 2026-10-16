@@ -8,6 +8,7 @@ import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { useLocale, useT, type TKey } from "@/i18n";
 import { LanguageMenu } from "./LanguageMenu";
+import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
 import { CITY_IDS, globeScenes } from "./scenes";
 
 // The globe (and three.js) never ships in the initial bundle
@@ -95,7 +96,8 @@ export function Hero({ onSignedIn }: { onSignedIn: () => void }) {
           </m.p>
           <m.div {...rise(0.55)} className="mt-8 max-w-xs">
             <SignInPanel tone="dark" onSignedIn={onSignedIn} />
-            <p className="mt-3 text-sm text-cream-50/75">{t("landing.hero.free")}</p>
+            <InviteCodeEntry className="mt-3" />
+            <p className="mt-2 text-sm text-cream-50/75">{t("landing.hero.free")}</p>
             <p className="mt-2 text-xs leading-relaxed text-cream-50/60">
               {t("product.welcome.consent.before")}
               <Link href="/terms" className="underline underline-offset-2 hover:text-cream-50">

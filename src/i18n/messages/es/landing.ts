@@ -37,13 +37,13 @@ const landing: PartialMessages["landing"] = {
     people: { p1: "Lucía", p2: "Papá", p3: "La abuela Carmen", p4: "La familia García" },
   },
   sorted: {
-    title: "Del caos al plan.",
+    title: "Todas las reservas, un solo plan.",
     text: "Reenvía el correo del vuelo y sube la reserva del hotel. Together los lee y crea el itinerario y el mapa por ti.",
     scattered: "Lo que tienes ahora",
     organized: "Lo que recibe todo el grupo",
     items: {
       flight: "Confirmación de vuelo IB 3240",
-      hotel: "Villa Ortensia — reserva.pdf",
+      hotel: "Reserva Villa Ortensia.pdf",
       link: "maps.app.goo.gl/…",
       note: "No olvidar: entradas para el Etna",
     },
@@ -108,7 +108,7 @@ const landing: PartialMessages["landing"] = {
     skip: "Saltar",
     next: "Siguiente",
     cards: {
-      together: { title: "Todo el grupo, un solo viaje", text: "Envía un enlace y todos —padres, niños y amigos— planifican juntos." },
+      together: { title: "Todo el grupo, un solo viaje", text: "Envía un enlace y padres, niños y amigos planifican juntos." },
       guide: { title: "Conoce a tu guía", text: "Dale un nombre, una personalidad y un aspecto. Sugiere, organiza el itinerario y abre encuestas." },
       organized: { title: "Todo en un lugar", text: "Itinerario, mapa, entradas y cuentas, en el móvil de todos." },
     },

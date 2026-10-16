@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Companion } from "@/components/ai/Companion";
 import { Robot } from "./robot/Robot";
+import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
@@ -477,7 +478,8 @@ function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
           <p className="mt-5 text-[17px] leading-relaxed text-cream-50/75">{t("landing.final.text")}</p>
           <div className="mx-auto mt-9 max-w-xs">
             <SignInPanel tone="dark" onSignedIn={onSignedIn} />
-            <p className="mt-3 text-sm text-cream-50/70">{t("landing.hero.free")}</p>
+            <InviteCodeEntry className="mt-3" />
+            <p className="mt-2 text-sm text-cream-50/70">{t("landing.hero.free")}</p>
           </div>
         </div>
 
@@ -493,12 +495,6 @@ function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
             <Link href="/privacy" className="hover:text-cream-50">
               {t("product.account.privacyLink")}
             </Link>
-            <span>
-              {t("landing.footer.legacy")}{" "}
-              <Link href="/gate" className="text-cream-50/85 underline underline-offset-2 hover:text-cream-50">
-                {t("landing.footer.legacyLink")}
-              </Link>
-            </span>
           </nav>
           <span className="text-cream-50/45">{t("landing.footer.credit")}</span>
         </footer>

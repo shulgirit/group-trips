@@ -529,7 +529,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
   let velocity = 0;
   let lastInteraction = -Infinity;
   let interacted = false;
-  let dragging: { x: number; y: number; t: number; mouse: boolean } | null = null;
+  let dragging: { x: number; y: number; t: number } | null = null;
   const onPointerMove = (event: PointerEvent) => {
     const rect = canvas.getBoundingClientRect();
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -539,15 +539,15 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
     const dx = (event.clientX - dragging.x) * 0.0065;
     dragOffset += dx;
     velocity = dx / Math.max(8, now - dragging.t) * 16;
-    if (dragging.mouse) {
-      dragTilt = Math.max(-0.5, Math.min(0.5, dragTilt + (event.clientY - dragging.y) * 0.004));
-    }
+    // Vertical turns too — on touch the browser keeps gestures that start
+    // vertical for page scrolling, so this applies once a spin has begun
+    dragTilt = Math.max(-1.15, Math.min(1.15, dragTilt + (event.clientY - dragging.y) * 0.0055));
     dragging = { ...dragging, x: event.clientX, y: event.clientY, t: now };
     lastInteraction = now;
     if (reduced) resume();
   };
   const onPointerDown = (event: PointerEvent) => {
-    dragging = { x: event.clientX, y: event.clientY, t: performance.now(), mouse: event.pointerType === "mouse" };
+    dragging = { x: event.clientX, y: event.clientY, t: performance.now() };
     velocity = 0;
     lastInteraction = performance.now();
     if (!interacted) {
@@ -562,6 +562,8 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointerup", onPointerUp);
+  // the browser takes over vertical swipes for scrolling → treat as release
+  canvas.addEventListener("pointercancel", onPointerUp);
 
   const projected = new Vector3();
   const toCamera = new Vector3();
@@ -704,6 +706,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onReducedInteract);
       window.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
       clearRoutes();
       for (const item of ambient) {
         item.mesh.geometry.dispose();
