@@ -1,0 +1,24 @@
+{
+  "name": "@together/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Server-only third-party integrations (Google Places, Firecrawl, OpenAI extraction, exchange rates) used by Convex actions and, until cutover, the Next.js API routes.",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@together/shared": "workspace:*",
+    "openai": "^7.4.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@together/config": "workspace:*",
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}

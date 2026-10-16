@@ -1,7 +1,7 @@
 import "server-only";
 
 import { adminDb } from "@/lib/firebase/admin";
-import { geocodePlace } from "@/lib/server/import-place";
+import { geocodePlace } from "@together/integrations/import-place";
 
 /** Misses are remembered for a week so we don't pay Google to ask again. */
 export const PHOTO_RETRY_MS = 7 * 24 * 60 * 60 * 1000;

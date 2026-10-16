@@ -6,7 +6,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { wazeUrl } from "@together/shared/nav";
 import { samePlaceName } from "@together/shared/place-name";
 import { enrichSavedPlace } from "@/lib/server/enrich";
-import { geocodePlace, importPlaceFromUrl } from "@/lib/server/import-place";
+import { geocodePlace, importPlaceFromUrl } from "@together/integrations/import-place";
 import { sendPushToAll } from "@/lib/server/push";
 import type { Locale } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";

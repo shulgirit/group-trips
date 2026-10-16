@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAnyAccess } from "@/lib/server/auth";
-import { fetchExchangeRates } from "@/lib/server/rates";
+import { fetchExchangeRates } from "@together/integrations/rates";
 
 export async function GET(request: Request) {
   const access = await requireAnyAccess(request);

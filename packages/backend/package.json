@@ -1,0 +1,38 @@
+{
+  "name": "@together/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./api": "./convex/_generated/api.js",
+    "./dataModel": "./convex/_generated/dataModel.d.ts",
+    "./server": "./convex/_generated/server.js"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "typecheck": "tsc --noEmit -p convex && tsc --noEmit -p test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@better-auth/expo": "1.6.33",
+    "@convex-dev/better-auth": "0.12.5",
+    "@convex-dev/resend": "0.2.9",
+    "@together/i18n": "workspace:*",
+    "@together/integrations": "workspace:*",
+    "@together/shared": "workspace:*",
+    "better-auth": "1.6.33",
+    "convex": "1.46.0",
+    "convex-helpers": "0.1.128",
+    "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "5.0.0",
+    "@together/config": "workspace:*",
+    "@types/node": "^22",
+    "@types/web-push": "^3.6.4",
+    "convex-test": "0.0.62",
+    "typescript": "^5",
+    "vitest": "5.0.4"
+  }
+}

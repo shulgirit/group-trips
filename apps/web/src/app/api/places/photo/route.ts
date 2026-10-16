@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
 import { authorizeTrip } from "@/lib/server/auth";
-import { geocodePlace } from "@/lib/server/import-place";
+import { geocodePlace } from "@together/integrations/import-place";
 import { ensureTripCover, PHOTO_RETRY_MS } from "@/lib/server/photos";
 
 /**

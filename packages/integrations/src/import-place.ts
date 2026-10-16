@@ -1,4 +1,3 @@
-import "server-only";
 import OpenAI from "openai";
 import { z } from "zod";
 import { PLACE_CATEGORIES } from "@together/shared/types";

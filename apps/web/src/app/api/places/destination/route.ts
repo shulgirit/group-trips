@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/server/auth";
 import {
   autocompleteDestination,
   resolveDestination,
-} from "@/lib/server/destination";
+} from "@together/integrations/destination";
 
 /** Trip creator: GET ?q= autocompletes, GET ?placeId= resolves. */
 export async function GET(request: Request) {

@@ -24,6 +24,7 @@
     "@capacitor/splash-screen": "8.0.2",
     "@capacitor/status-bar": "8.0.4",
     "@together/i18n": "workspace:*",
+    "@together/integrations": "workspace:*",
     "@together/shared": "workspace:*",
     "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",

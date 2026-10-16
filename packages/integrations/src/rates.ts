@@ -1,5 +1,3 @@
-import "server-only";
-
 export interface ExchangeRates {
   /** ILS per 1 EUR */
   ilsPerEur: number;
@@ -11,7 +9,7 @@ export interface ExchangeRates {
   updatedAt: number;
 }
 
-// Warm-lambda cache on top of the Next data cache
+// Warm-instance cache
 let cached: { data: ExchangeRates; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -25,7 +23,6 @@ export async function fetchExchangeRates(): Promise<ExchangeRates | null> {
   try {
     const response = await fetch("https://open.er-api.com/v6/latest/EUR", {
       signal: controller.signal,
-      next: { revalidate: 21_600 },
     });
     if (!response.ok) return null;
     const payload = (await response.json()) as {

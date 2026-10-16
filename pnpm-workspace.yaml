@@ -5,6 +5,7 @@ packages:
 # Dependencies allowed to run install scripts (pnpm blocks all others)
 allowBuilds:
   '@firebase/util': true
+  esbuild: true
   protobufjs: true
   unrs-resolver: true
 

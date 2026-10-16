@@ -5,7 +5,7 @@ import { z } from "zod";
 import { adminBucket, adminDb } from "@/lib/firebase/admin";
 import { BookingItemSchema, type BookingItem } from "@together/shared/booking";
 import { samePlaceName } from "@together/shared/place-name";
-import { geocodePlace } from "@/lib/server/import-place";
+import { geocodePlace } from "@together/integrations/import-place";
 import type { TripConfig } from "@together/shared/trips";
 import type { Locale } from "@together/i18n/config";
 import { translate } from "@together/i18n/translate";

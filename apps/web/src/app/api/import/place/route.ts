@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authorizeTrip } from "@/lib/server/auth";
 import { requestLocale } from "@/i18n/server";
-import { ImportError, importPlaceFromUrl } from "@/lib/server/import-place";
+import { ImportError, importPlaceFromUrl } from "@together/integrations/import-place";
 
 export const maxDuration = 120;
 

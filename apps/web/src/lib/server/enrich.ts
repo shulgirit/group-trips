@@ -7,7 +7,7 @@ import {
   geocodePlace,
   importPlaceFromUrl,
   type PlaceDraft,
-} from "@/lib/server/import-place";
+} from "@together/integrations/import-place";
 import type { TripConfig } from "@together/shared/trips";
 
 export interface EnrichResult {
