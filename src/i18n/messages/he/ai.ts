@@ -20,6 +20,7 @@ const ai = {
   toPoll: "לסקר…",
   tellMore: "ספרו לי עוד",
   website: "אתר",
+  canDo: "מה אני יודע לעשות",
   thinking: "חושב",
   attachedPhoto: "תמונה מצורפת",
   photoWillSend: "התמונה תישלח עם ההודעה",

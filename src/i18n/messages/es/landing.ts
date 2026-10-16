@@ -56,6 +56,15 @@ const landing: PartialMessages["landing"] = {
     },
   },
   ai: {
+    meet: "Conoce a tu guía",
+    caps: {
+      places: { title: "Encuentra lugares reales", text: "Busca en Google Maps, con fotos, valoraciones y horarios." },
+      plan: { title: "Lo pone en el itinerario", text: "Añade lugares y planes al itinerario de todos." },
+      poll: { title: "Zanja debates", text: "Abre una encuesta y añade opciones cuando el grupo duda." },
+      read: { title: "Lee lo que le envías", text: "Confirmaciones de reserva, entradas y fotos." },
+      group: { title: "Conoce a tu grupo", text: "Quién viene, la edad de los niños y las reglas que pongáis." },
+      language: { title: "Habla tu idioma", text: "Responde en español, inglés, hebreo o árabe." },
+    },
     title: "Una guía de viaje que conoce a tu grupo.",
     text: "Le eliges nombre y personalidad. Sugiere lugares, los añade al itinerario y abre una encuesta cuando hay que decidir.",
     question: "¿Un sitio para cenar cerca de la villa que vaya bien con los niños?",

@@ -299,3 +299,51 @@ body {
     radial-gradient(120% 70% at 50% 135%, rgb(111 159 179 / 0.32) 0%, rgb(111 159 179 / 0.08) 45%, transparent 62%),
     radial-gradient(60% 40% at 50% 118%, rgb(216 178 119 / 0.18) 0%, transparent 70%);
 }
+
+/* ── AI guide presence (Companion) ────────────────────────── */
+
+.companion-fallback {
+  background:
+    radial-gradient(circle at 35% 30%, rgb(216 178 119 / 0.95), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgb(111 159 179 / 0.9), transparent 60%),
+    radial-gradient(circle at 50% 50%, #1c2a43 0%, #1c2a43 60%, transparent 71%);
+  filter: blur(2px);
+  animation: companion-breathe 5s var(--ease-in-out-cubic) infinite;
+}
+.companion-thinking .companion-fallback {
+  animation-duration: 1.4s;
+}
+@keyframes companion-breathe {
+  0%,
+  100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+/* The guide's stage: a faint brass/sea light behind the orb */
+.ai-aura {
+  background:
+    radial-gradient(40% 50% at 82% 28%, rgb(216 178 119 / 0.12), transparent 70%),
+    radial-gradient(45% 55% at 70% 40%, rgb(111 159 179 / 0.1), transparent 70%);
+}
+[dir="rtl"] .ai-aura {
+  background:
+    radial-gradient(40% 50% at 18% 28%, rgb(216 178 119 / 0.12), transparent 70%),
+    radial-gradient(45% 55% at 30% 40%, rgb(111 159 179 / 0.1), transparent 70%);
+}
+
+/* Tiny static orb used as the guide's avatar on each reply (no WebGL per message) */
+.companion-dot {
+  display: inline-block;
+  height: 14px;
+  width: 14px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, #e7cfa4, transparent 60%),
+    radial-gradient(circle at 70% 72%, #6f9fb3, transparent 65%),
+    #1c2a43;
+  box-shadow: 0 0 0 2px rgb(176 138 85 / 0.18);
+}

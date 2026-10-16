@@ -5,15 +5,22 @@ import { useRef } from "react";
 import { m, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import {
   BedDouble,
+  CalendarPlus,
   Car,
   Check,
   FileText,
+  Languages,
   Link2,
+  MapPinned,
   Plane,
+  ScanText,
   StickyNote,
+  Users,
   UtensilsCrossed,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
+import { Companion } from "@/components/ai/Companion";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
@@ -276,46 +283,91 @@ function SortedSection() {
   );
 }
 
-/* ── 3. AI travel guide ─────────────────────────────────────── */
+/* ── 3. AI travel guide — the guide's own stage ───────────── */
+
+const CAPS: { key: string; Icon: LucideIcon }[] = [
+  { key: "places", Icon: MapPinned },
+  { key: "plan", Icon: CalendarPlus },
+  { key: "poll", Icon: Vote },
+  { key: "read", Icon: ScanText },
+  { key: "group", Icon: Users },
+  { key: "language", Icon: Languages },
+];
 
 function AiSection() {
   const t = useT();
   return (
-    <section className="bg-chart-50 px-5 py-24 lg:px-10 lg:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
-        <div
-          className="relative order-2 rounded-[1.75rem] bg-white p-5 shadow-[0_1px_2px_rgb(15_27_45/0.05),0_24px_48px_-32px_rgb(15_27_45/0.35)] sm:p-7 lg:order-1"
-          aria-label={t("landing.example")}
-        >
-          <ExampleTag />
-          <div className="flex justify-end pt-8">
-            <p className="max-w-[80%] rounded-2xl rounded-ee-md bg-night-950 px-4 py-3 text-[15px] leading-relaxed text-cream-50">
-              {t("landing.ai.question")}
-            </p>
-          </div>
-          <div className="mt-5 max-w-[92%]">
-            <p className="text-[15px] leading-relaxed text-ink-900">{t("landing.ai.answer")}</p>
-            <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-              {[
-                ["landing.ai.place1", "landing.ai.place1Meta"],
-                ["landing.ai.place2", "landing.ai.place2Meta"],
-              ].map(([name, meta]) => (
-                <li key={name} className="rounded-xl border border-chart-200 px-4 py-3">
-                  <span className="block text-[15px] font-medium text-ink-900" dir="ltr">
-                    {t(name as TKey)}
-                  </span>
-                  <span className="mt-0.5 block text-sm text-ink-500">{t(meta as TKey)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-route-100 px-3 py-1.5 text-sm text-route-700">
-              <Check size={15} strokeWidth={2} aria-hidden />
-              {t("landing.ai.done")}
-            </p>
+    <section className="relative isolate overflow-hidden bg-night-950 px-5 py-24 text-cream-50 lg:px-10 lg:py-32">
+      <div aria-hidden className="ai-aura absolute inset-0 -z-10" />
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:gap-14">
+          <Companion
+            size={176}
+            ground="night"
+            interactive
+            label={t("landing.ai.meet")}
+            className="lg:order-2 lg:ms-auto lg:!h-[260px] lg:!w-[260px]"
+          />
+          <div className="max-w-xl lg:order-1">
+            <p className="text-sm text-brass-300">{t("landing.ai.meet")}</p>
+            <h2 className="mt-2 font-serif text-display-sm font-medium lg:text-display">{t("landing.ai.title")}</h2>
+            <p className="mt-5 text-[17px] leading-relaxed text-cream-50/75">{t("landing.ai.text")}</p>
           </div>
         </div>
-        <div className="order-1 lg:order-2">
-          <SectionText title="landing.ai.title" text="landing.ai.text" />
+
+        <div className="mt-14 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          {/* example conversation */}
+          <div
+            className="relative rounded-[1.75rem] border border-cream-50/10 bg-night-900 p-5 sm:p-7"
+            aria-label={t("landing.example")}
+          >
+            <ExampleTag tone="dark" />
+            <div className="flex justify-end pt-8">
+              <p className="max-w-[82%] rounded-2xl rounded-ee-md bg-cream-50 px-4 py-3 text-[15px] leading-relaxed text-night-950">
+                {t("landing.ai.question")}
+              </p>
+            </div>
+            <div className="mt-5 flex gap-3">
+              <Companion size={36} ground="night" className="-mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] leading-relaxed text-cream-50/90">{t("landing.ai.answer")}</p>
+                <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                  {[
+                    ["landing.ai.place1", "landing.ai.place1Meta"],
+                    ["landing.ai.place2", "landing.ai.place2Meta"],
+                  ].map(([name, meta]) => (
+                    <li key={name} className="rounded-xl border border-cream-50/10 bg-night-800 px-4 py-3">
+                      <span className="block text-[15px] font-medium" dir="ltr">
+                        {t(name as TKey)}
+                      </span>
+                      <span className="mt-0.5 block text-sm text-cream-50/60">{t(meta as TKey)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-route-500/25 px-3 py-1.5 text-sm text-route-100">
+                  <Check size={15} strokeWidth={2} aria-hidden />
+                  {t("landing.ai.done")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* what it can actually do (its real tools) */}
+          <ul className="grid content-start gap-x-8 gap-y-7 sm:grid-cols-2">
+            {CAPS.map(({ key, Icon }) => (
+              <li key={key} className="flex gap-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-brass-500/40 text-brass-300">
+                  <Icon size={18} strokeWidth={STROKE} aria-hidden />
+                </span>
+                <span>
+                  <span className="block font-medium">{t(`landing.ai.caps.${key}.title` as TKey)}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-cream-50/65">
+                    {t(`landing.ai.caps.${key}.text` as TKey)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
@@ -338,8 +390,8 @@ function TogetherSection() {
   ];
   const total = options.reduce((sum, option) => sum + option.votes, 0);
   return (
-    <section className="bg-chart-50 px-5 pb-24 lg:px-10 lg:pb-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 border-t border-chart-200 pt-24 lg:grid-cols-[0.9fr_1.1fr] lg:pt-32">
+    <section className="bg-chart-50 px-5 py-24 lg:px-10 lg:py-32">
+      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
         <SectionText title="landing.together.title" text="landing.together.text" />
         <div className="relative grid gap-4 sm:grid-cols-[1.2fr_1fr]" aria-label={t("landing.example")}>
           <div className="relative rounded-[1.75rem] bg-white p-6 shadow-[0_1px_2px_rgb(15_27_45/0.05)]">

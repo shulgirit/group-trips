@@ -70,6 +70,15 @@ const landing: typeof he = {
     },
   },
   ai: {
+    meet: "Meet your guide",
+    caps: {
+      places: { title: "Finds real places", text: "Searches Google Maps, with photos, ratings and hours." },
+      plan: { title: "Puts it on the schedule", text: "Adds places and plans to everyone's itinerary." },
+      poll: { title: "Settles debates", text: "Opens a poll and adds options when the group can't decide." },
+      read: { title: "Reads what you send", text: "Booking confirmations, tickets and photos." },
+      group: { title: "Knows your group", text: "Who's coming, the kids' ages and the rules you set." },
+      language: { title: "Speaks your language", text: "Replies in English, Hebrew, Arabic or Spanish." },
+    },
     title: "A travel guide that knows your group.",
     text: "You give it a name and a personality. It suggests places, adds them to the schedule and opens a poll when you need to decide.",
     question: "Somewhere for dinner near the villa that works for the kids?",

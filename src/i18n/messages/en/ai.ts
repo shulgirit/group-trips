@@ -20,6 +20,7 @@ const ai: typeof he = {
   toPoll: "Add to poll…",
   tellMore: "Tell me more",
   website: "Website",
+  canDo: "What I can do",
   thinking: "Thinking",
   attachedPhoto: "Attached photo",
   photoWillSend: "The photo will be sent with your message",

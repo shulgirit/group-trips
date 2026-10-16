@@ -19,26 +19,34 @@ import {
 } from "firebase/storage";
 import {
   ArrowUp,
+  CalendarPlus,
   Check,
   ChevronRight,
   Globe,
   Heart,
+  Languages,
   Lock,
+  MapPinned,
   Paperclip,
   RotateCcw,
+  ScanText,
+  Sparkles,
   Star,
+  Users,
   Vote,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { AddToPollSheet } from "@/components/polls/AddToPollSheet";
+import { Companion } from "@/components/ai/Companion";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
 import { db, storage, apiFetch } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
-import { CategoryIcon, Glyph, STROKE } from "@/components/ui/Icon";
-import { useLocale, useT } from "@/i18n";
+import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { useLocale, useT, type TKey } from "@/i18n";
 import { formatNumber } from "@/i18n/format";
 import {
   PLACE_CATEGORIES,
@@ -48,6 +56,16 @@ import {
   type PlaceCategory,
 } from "@/types";
 
+
+/** What the guide's tools really do (same list as the landing page) */
+const AI_CAPS: { key: string; Icon: LucideIcon }[] = [
+  { key: "places", Icon: MapPinned },
+  { key: "plan", Icon: CalendarPlus },
+  { key: "poll", Icon: Vote },
+  { key: "read", Icon: ScanText },
+  { key: "group", Icon: Users },
+  { key: "language", Icon: Languages },
+];
 
 export default function AiPage() {
   const { ready, user, personal, profile, epoch } = useFirebase();
@@ -431,10 +449,16 @@ export default function AiPage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
-      <p className="kicker text-ink-500">{trip.ai.kicker}</p>
-      <h1 className="mb-1.5 font-display text-3xl font-light tracking-tight text-ink-900">
-        {trip.ai.title}
-      </h1>
+      {/* The guide, present: its living orb beside its name */}
+      <header className="mb-4 flex items-center gap-4">
+        <Companion size={64} state={loading ? "thinking" : "idle"} ground="page" label={trip.ai.title} />
+        <div className="min-w-0">
+          <h1 className="truncate font-serif text-[1.75rem] font-medium leading-tight text-ink-900">
+            {trip.ai.title}
+          </h1>
+          <p className="mt-0.5 truncate text-sm text-ink-500">{trip.ai.kicker}</p>
+        </div>
+      </header>
       <p className="mb-4 flex items-start gap-1.5 text-sm leading-relaxed text-ink-500">
         {personal && (
           <Lock
@@ -515,37 +539,44 @@ export default function AiPage() {
       <div className="flex-1 space-y-4">
         {messages.length === 0 && (
           <>
-            <div className="card relative overflow-hidden px-6 py-8 text-center">
-              <span
-                aria-hidden
-                className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-cream-200 text-lemon-600"
-              >
-                <Glyph value={trip.ai.emoji} size={22} />
-              </span>
-              <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-ink-500">
+            <div className="rounded-[1.75rem] bg-night-950 px-6 pb-6 pt-8 text-cream-50">
+              <Companion size={112} ground="night" interactive className="mx-auto" />
+              <p className="mx-auto mt-5 max-w-sm text-center text-[15px] leading-relaxed text-cream-50/85">
                 {trip.ai.heroBlurb}
               </p>
+              <p className="mt-6 text-xs text-cream-50/55">{t("ai.canDo")}</p>
+              <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+                {AI_CAPS.map(({ key, Icon }) => (
+                  <li key={key} className="flex items-center gap-2.5 text-sm text-cream-50/85">
+                    <Icon size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-brass-300" />
+                    <span className="leading-snug">{t(`landing.ai.caps.${key}.title` as TKey)}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <ul className="space-y-2">
               {trip.ai.suggestedPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => send(prompt)}
-                  className="rounded-2xl border border-cream-200 bg-white px-4 py-2.5 text-start text-sm text-sea-700 transition active:scale-[0.98]"
-                >
-                  {prompt}
-                </button>
+                <li key={prompt}>
+                  <button
+                    type="button"
+                    onClick={() => send(prompt)}
+                    className="flex w-full items-center gap-3 rounded-2xl border border-chart-200 bg-white px-4 py-3.5 text-start text-[15px] text-ink-900 transition active:scale-[0.99] active:bg-chart-50"
+                  >
+                    <Sparkles size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-brass-500" />
+                    <span className="flex-1">{prompt}</span>
+                    <ChevronRight size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-300 rtl:rotate-180" />
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </>
         )}
 
         {messages.map((message, messageIndex) => (
           <div key={messageIndex}>
             {message.role === "assistant" && (
-              <p className="mb-1.5 ms-auto flex w-fit items-center gap-1.5 text-xs text-ink-500">
-                <Glyph value={trip.ai.emoji} size={14} className="text-lemon-600" />
+              <p className="mb-1.5 ms-auto flex w-fit items-center gap-2 text-xs text-ink-500">
+                <span aria-hidden className="companion-dot" />
                 {trip.ai.title}
               </p>
             )}
@@ -734,8 +765,9 @@ export default function AiPage() {
         ))}
 
         {loading && (
-          <div className="ms-auto w-fit rounded-3xl rounded-ee-md border border-cream-200 bg-white px-4 py-3 text-ink-500">
-            <span className="inline-flex gap-1">
+          <div className="ms-auto flex w-fit items-center gap-3 rounded-3xl rounded-ee-md border border-chart-200 bg-white py-2 pe-4 ps-2 text-ink-500">
+            <Companion size={32} state="thinking" ground="white" />
+            <span className="inline-flex gap-1 text-sm">
               {t("ai.thinking")}
               <span className="animate-pulse">…</span>
             </span>
