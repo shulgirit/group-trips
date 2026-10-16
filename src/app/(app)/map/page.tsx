@@ -1,5 +1,7 @@
 "use client";
 
+import { CHART_MAP_STYLE } from "@/lib/map-style";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -142,7 +144,8 @@ export default function MapPage() {
     [places]
   );
   const { events } = useEvents();
-  const [filter, setFilter] = useState<FilterId>("scheduled");
+  // null = automatic: scheduled places when there are any, otherwise all of them
+  const [chosenFilter, setFilter] = useState<FilterId | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [selected, setSelected] = useState<Place | null>(null);
@@ -170,6 +173,7 @@ export default function MapPage() {
       ),
     [events]
   );
+  const filter: FilterId = chosenFilter ?? (scheduledIds.size > 0 ? "scheduled" : "all");
 
   const mappablePlaces = useMemo(
     () =>
@@ -249,6 +253,7 @@ export default function MapPage() {
         zoom: 8,
         disableDefaultUI: true,
         zoomControl: true,
+        styles: CHART_MAP_STYLE,
         clickableIcons: false,
       });
       mapRef.current.addListener("click", () => setSelected(null));

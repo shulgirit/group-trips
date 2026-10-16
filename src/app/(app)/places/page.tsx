@@ -181,7 +181,7 @@ export default function PlacesPage() {
           }
         />
       ) : (
-        <ul className="space-y-4">
+        <ul className="grid gap-4 md:grid-cols-2">
           {visiblePlaces.map((place) => (
             <li key={place.id}>
               <PlaceCard
