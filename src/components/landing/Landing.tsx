@@ -2,6 +2,7 @@
 
 import { LazyMotion, MotionConfig } from "motion/react";
 import { Hero } from "./Hero";
+import { Story } from "./Story";
 
 const loadFeatures = () => import("./motion-features").then((mod) => mod.default);
 
@@ -12,6 +13,7 @@ export function Landing({ onSignedIn }: { onSignedIn: () => void }) {
       <MotionConfig reducedMotion="user">
         <main className="min-h-dvh bg-night-950">
           <Hero onSignedIn={onSignedIn} />
+          <Story onSignedIn={onSignedIn} />
         </main>
       </MotionConfig>
     </LazyMotion>

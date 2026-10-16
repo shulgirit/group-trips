@@ -271,3 +271,22 @@ body {
   color: #f3ebde;
   backdrop-filter: blur(6px);
 }
+
+/* Night gives way to morning: the story moves from dreaming to organized */
+.dawn {
+  background: linear-gradient(
+    to bottom,
+    var(--color-night-950) 0%,
+    #1a293c 22%,
+    #4e6175 45%,
+    #9fadb2 68%,
+    var(--color-chart-50) 100%
+  );
+}
+
+/* The planet's lit edge returning at the end of the page */
+.final-horizon {
+  background:
+    radial-gradient(120% 70% at 50% 135%, rgb(111 159 179 / 0.32) 0%, rgb(111 159 179 / 0.08) 45%, transparent 62%),
+    radial-gradient(60% 40% at 50% 118%, rgb(216 178 119 / 0.18) 0%, transparent 70%);
+}
