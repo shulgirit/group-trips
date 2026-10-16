@@ -173,6 +173,38 @@ export async function updateExpenseSplit(
   });
 }
 
+/**
+ * Records that one family paid another back ("mark as paid"). Stored with
+ * the expenses so every balance — per currency and the combined shekel
+ * view — settles through the same math.
+ */
+export async function recordSettlement(input: {
+  fromFamilyId: string;
+  toFamilyId: string;
+  amount: number;
+  currency: string;
+  date: string;
+}): Promise<string> {
+  const amount = Math.round(input.amount * 100) / 100;
+  if (!(amount > 0) || input.fromFamilyId === input.toFamilyId) throw new Error("invalid_settlement");
+  const currentUser = auth().currentUser;
+  const ref = await addDoc(
+    collection(db(), `${activeTripPath()}/expenses`),
+    compact({
+      kind: "settlement",
+      payerFamilyId: input.fromFamilyId,
+      participantFamilyIds: [input.toFamilyId],
+      description: "settlement",
+      amount,
+      currency: input.currency,
+      date: input.date,
+      createdAt: Date.now(),
+      settledByName: currentUser?.displayName ?? undefined,
+    })
+  );
+  return ref.id;
+}
+
 export async function deleteExpense(expenseId: string): Promise<void> {
   await deleteDoc(doc(db(), `${activeTripPath()}/expenses/${expenseId}`));
 }

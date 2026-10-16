@@ -2,12 +2,12 @@
 
 import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Plus, Trash2, Users, Wallet } from "lucide-react";
+import { ArrowRight, Check, Plus, Trash2, Users, Wallet } from "lucide-react";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListSkeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { addExpense, deleteExpense, updateExpenseSplit } from "@/lib/db";
+import { addExpense, deleteExpense, recordSettlement, updateExpenseSplit } from "@/lib/db";
 import { useExpenses, useFamilies } from "@/lib/hooks";
 import { calcBalances, calcSettlement } from "@/lib/settlement";
 import { IlsSettlement } from "@/components/expenses/IlsSettlement";
@@ -312,23 +312,38 @@ function ExpensesContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  // Full split + settlement for EACH currency that has expenses
+  // Money paid back ("mark as paid") moves balances but isn't spending
+  const spending = useMemo(() => (expenses ?? []).filter((e) => e.kind !== "settlement"), [expenses]);
+  const settlements = useMemo(
+    () =>
+      (expenses ?? [])
+        .filter((e) => e.kind === "settlement")
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    [expenses]
+  );
+
+  // Full split + settlement for EACH currency that has spending
   const summaries = useMemo(() => {
     if (!expenses || !families) return [];
-    // Every currency that has expenses, most used first
-    const used = [...new Set(expenses.map((e) => e.currency))].sort(
+    // Every currency that has spending, most used first
+    const used = [...new Set(spending.map((e) => e.currency))].sort(
       (a, b) =>
-        expenses.filter((e) => e.currency === b).length -
-        expenses.filter((e) => e.currency === a).length
+        spending.filter((e) => e.currency === b).length -
+        spending.filter((e) => e.currency === a).length
     );
     return used.map((currency) => {
-      const list = expenses.filter((e) => e.currency === currency);
+      const list = spending.filter((e) => e.currency === currency);
       if (!list.length) return null;
+      // balances include repayments; "paid" shows real spending only
       const balances = calcBalances(expenses, families, currency);
+      const spent = calcBalances(spending, families, currency);
       return {
         currency,
         total: list.reduce((sum, e) => sum + e.amount, 0),
-        balances,
+        balances: balances.map((balance) => ({
+          ...balance,
+          paid: spent.find((entry) => entry.familyId === balance.familyId)?.paid ?? 0,
+        })),
         transfers: calcSettlement(balances),
       };
     }).filter(Boolean) as {
@@ -337,20 +352,30 @@ function ExpensesContent() {
       balances: ReturnType<typeof calcBalances>;
       transfers: ReturnType<typeof calcSettlement>;
     }[];
-  }, [expenses, families]);
+  }, [expenses, families, spending]);
+  const openTransfers = summaries.reduce((sum, summary) => sum + summary.transfers.length, 0);
+  const trip = useTrip();
+  const settleTime = todayIso() >= trip.endDate;
+  const [markingKey, setMarkingKey] = useState<string | null>(null);
+  const [settleError, setSettleError] = useState("");
+  async function markPaid(currency: Currency, transfer: { fromFamilyId: string; toFamilyId: string; amount: number }, key: string) {
+    setMarkingKey(key);
+    setSettleError("");
+    try {
+      await recordSettlement({ ...transfer, currency, date: todayIso() });
+    } catch {
+      setSettleError(t("money.settle.failed"));
+    } finally {
+      setMarkingKey(null);
+    }
+  }
 
   // Date tabs for the list
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const expenseDates = useMemo(
-    () => [...new Set((expenses ?? []).map((e) => e.date))],
-    [expenses]
-  );
+  const expenseDates = useMemo(() => [...new Set(spending.map((e) => e.date))], [spending]);
   const visibleExpenses = useMemo(
-    () =>
-      dateFilter === "all"
-        ? (expenses ?? [])
-        : (expenses ?? []).filter((e) => e.date === dateFilter),
-    [expenses, dateFilter]
+    () => (dateFilter === "all" ? spending : spending.filter((e) => e.date === dateFilter)),
+    [spending, dateFilter]
   );
 
   return (
@@ -374,7 +399,7 @@ function ExpensesContent() {
 
       {loading || !families ? (
         <ListSkeleton rows={3} />
-      ) : !expenses?.length ? (
+      ) : !spending.length ? (
         <EmptyState
           icon={Wallet}
           title={t("money.emptyTitle")}
@@ -392,6 +417,30 @@ function ExpensesContent() {
         />
       ) : (
         <>
+          {/* From the last trip day: a nudge to settle, or the all-square state */}
+          {openTransfers > 0 && settleTime && (
+            <a
+              href="#settle"
+              className="flex items-start gap-3 rounded-2xl border border-brass-300 bg-brass-100 px-4 py-3.5 text-ink-900"
+            >
+              <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brass-500" />
+              <span>
+                <span className="block font-medium">{t("money.settle.timeTitle")}</span>
+                <span className="mt-0.5 block text-sm text-ink-700">
+                  {openTransfers === 1
+                    ? t("money.settle.timeTextOne")
+                    : t("money.settle.timeText", { count: openTransfers })}
+                </span>
+              </span>
+            </a>
+          )}
+          {openTransfers === 0 && settlements.length > 0 && (
+            <p className="flex items-center gap-2.5 rounded-2xl bg-route-100 px-4 py-3.5 text-sm font-medium text-route-700">
+              <Check size={18} strokeWidth={2} aria-hidden className="shrink-0" />
+              {t("money.settle.allSettled")}
+            </p>
+          )}
+
           {/* Summary — full split per currency */}
           {summaries.length > 0 && (
             <section className="rounded-[1.75rem] bg-sea-800 p-6 text-white shadow-[var(--shadow-card)]">
@@ -424,8 +473,8 @@ function ExpensesContent() {
                           <bdi dir="ltr" className="numerals tabular-nums">
                             {formatAmount(balance.paid, summary.currency)}
                           </bdi>
-                          {" · "}
-                          {balance.balance >= 0 ? (
+                          {Math.abs(balance.balance) < 0.005 ? null : " · "}
+                          {Math.abs(balance.balance) < 0.005 ? null : balance.balance >= 0 ? (
                             <span className="text-lemon-200">
                               {t("money.owed")}{" "}
                               <bdi dir="ltr" className="numerals tabular-nums">
@@ -445,17 +494,19 @@ function ExpensesContent() {
                     ))}
                   </div>
                   {summary.transfers.length > 0 && (
-                    <div className="mt-3 rounded-2xl border border-white/15 p-4">
+                    <div id="settle" className="mt-3 scroll-mt-24 rounded-2xl border border-white/15 p-4">
                       <p className="kicker mb-2 text-lemon-200">
                         {t("money.settleUp")}
                         {summaries.length > 1
                           ? ` ${currencyParen(summary.currency)}`
                           : ""}
                       </p>
-                      {summary.transfers.map((transfer, i) => (
+                      {summary.transfers.map((transfer, i) => {
+                        const key = `${summary.currency}-${transfer.fromFamilyId}-${transfer.toFamilyId}`;
+                        return (
+                        <div key={i} className="py-1.5">
                         <p
-                          key={i}
-                          className="flex items-center justify-between py-0.5 text-sm"
+                          className="flex items-center justify-between text-sm"
                         >
                           <span className="flex items-center gap-1.5">
                             {familyName(families, transfer.fromFamilyId)}
@@ -471,13 +522,68 @@ function ExpensesContent() {
                             {formatAmount(transfer.amount, summary.currency)}
                           </b>
                         </p>
-                      ))}
+                        <button
+                          type="button"
+                          disabled={markingKey !== null}
+                          onClick={() => markPaid(summary.currency, transfer, key)}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-cream-50 px-3.5 py-1.5 text-sm font-medium text-night-950 transition active:scale-[0.97] disabled:opacity-60"
+                        >
+                          <Check size={15} strokeWidth={2} aria-hidden />
+                          {markingKey === key ? t("money.settle.marking") : t("money.settle.markPaid")}
+                        </button>
+                        </div>
+                        );
+                      })}
+                      {settleError && <p className="mt-2 text-sm text-terra-100">{settleError}</p>}
                     </div>
                   )}
                 </div>
               ))}
 
               <IlsSettlement expenses={expenses ?? []} families={families} />
+              {openTransfers > 0 && (
+                <p className="mt-3 text-xs leading-relaxed text-sea-100">{t("money.settle.ilsNote")}</p>
+              )}
+            </section>
+          )}
+
+          {/* Repayments live here — never mixed into the expense rows */}
+          {settlements.length > 0 && (
+            <section aria-labelledby="settled">
+              <h2 id="settled" className="mb-2 text-sm font-medium text-ink-500">
+                {t("money.settle.settledTitle")}
+              </h2>
+              <ul className="divide-y divide-cream-200 rounded-2xl bg-white">
+                {settlements.map((settlement) => (
+                  <li key={settlement.id} className="flex items-center gap-3 px-4 py-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-route-100 text-route-700">
+                      <Check size={15} strokeWidth={2} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm text-ink-900">
+                        {t("money.settle.line", {
+                          from: familyName(families, settlement.payerFamilyId),
+                          to: familyName(families, settlement.participantFamilyIds?.[0] ?? ""),
+                        })}
+                      </span>
+                      <span className="block text-xs text-ink-500">
+                        {formatShortDate(settlement.date)}
+                        {settlement.settledByName ? ` · ${t("money.settle.by", { name: settlement.settledByName })}` : ""}
+                      </span>
+                    </span>
+                    <b dir="ltr" className="shrink-0 text-sm font-medium tabular-nums text-ink-900">
+                      {formatAmount(settlement.amount, settlement.currency)}
+                    </b>
+                    <button
+                      type="button"
+                      onClick={() => deleteExpense(settlement.id)}
+                      className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-ink-500 active:bg-cream-100"
+                    >
+                      {t("money.settle.undo")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

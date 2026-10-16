@@ -1,4 +1,4 @@
-import { Amiri, Frank_Ruhl_Libre, IBM_Plex_Sans_Arabic, IBM_Plex_Sans_Hebrew, Jost } from "next/font/google";
+import { Amiri, Frank_Ruhl_Libre, IBM_Plex_Sans_Arabic, IBM_Plex_Sans_Hebrew, Jost, Open_Sans } from "next/font/google";
 
 /** UI face — Hebrew + Latin in one family. */
 export const plex = IBM_Plex_Sans_Hebrew({
@@ -42,4 +42,12 @@ export const amiri = Amiri({
   variable: "--font-amiri",
   display: "swap",
   preload: false,
+});
+
+/** Hebrew UI face (Omer's choice): text and headings when the app is in Hebrew. */
+export const openSans = Open_Sans({
+  subsets: ["hebrew", "latin"],
+  weight: "variable",
+  variable: "--font-open-sans",
+  display: "swap",
 });

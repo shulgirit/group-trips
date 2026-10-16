@@ -111,6 +111,24 @@ body {
   letter-spacing: 0.005em;
 }
 
+/* Hebrew reads in Open Sans — body and headings (other languages keep Plex + the serif) */
+html:lang(he) {
+  --font-sans: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+}
+/* utility classes have the font baked in (Tailwind inline theme) — override them too */
+html:lang(he) .font-sans,
+html:lang(he) .font-display,
+html:lang(he) .font-serif {
+  font-family: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+}
+html:lang(he) .font-display,
+html:lang(he) .font-serif {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-brass-500);
   outline-offset: 2px;

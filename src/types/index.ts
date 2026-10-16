@@ -104,6 +104,14 @@ export interface Expense {
    */
   participantCounts?: Record<string, number>;
   createdAt?: number;
+  /**
+   * "settlement" = money handed back after the trip ("mark as paid"):
+   * payer = the family that paid, participantFamilyIds = [the family that
+   * received]. It moves balances like any expense but is never counted as
+   * spending or listed with the expenses.
+   */
+  kind?: "settlement";
+  settledByName?: string;
 }
 
 export interface PollOption {
