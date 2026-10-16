@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependencies allowed to run install scripts (pnpm blocks all others)
+allowBuilds:
+  '@firebase/util': true
+  protobufjs: true
+  unrs-resolver: true
+
+# firebase-admin pulls an ESM-only jwks-rsa that crashes on Vercel; keep the
+# CJS build until firebase-admin is removed (migration phase 9).
+overrides:
+  firebase-admin>jwks-rsa: 3.2.0

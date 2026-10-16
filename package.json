@@ -1,59 +1,18 @@
 {
-  "name": "group-trips",
-  "version": "0.1.0",
+  "name": "together",
   "private": true,
+  "packageManager": "pnpm@12.14.0",
   "engines": {
     "node": "22.x"
   },
-  "overrides": {
-    "firebase-admin": {
-      "jwks-rsa": "3.2.0"
-    }
-  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test:rules": "node tests/rules.test.mjs"
-  },
-  "dependencies": {
-    "@capacitor-firebase/authentication": "8.5.2",
-    "@capacitor-firebase/messaging": "8.5.2",
-    "@capacitor/android": "8.5.3",
-    "@capacitor/app": "8.1.2",
-    "@capacitor/core": "8.5.3",
-    "@capacitor/geolocation": "8.2.3",
-    "@capacitor/ios": "8.5.3",
-    "@capacitor/splash-screen": "8.0.2",
-    "@capacitor/status-bar": "8.0.4",
-    "firebase": "^12.17.1",
-    "firebase-admin": "^14.2.0",
-    "lucide-react": "^1.31.0",
-    "motion": "^14.3.0",
-    "next": "16.3.1",
-    "openai": "^7.4.0",
-    "qrcode": "^1.5.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "server-only": "^0.0.1",
-    "three": "^0.186.1",
-    "web-push": "^3.6.7",
-    "zod": "^4.4.3"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.5.3",
-    "@firebase/rules-unit-testing": "5.0.2",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/qrcode": "^1.5.5",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/three": "^0.186.0",
-    "@types/web-push": "^3.6.4",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "turbo": "2.11.9"
   }
 }

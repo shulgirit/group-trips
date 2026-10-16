@@ -12,6 +12,7 @@
 workflows:
   ios-testflight:
     name: iOS → TestFlight
+    working_directory: apps/web
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
@@ -31,7 +32,7 @@ workflows:
         - pattern: "app-v*"
     scripts:
       - name: Install
-        script: npm ci
+        script: corepack enable && pnpm install --frozen-lockfile
       - name: Firebase config
         script: echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/App/App/GoogleService-Info.plist
       - name: Sync native project
@@ -56,6 +57,7 @@ workflows:
 
   android-play:
     name: Android → Google Play (internal)
+    working_directory: apps/web
     max_build_duration: 45
     instance_type: linux_x2
     environment:
@@ -73,7 +75,7 @@ workflows:
         - pattern: "app-v*"
     scripts:
       - name: Install
-        script: npm ci
+        script: corepack enable && pnpm install --frozen-lockfile
       - name: Firebase config
         script: echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
       - name: Sync native project

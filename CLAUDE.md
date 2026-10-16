@@ -5,8 +5,20 @@ Private, Hebrew-first, RTL, mobile-first PWA for four Israeli families
 Sicily **Aug 15–24, 2026**. Production: https://sicily-together.vercel.app
 (Vercel project `sicily-together`, scope `omer-9257s-projects`).
 
+## Monorepo + migration (2026-10)
+
+pnpm + Turborepo. The Next.js app lives in **`apps/web`** — every `src/…`,
+`public/…`, `scripts/…` path below is relative to it. Root: `pnpm install`,
+`pnpm build` / `pnpm typecheck` / `pnpm lint` (turbo). Vercel Root Directory
+is `apps/web`. pnpm blocks install scripts unless listed in
+`pnpm-workspace.yaml` `allowBuilds`.
+
+A staged migration to **Convex + Better Auth + an Expo app** is under way —
+read `docs/architecture/migration-plan.md` and keep
+`docs/migration/checklist.md` current in every PR that moves a feature.
+
 > ## ⚠️ THE APP IS LIVE AND IN USE DURING THE TRIP
-> Real families depend on it right now. Before every push: `npm run build`
+> Real families depend on it right now. Before every push: `pnpm build`
 > must pass, think about data migrations (Firestore has live data), and
 > prefer additive changes. Never create test data without deleting it after.
 
@@ -70,7 +82,7 @@ Locally they're in `.env.local` (gitignored). **Never commit secrets.**
 Next.js 16 App Router (Turbopack) · TypeScript strict · Tailwind **v4**
 (`@theme` tokens in `globals.css`) · Firebase (Firestore/Storage/Auth,
 client SDK + Admin SDK) · OpenAI `gpt-5.1` · Firecrawl v2 · Google Places
-API (New) · web-push · Vercel. Node 22 (`engines`), npm `overrides` pins
+API (New) · web-push · Vercel. Node 22 (`engines`), pnpm `overrides` (pnpm-workspace.yaml) pins
 `jwks-rsa@3.2.0` (ESM crash on Vercel otherwise — don't remove).
 
 ## Map
@@ -139,7 +151,7 @@ same size as siblings) · לו״ז · מפה · מקומות · עוד.
   add_place → create_event.
 - `updateEvent` clears `reminderSentAt` (deleteField) so moved events
   re-remind.
-- Verification pattern: `npm run build` first, and for UI use
+- Verification pattern: `pnpm build` first, and for UI use
   playwright-core headless screenshots (a `shot.mjs` with the session
   cookie; suppress the onboarding tour via localStorage
   `micha-tour-seen-v1`).
@@ -150,7 +162,7 @@ The service-account JSON is **not in git** (only on Omer's laptop and in
 the `FIREBASE_SERVICE_ACCOUNT` repo secret — keep it that way). Remote
 sessions run admin/data-fix scripts through GitHub Actions:
 
-1. Write a script under `scripts/admin/<name>.mjs` (use
+1. Write a script under `apps/web/scripts/admin/<name>.mjs` (use
    `applicationDefault()` credentials — see `health-check.mjs`), commit,
    push.
 2. `gh workflow run admin.yml -f script=<name>.mjs`

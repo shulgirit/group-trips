@@ -1,6 +1,12 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
+// Monorepo root: Turbopack resolves workspace packages and the pnpm store from here
+const repoRoot = path.join(__dirname, "../..");
+
 const nextConfig: NextConfig = {
+  turbopack: { root: repoRoot },
+  outputFileTracingRoot: repoRoot,
   // iOS fetches the universal-links file without an extension — it must be JSON
   async headers() {
     return [
