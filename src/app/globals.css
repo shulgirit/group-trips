@@ -53,6 +53,36 @@
   --color-olive-500: #5e7f7a;
   --color-olive-100: #e6edeb;
 
+  /* ── Atlas & Journal (docs/design/direction.md) ── */
+  --color-night-950: #070c16;
+  --color-night-900: #0b1322;
+  --color-night-800: #121d31;
+  --color-night-700: #1c2a43;
+  --color-chart-50: #f1f3ef;
+  --color-chart-100: #e7eae4;
+  --color-chart-200: #d9ddd5;
+  --color-brass-600: #957243;
+  --color-brass-500: #b08a55;
+  --color-brass-300: #d8bf95;
+  --color-brass-100: #f3ebde;
+  --color-route-700: #24544f;
+  --color-route-500: #2f6b66;
+  --color-route-300: #8fb7b1;
+  --color-route-100: #e2eeec;
+
+  /* Type scale — modular, nothing in-app below 12px */
+  --text-display-xl: 5.5rem;
+  --text-display-xl--line-height: 1.02;
+  --text-display-lg: 4rem;
+  --text-display-lg--line-height: 1.04;
+  --text-display: 3rem;
+  --text-display--line-height: 1.06;
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 1.1;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+
   --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04), 0 8px 24px -16px rgb(15 27 45 / 0.12);
   --shadow-float: 0 2px 8px rgb(15 27 45 / 0.08), 0 16px 40px -16px rgb(15 27 45 / 0.22);
 }
@@ -61,6 +91,7 @@
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-mark: var(--font-jost), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-frank), "Times New Roman", serif;
 }
 
 /* ── base ─────────────────────────────────────────────────── */
@@ -76,6 +107,11 @@ body {
   background-color: var(--color-cream-50);
   font-feature-settings: "kern", "liga";
   letter-spacing: 0.005em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass-500);
+  outline-offset: 2px;
 }
 
 ::selection {
@@ -187,4 +223,51 @@ body {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Atlas: landing globe ─────────────────────────────────── */
+
+/* Static planet limb — the hero is complete before (or without) WebGL */
+.globe-poster {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 55%, rgb(127 182 196 / 0.22) 61%, transparent 66%),
+    radial-gradient(circle at 42% 38%, #2c4a63 0%, #12233a 38%, #08111d 60%, transparent 61%);
+  background-repeat: no-repeat;
+  background-size: 150vw 150vw;
+  background-position: 50% 30vh;
+}
+@media (min-width: 1024px) {
+  .globe-poster {
+    background-size: 78vh 78vh;
+    background-position: 76% 50%;
+  }
+  [dir="rtl"] .globe-poster {
+    background-position: 24% 50%;
+  }
+}
+
+/* Darkens the top of the frame where text sits over the planet */
+.hero-veil {
+  background: linear-gradient(to bottom, rgb(7 12 22 / 0.92) 0%, rgb(7 12 22 / 0.55) 38%, transparent 62%);
+}
+@media (min-width: 1024px) {
+  .hero-veil {
+    background: linear-gradient(to right, rgb(7 12 22 / 0.85) 0%, rgb(7 12 22 / 0.35) 40%, transparent 60%);
+  }
+  [dir="rtl"] .hero-veil {
+    background: linear-gradient(to left, rgb(7 12 22 / 0.85) 0%, rgb(7 12 22 / 0.35) 40%, transparent 60%);
+  }
+}
+
+.globe-label {
+  display: inline-block;
+  transform: translate(-50%, calc(-100% - 14px));
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid rgb(216 178 119 / 0.45);
+  background: rgb(7 12 22 / 0.72);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #f3ebde;
+  backdrop-filter: blur(6px);
 }

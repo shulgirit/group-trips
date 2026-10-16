@@ -9,7 +9,8 @@ import settings from "./settings";
 import tour from "./tour";
 import config from "./config";
 import server from "./server";
+import landing from "./landing";
 
-const en = { common, product, creator, trip, ai, money, polls, settings, tour, config, server };
+const en = { common, product, creator, trip, ai, money, polls, settings, tour, config, server, landing };
 
 export default en;
