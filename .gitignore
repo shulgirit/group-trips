@@ -55,3 +55,6 @@ AppIcons/
 
 # turborepo
 .turbo/
+
+# migration snapshots contain personal data — never commit
+.migrate/

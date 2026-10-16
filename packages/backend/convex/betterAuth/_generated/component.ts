@@ -1020,4 +1020,20 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         Name
       >;
     };
+    migration: {
+      importUser: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          accounts: Array<{ accountId: string; providerId: string }>;
+          createdAt: number;
+          email: string;
+          emailVerified: boolean;
+          image: string | null;
+          name: string;
+        },
+        string,
+        Name
+      >;
+    };
   };

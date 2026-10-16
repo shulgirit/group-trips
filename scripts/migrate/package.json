@@ -1,0 +1,27 @@
+{
+  "name": "@together/migrate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Firestore + Firebase Auth/Storage → Convex migration (export → transform → load → verify). Idempotent; safe to re-run.",
+  "scripts": {
+    "export": "tsx src/export.ts",
+    "load": "tsx src/load.ts",
+    "verify": "tsx src/verify.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@together/backend": "workspace:*",
+    "@together/shared": "workspace:*",
+    "convex": "1.46.0",
+    "firebase-admin": "^14.2.0"
+  },
+  "devDependencies": {
+    "@together/config": "workspace:*",
+    "@types/node": "^22",
+    "tsx": "4.23.15",
+    "typescript": "^5",
+    "vitest": "5.0.4"
+  }
+}
