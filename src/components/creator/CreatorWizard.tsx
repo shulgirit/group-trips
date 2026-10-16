@@ -116,6 +116,7 @@ async function loadTripState(tripId: string): Promise<CreatorState | null> {
     ai: {
       name: data.ai.name,
       emoji: data.ai.emoji,
+      avatar: data.ai.avatar ?? null,
       preset: data.ai.preset,
       rules: data.ai.rules ?? [],
       customRules: data.ai.customRules ?? "",

@@ -76,6 +76,6 @@ export const config = {
   // Everything is private except the gate screens, the login endpoints,
   // Next.js internals and PWA/static assets.
   matcher: [
-    "/((?!gate|sardinia/gate|sardinia/manifest\\.webmanifest|sardinia/apple-icon|api/auth/login|api/auth/session|api/auth/kid-login|_next|favicon\\.ico|icons/|images/|brand/|globe/|sw\\.js|manifest\\.webmanifest|apple-icon|\\.well-known/).*)",
+    "/((?!gate|sardinia/gate|sardinia/manifest\\.webmanifest|sardinia/apple-icon|api/auth/login|api/auth/session|api/auth/kid-login|_next|favicon\\.ico|icons/|images/|brand/|globe/|avatars/|sw\\.js|manifest\\.webmanifest|apple-icon|\\.well-known/).*)",
   ],
 };

@@ -451,7 +451,7 @@ export default function AiPage() {
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       {/* The guide, present: its living orb beside its name */}
       <header className="mb-4 flex items-center gap-4">
-        <Companion size={64} state={loading ? "thinking" : "idle"} ground="page" label={trip.ai.title} glyph={trip.ai.emoji} />
+        <Companion size={64} state={loading ? "thinking" : "idle"} ground="page" label={trip.ai.title} glyph={trip.ai.emoji} avatar={trip.ai.avatar} />
         <div className="min-w-0">
           <h1 className="truncate font-serif text-[1.75rem] font-medium leading-tight text-ink-900">
             {trip.ai.title}
@@ -540,7 +540,7 @@ export default function AiPage() {
         {messages.length === 0 && (
           <>
             <div className="rounded-[1.75rem] bg-night-950 px-6 pb-6 pt-8 text-cream-50">
-              <Companion size={112} ground="night" interactive glyph={trip.ai.emoji} className="mx-auto" />
+              <Companion size={112} ground="night" interactive glyph={trip.ai.emoji} avatar={trip.ai.avatar} className="mx-auto" />
               <p className="mx-auto mt-5 max-w-sm text-center text-[15px] leading-relaxed text-cream-50/85">
                 {trip.ai.heroBlurb}
               </p>
@@ -576,7 +576,12 @@ export default function AiPage() {
           <div key={messageIndex}>
             {message.role === "assistant" && (
               <p className="mb-1.5 ms-auto flex w-fit items-center gap-2 text-xs text-ink-500">
-                <span aria-hidden className="companion-dot" />
+                {trip.ai.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- small avatar
+                  <img src={trip.ai.avatar} alt="" className="h-5 w-5 rounded-full bg-night-900 object-cover" />
+                ) : (
+                  <span aria-hidden className="companion-dot" />
+                )}
                 {trip.ai.title}
               </p>
             )}
@@ -766,7 +771,7 @@ export default function AiPage() {
 
         {loading && (
           <div className="ms-auto flex w-fit items-center gap-3 rounded-3xl rounded-ee-md border border-chart-200 bg-white py-2 pe-4 ps-2 text-ink-500">
-            <Companion size={32} state="thinking" ground="white" />
+            <Companion size={32} state="thinking" ground="white" avatar={trip.ai.avatar} />
             <span className="inline-flex gap-1 text-sm">
               {t("ai.thinking")}
               <span className="animate-pulse">…</span>

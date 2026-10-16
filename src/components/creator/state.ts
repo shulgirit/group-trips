@@ -54,6 +54,8 @@ export interface CreatorState {
   ai: {
     name: string;
     emoji: string;
+    /** "bot:<id>" or uploaded image URL (src/lib/avatars.ts) */
+    avatar: string | null;
     preset: AiPreset;
     rules: string[];
     customRules: string;
@@ -115,6 +117,7 @@ export function initialState(displayName: string | null): CreatorState {
     ai: {
       name: tActive("creator.ai.presets.butler.name"),
       emoji: "butler",
+      avatar: "bot:butler",
       preset: "butler",
       rules: [],
       customRules: "",

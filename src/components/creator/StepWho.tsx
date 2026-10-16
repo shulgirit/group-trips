@@ -204,6 +204,8 @@ export function StepWho({
                 ai: {
                   name: source.doc.ai.name,
                   emoji: source.doc.ai.emoji,
+                  // uploaded pictures live with the old trip — only gallery robots carry over
+                  avatar: source.doc.ai.avatar?.startsWith("bot:") ? source.doc.ai.avatar : null,
                   preset: source.doc.ai.preset,
                   rules: source.doc.ai.rules,
                   customRules: source.doc.ai.customRules,

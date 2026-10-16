@@ -59,7 +59,12 @@ export function BottomNav() {
                         active ? "ring-lemon-400" : "ring-lemon-500/60"
                       }`}
                     >
-                      <Sparkles size={18} strokeWidth={STROKE} aria-hidden />
+                      {trip.ai.avatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- small avatar
+                        <img src={trip.ai.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
+                      ) : (
+                        <Sparkles size={18} strokeWidth={STROKE} aria-hidden />
+                      )}
                     </span>
                     <span className="block max-w-full truncate">{label}</span>
                   </Link>

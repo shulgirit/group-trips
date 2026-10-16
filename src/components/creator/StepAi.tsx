@@ -6,6 +6,8 @@ import { Glyph, STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { translate } from "@/i18n/translate";
 import { apiFetch } from "@/lib/firebase/client";
+import { PRESET_AVATAR } from "@/lib/avatars";
+import { AvatarPicker } from "./AvatarPicker";
 import { AI_PRESETS, AI_RULES, type AiPreset } from "@/lib/trip-doc";
 import { peopleCounts, primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
 
@@ -45,10 +47,14 @@ export function StepAi({
 
   function pickPreset(preset: Exclude<AiPreset, "custom">) {
     const wasDefaultName = DEFAULT_NAMES.has(ai.name) || !ai.name;
+    // Follow the persona with its robot, unless a look was chosen on purpose
+    const wasDefaultAvatar =
+      !ai.avatar || Object.values(PRESET_AVATAR).some((id) => ai.avatar === `bot:${id}`);
     setAi({
       preset,
       emoji: preset,
       ...(wasDefaultName ? { name: t(`creator.ai.presets.${preset}.name`) } : {}),
+      ...(wasDefaultAvatar ? { avatar: `bot:${PRESET_AVATAR[preset]}` } : {}),
     });
   }
 
@@ -125,6 +131,8 @@ export function StepAi({
           );
         })}
       </section>
+
+      <AvatarPicker tripId={state.tripId} value={ai.avatar} onChange={(avatar) => setAi({ avatar })} />
 
       <section>
         <label className="block space-y-1">

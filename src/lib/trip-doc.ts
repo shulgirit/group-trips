@@ -8,6 +8,7 @@
  * the existing pages render it unchanged.
  */
 
+import { avatarSrc } from "@/lib/avatars";
 import type { TripConfig } from "@/lib/trips";
 import { activeLocale } from "@/i18n/active";
 import type { Locale } from "@/i18n/config";
@@ -55,6 +56,8 @@ export interface TripHomeBase {
 export interface TripAi {
   name: string;
   emoji: string;
+  /** "bot:<id>" or an uploaded image URL — see src/lib/avatars.ts */
+  avatar?: string | null;
   preset: AiPreset;
   /** Toggled rule-chip ids (see AI_RULES) */
   rules: string[];
@@ -465,6 +468,7 @@ export function tripConfigFromDoc(
       title: ai.name,
       kicker: groupName,
       emoji: ai.emoji,
+      avatar: avatarSrc(ai.avatar),
       heroBlurb: t("config.ai.heroBlurb", { name: ai.name }),
       subtitle: t("config.ai.subtitle"),
       quickAddLabel: t("config.ai.quickAdd", { name: ai.name }),

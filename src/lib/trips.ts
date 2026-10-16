@@ -14,6 +14,8 @@ export interface TripAiConfig {
   /** Page kicker */
   kicker: string;
   emoji: string;
+  /** The guide's face: gallery robot or uploaded image (resolved URL) */
+  avatar?: string | null;
   /** Intro card text */
   heroBlurb: string;
   subtitle: string;

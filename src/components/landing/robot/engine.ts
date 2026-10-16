@@ -44,18 +44,50 @@ export interface RobotHandle {
   destroy(): void;
 }
 
-const BRASS = new Color("#d8b277");
-const EYE = new Color("#9fe3ec");
+/** A guide's look: shell and accent colors plus one personality accessory. */
+export interface RobotVariant {
+  shell: string;
+  accent: string;
+  eyes: string;
+  accessory: "none" | "bow" | "cap" | "bowtie" | "hat" | "smile";
+  lashes?: boolean;
+  blush?: boolean;
+}
+
+/** The avatar gallery (rendered to /public/avatars/<id>.webp). Keys are stored as "bot:<id>". */
+export const ROBOT_VARIANTS = {
+  tog: { shell: "#f4f5f2", accent: "#d8b277", eyes: "#9fe3ec", accessory: "none" },
+  nova: { shell: "#f7f1ee", accent: "#d9a08b", eyes: "#ffc4d6", accessory: "bow", lashes: true, blush: true },
+  pilot: { shell: "#f4f5f2", accent: "#d8b277", eyes: "#9fe3ec", accessory: "cap" },
+  butler: { shell: "#f4f5f2", accent: "#d8b277", eyes: "#ffe2a8", accessory: "bowtie" },
+  explorer: { shell: "#efe9dd", accent: "#b08a55", eyes: "#b6f0c8", accessory: "hat" },
+  buddy: { shell: "#a9cbc5", accent: "#d8b277", eyes: "#ffffff", accessory: "smile" },
+} satisfies Record<string, RobotVariant>;
+
+export type RobotVariantId = keyof typeof ROBOT_VARIANTS;
 
 export function createRobot(options: {
   canvas: HTMLCanvasElement;
   reducedMotion: boolean;
   /** Horizontal offset in scene units (+ = right), leaves room for the speech bubble */
   shift?: number;
+  variant?: RobotVariant;
+  /** Head-and-shoulders framing, no floor ring (avatar renders) */
+  portrait?: boolean;
+  /** Needed only to read pixels back (avatar renders) */
+  preserveDrawingBuffer?: boolean;
   onReady?: () => void;
 }): RobotHandle {
   const { canvas, reducedMotion } = options;
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const look_: RobotVariant = options.variant ?? ROBOT_VARIANTS.tog;
+  const BRASS = new Color(look_.accent);
+  const EYE = new Color(look_.eyes);
+  const renderer = new WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
+  });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
@@ -88,7 +120,7 @@ export function createRobot(options: {
   };
 
   const shell = new MeshPhysicalMaterial({
-    color: 0xf4f5f2,
+    color: new Color(look_.shell),
     roughness: 0.28,
     metalness: 0,
     clearcoat: 1,
@@ -186,6 +218,106 @@ export function createRobot(options: {
   nodeHalo.position.copy(node.position);
   head.add(nodeHalo);
 
+  // ── personality accessory ──
+  const accessory = new Group();
+  head.add(accessory);
+  const accessoryDark = new MeshStandardMaterial({ color: 0x1c2a43, roughness: 0.45, metalness: 0.2 });
+  materials.push(accessoryDark);
+  const accentSoft = new MeshStandardMaterial({ color: BRASS, roughness: 0.4, metalness: 0.35 });
+  materials.push(accentSoft);
+  const hideAntenna = () => {
+    stem.visible = false;
+    node.visible = false;
+    nodeHalo.visible = false;
+  };
+  switch (look_.accessory) {
+    case "bow": {
+      // a bow on the side of the head
+      const bow = new Group();
+      bow.position.set(0.6, 0.84, 0.36);
+      bow.rotation.set(0.2, -0.3, -0.5);
+      bow.scale.setScalar(1.45);
+      for (const side of [-1, 1]) {
+        const loop = track(new SphereGeometry(0.2, 24, 16), accentSoft);
+        loop.scale.set(1.2, 0.72, 0.5);
+        loop.position.x = side * 0.2;
+        loop.rotation.z = side * 0.35;
+        bow.add(loop);
+      }
+      const knot = track(new SphereGeometry(0.09, 16, 12), accentSoft);
+      bow.add(knot);
+      accessory.add(bow);
+      break;
+    }
+    case "cap": {
+      hideAntenna();
+      const crown = track(new SphereGeometry(1, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), accessoryDark);
+      crown.scale.set(1.16, 0.62, 1.04);
+      crown.position.y = 0.42;
+      accessory.add(crown);
+      const brim = track(new CylinderGeometry(0.62, 0.62, 0.06, 40, 1, false, -Math.PI / 2, Math.PI), accessoryDark);
+      brim.scale.set(1.25, 1, 0.9);
+      brim.position.set(0, 0.44, 0.62);
+      brim.rotation.x = 0.12;
+      accessory.add(brim);
+      const badge = track(new SphereGeometry(0.11, 20, 14), glowBrass);
+      badge.scale.z = 0.4;
+      badge.position.set(0, 0.84, 0.86);
+      accessory.add(badge);
+      break;
+    }
+    case "hat": {
+      hideAntenna();
+      const brim = track(new CylinderGeometry(1.75, 1.75, 0.07, 56), accentSoft);
+      brim.position.y = 0.66;
+      brim.rotation.x = -0.06;
+      accessory.add(brim);
+      const crown = track(new CylinderGeometry(0.78, 0.92, 0.62, 48), accentSoft);
+      crown.position.y = 0.98;
+      accessory.add(crown);
+      const band = track(new CylinderGeometry(0.93, 0.93, 0.13, 48), accessoryDark);
+      band.position.y = 0.74;
+      accessory.add(band);
+      break;
+    }
+    case "bowtie":
+    case "smile":
+    case "none":
+      break;
+  }
+  if (look_.lashes) {
+    for (const side of [-1, 1]) {
+      for (const k of [0, 1]) {
+        const lash = track(new CapsuleGeometry(0.018, 0.09, 4, 8), eyeMaterial);
+        lash.position.set(side * (0.3 + 0.07 + k * 0.05), 0.2 - k * 0.03, 0.01);
+        lash.rotation.z = side * (-0.7 - k * 0.35);
+        eyes.add(lash);
+      }
+    }
+  }
+  if (look_.blush) {
+    const blushMaterial = new MeshBasicMaterial({
+      color: 0xff8fae,
+      transparent: true,
+      opacity: 0.35,
+      blending: AdditiveBlending,
+      depthWrite: false,
+    });
+    materials.push(blushMaterial);
+    for (const side of [-1, 1]) {
+      const cheek = track(new CircleGeometry(0.09, 24), blushMaterial);
+      cheek.scale.x = 1.5;
+      cheek.position.set(side * 0.46, -0.22, 0.02);
+      eyes.add(cheek);
+    }
+  }
+  if (look_.accessory === "smile") {
+    const mouth = track(new TorusGeometry(0.16, 0.03, 8, 24, Math.PI), eyeMaterial);
+    mouth.rotation.z = Math.PI;
+    mouth.position.set(0, -0.22, 0.01);
+    eyes.add(mouth);
+  }
+
   // ── body ──
   const body = new Group();
   body.position.y = -0.62;
@@ -199,6 +331,19 @@ export function createRobot(options: {
   const neck = track(new CylinderGeometry(0.22, 0.28, 0.18, 32), darkMaterial);
   neck.position.y = 0.6;
   body.add(neck);
+  if (look_.accessory === "bowtie") {
+    const tieMaterial = new MeshBasicMaterial({ color: 0x0b1322 });
+    materials.push(tieMaterial);
+    for (const side of [-1, 1]) {
+      const wing = track(new CylinderGeometry(0, 0.2, 0.34, 3), tieMaterial);
+      wing.rotation.z = side * (Math.PI / 2);
+      wing.position.set(side * 0.17, 0.46, 0.46);
+      body.add(wing);
+    }
+    const knot = track(new SphereGeometry(0.08, 16, 12), tieMaterial);
+    knot.position.set(0, 0.46, 0.5);
+    body.add(knot);
+  }
 
   // arms (pivot at the shoulder)
   const armGeometry = new CapsuleGeometry(0.13, 0.42, 8, 20);
@@ -225,6 +370,7 @@ export function createRobot(options: {
     depthWrite: false,
   }));
   glowRing.rotation.x = -Math.PI / 2;
+  glowRing.visible = !options.portrait;
   glowRing.position.set(options.shift ?? 0, -1.62, 0);
   scene.add(glowRing);
   const glowDisc = track(new CircleGeometry(0.42, 48), new MeshBasicMaterial({
@@ -235,6 +381,7 @@ export function createRobot(options: {
     depthWrite: false,
   }));
   glowDisc.rotation.x = -Math.PI / 2;
+  glowDisc.visible = !options.portrait;
   glowDisc.position.set(options.shift ?? 0, -1.62, 0);
   scene.add(glowDisc);
 
@@ -261,8 +408,13 @@ export function createRobot(options: {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     // keep the whole character in frame on narrow and wide boxes
-    camera.position.z = camera.aspect < 0.8 ? (9.2 / camera.aspect) * 0.8 : 9.2;
-    camera.lookAt(0, 0.22, 0);
+    if (options.portrait) {
+      camera.position.set(0, 0.5, 7.6);
+      camera.lookAt(0, 0.42, 0);
+    } else {
+      camera.position.z = camera.aspect < 0.8 ? (9.2 / camera.aspect) * 0.8 : 9.2;
+      camera.lookAt(0, 0.22, 0);
+    }
     camera.updateProjectionMatrix();
   }
   frame();
@@ -343,10 +495,14 @@ export function createRobot(options: {
     if (active) raf = requestAnimationFrame(loop);
   }
 
+  // Compile every material up front: a single still frame drawn before
+  // compilation finishes can come out washed-out (seen on software GPUs)
+  renderer.compile(scene, camera);
   if (reducedMotion) {
     pointer.set(-0.15, 0.05);
     look.copy(pointer);
     renderOnce();
+    raf = requestAnimationFrame(() => renderOnce());
   } else {
     raf = requestAnimationFrame(loop);
   }

@@ -1,3 +1,4 @@
+import { AVATAR_PATTERN } from "@/lib/avatars";
 import { z } from "zod";
 
 /** Payloads of the trip creator — validated on the server, typed on the client. */
@@ -53,6 +54,7 @@ export const FamilyInputSchema = z.object({
 export const AiInputSchema = z.object({
   name: z.string().trim().min(1).max(30),
   emoji: z.string().trim().min(1).max(16),
+  avatar: z.string().trim().regex(AVATAR_PATTERN).nullable().optional(),
   preset: z.enum(["butler", "pilot", "buddy", "guide", "custom"]),
   rules: z.array(z.string().max(20)).max(12),
   customRules: z.string().max(1500),

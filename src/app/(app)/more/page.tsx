@@ -106,7 +106,12 @@ export default function MorePage() {
               {Icon ? (
                 <Icon size={18} strokeWidth={STROKE} />
               ) : (
-                <Glyph value={trip.ai.moreEmoji} size={18} />
+                trip.ai.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- small avatar
+                  <img src={trip.ai.avatar} alt="" className="h-full w-full rounded-full bg-night-900 object-cover" />
+                ) : (
+                  <Glyph value={trip.ai.moreEmoji} size={18} />
+                )
               )}
             </span>
           );

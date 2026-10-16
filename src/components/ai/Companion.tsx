@@ -26,6 +26,7 @@ export function Companion({
   className = "",
   label,
   glyph,
+  avatar,
 }: {
   state?: CompanionState;
   size?: number;
@@ -38,6 +39,8 @@ export function Companion({
   label?: string;
   /** The persona's chosen icon (trip setup), shown at the heart of the orb */
   glyph?: string;
+  /** The guide's face chosen at trip setup (robot or uploaded) — replaces the orb */
+  avatar?: string | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
@@ -53,6 +56,21 @@ export function Companion({
   }, []);
 
   const thinking = state === "thinking";
+  if (avatar) {
+    return (
+      <div
+        ref={ref}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        aria-hidden={label ? undefined : true}
+        className={`companion-avatar relative shrink-0 rounded-full ${thinking ? "companion-avatar-thinking" : ""} ${className}`}
+        style={{ width: size, height: size }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- small local/storage avatar */}
+        <img src={avatar} alt="" className="relative h-full w-full rounded-full bg-night-900 object-cover" />
+      </div>
+    );
+  }
   return (
     <div
       ref={ref}

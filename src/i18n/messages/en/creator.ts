@@ -170,6 +170,21 @@ const creator: typeof he = {
     title: "Your AI assistant",
     text: "It recommends, schedules, opens polls and knows the whole trip. Give it a personality",
     quote: "“{text}”",
+    avatar: {
+      title: "How your guide looks",
+      hint: "Pick a robot or upload your own picture",
+      upload: "Upload a picture",
+      uploadFailed: "Upload failed — try another picture",
+      yours: "Your picture",
+      bots: {
+        tog: "Tog, the classic",
+        nova: "Nova",
+        pilot: "The Pilot",
+        butler: "The Butler",
+        explorer: "The Explorer",
+        buddy: "The Buddy",
+      },
+    },
     presets: {
       butler: {
         label: "Personal butler",
