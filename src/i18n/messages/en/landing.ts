@@ -6,7 +6,7 @@ const landing: typeof he = {
     signIn: "Sign in",
   },
   hero: {
-    title: "Separate homes. One trip.",
+    title: "Every trip is better together.",
     lead: "Together is the group trip planner for families and friends: itinerary, map, bookings, expenses and an AI travel guide — on everyone's phone.",
     free: "Free. No credit card.",
     scroll: "See how it works",

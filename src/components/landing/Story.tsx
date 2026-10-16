@@ -91,8 +91,8 @@ function initialOf(name: string): string {
 function InviteSection() {
   const t = useT();
   return (
-    <section className="bg-night-950 px-5 py-24 text-cream-50 lg:px-10 lg:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-2">
+    <section className="bg-night-950 px-5 pb-12 pt-10 text-cream-50 lg:px-10 lg:py-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-14">
         <SectionText title="landing.invite.title" text="landing.invite.text" tone="dark" />
         <div
           className="relative rounded-[1.75rem] border border-cream-50/10 bg-night-900 p-6 sm:p-8"
@@ -243,8 +243,8 @@ function SortedSection() {
   const still = Boolean(useReducedMotion());
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   return (
-    <section className="bg-chart-50 px-5 pb-24 lg:px-10 lg:pb-32">
-      <div aria-hidden className="dawn -mx-5 h-44 lg:-mx-10 lg:h-64" />
+    <section className="bg-chart-50 px-5 pb-16 lg:px-10 lg:pb-24">
+      <div aria-hidden className="dawn -mx-5 mb-4 h-24 lg:-mx-10 lg:h-40" />
       <div ref={ref} className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
         <SectionText title="landing.sorted.title" text="landing.sorted.text" />
         <div
@@ -298,7 +298,7 @@ const CAPS: { key: string; Icon: LucideIcon }[] = [
 function AiSection() {
   const t = useT();
   return (
-    <section className="relative isolate overflow-hidden bg-night-950 px-5 py-24 text-cream-50 lg:px-10 lg:py-32">
+    <section className="relative isolate overflow-hidden bg-night-950 px-5 py-16 text-cream-50 lg:px-10 lg:py-24">
       <div aria-hidden className="ai-aura absolute inset-0 -z-10" />
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-14">
@@ -385,7 +385,7 @@ function TogetherSection() {
   ];
   const total = options.reduce((sum, option) => sum + option.votes, 0);
   return (
-    <section className="bg-chart-50 px-5 py-24 lg:px-10 lg:py-32">
+    <section className="bg-chart-50 px-5 py-16 lg:px-10 lg:py-24">
       <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
         <SectionText title="landing.together.title" text="landing.together.text" />
         <div className="relative grid gap-4 sm:grid-cols-[1.2fr_1fr]" aria-label={t("landing.example")}>
@@ -431,7 +431,7 @@ const STEPS = ["create", "invite", "plan", "go"] as const;
 function HowSection() {
   const t = useT();
   return (
-    <section id="how" className="scroll-mt-8 bg-white px-5 py-24 lg:px-10 lg:py-32">
+    <section id="how" className="scroll-mt-8 bg-white px-5 py-16 lg:px-10 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <h2 className="max-w-xl font-serif text-display-sm font-medium text-ink-900 lg:text-display">
           {t("landing.how.title")}
@@ -469,7 +469,7 @@ function HowSection() {
 function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
   const t = useT();
   return (
-    <section className="relative isolate overflow-hidden bg-night-950 px-5 pb-12 pt-28 text-cream-50 lg:px-10 lg:pt-36">
+    <section className="relative isolate overflow-hidden bg-night-950 px-5 pb-10 pt-20 text-cream-50 lg:px-10 lg:pt-28">
       <div aria-hidden className="final-horizon absolute inset-x-0 bottom-0 -z-10 h-[70%]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-xl text-center">
@@ -481,7 +481,7 @@ function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
           </div>
         </div>
 
-        <footer className="mt-28 flex flex-col gap-6 border-t border-cream-50/10 pt-8 text-sm text-cream-50/60 lg:flex-row lg:items-center lg:justify-between">
+        <footer className="mt-20 flex flex-col gap-6 border-t border-cream-50/10 pt-8 text-sm text-cream-50/60 lg:flex-row lg:items-center lg:justify-between">
           <span className="flex items-center gap-2.5 text-cream-50/85">
             <LogoMark size={22} />
             <Wordmark className="text-[13px]" />

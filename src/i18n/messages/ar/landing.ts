@@ -3,7 +3,7 @@ import type { PartialMessages } from "../index";
 const landing: PartialMessages["landing"] = {
   nav: { how: "كيف يعمل", signIn: "تسجيل الدخول" },
   hero: {
-    title: "بيوت مختلفة. رحلة واحدة.",
+    title: "كل رحلة أجمل معًا.",
     lead: "Together تنظّم الرحلات الجماعية للعائلات والأصدقاء: برنامج الرحلة، الخريطة، الحجوزات، المصاريف ومرشد سفر بالذكاء الاصطناعي، على هاتف الجميع.",
     free: "مجانًا. بدون بطاقة ائتمان.",
     scroll: "اكتشفوا كيف يعمل",

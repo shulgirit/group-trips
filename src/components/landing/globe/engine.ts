@@ -153,16 +153,19 @@ const EARTH_FRAGMENT = /* glsl */ `
     float lights = texture2D(nightMap, vUv).r;
 
     float sun = dot(n, normalize(sunDir));
-    float dayMix = smoothstep(-0.12, 0.32, sun);
-    float lit = clamp(sun, 0.0, 1.0);
+    float dayMix = smoothstep(-0.42, 0.12, sun);
+    // half-lambert: the face you look at stays bright, the limb keeps depth
+    float lit = clamp(0.35 + 0.65 * sun, 0.0, 1.0);
 
-    float water = smoothstep(0.02, 0.12, day.b - max(day.r, day.g) + 0.04);
+    float water = smoothstep(0.0, 0.1, day.b - max(day.r, day.g) + 0.05) * (1.0 - smoothstep(0.35, 0.6, dot(day, vec3(0.333))));
     vec3 h = normalize(normalize(sunDir) + vViewDir);
     float spec = pow(max(dot(n, h), 0.0), 60.0) * water * 0.45;
 
     // Deep navy seas instead of black holes
-    vec3 sea = vec3(0.035, 0.085, 0.16) * (0.35 + 0.65 * lit);
-    vec3 dayColor = day * (0.18 + 0.95 * lit) + water * sea + spec * vec3(1.0, 0.93, 0.82);
+    // Daylit seas: deep blue with depth, never a black hole
+    vec3 sea = mix(vec3(0.04, 0.11, 0.22), vec3(0.09, 0.24, 0.38), lit);
+    vec3 land = day * (0.25 + 1.05 * lit);
+    vec3 dayColor = mix(land, sea + day * 0.35, water * 0.85) + spec * vec3(1.0, 0.93, 0.82) * 1.4;
     vec3 nightColor = day * 0.035 + cityColor * pow(lights, 1.6) * 1.35;
     vec3 color = mix(nightColor, dayColor, dayMix);
 
@@ -206,14 +209,21 @@ const ARC_VERTEX = /* glsl */ `
 const ARC_FRAGMENT = /* glsl */ `
   uniform float progress;
   uniform float fade;
+  uniform float base;
+  uniform float time;
+  uniform float offset;
   uniform vec3 color;
   varying float vT;
   void main() {
     if (vT > progress) discard;
-    float head = smoothstep(progress - 0.18, progress, vT);
+    float head = smoothstep(progress - 0.18, progress, vT) * step(progress, 0.999);
     float tail = smoothstep(0.0, 0.25, vT);
-    float alpha = (0.45 + 0.55 * head) * mix(0.5, 1.0, tail) * fade;
-    gl_FragColor = vec4(color * (0.95 + 0.8 * head), alpha);
+    // light that keeps travelling toward the meeting point, forever
+    float phase = fract(time * 0.28 + offset);
+    float d = vT - phase;
+    float pulse = exp(-d * d * 260.0) + 0.6 * exp(-(d + 0.5) * (d + 0.5) * 260.0);
+    float alpha = (base * (0.45 + 0.55 * head) * mix(0.5, 1.0, tail) + pulse * 0.85) * fade;
+    gl_FragColor = vec4(color * (0.95 + 0.8 * head + 0.9 * pulse), alpha);
   }
 `;
 
@@ -302,7 +312,8 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
   const camera = new PerspectiveCamera(28, 1, 0.1, 100);
   camera.position.set(0, 0, 6.2);
 
-  const sunDir = new Vector3(-0.55, 0.4, 0.9).normalize();
+  // Sun sits just above-left of the camera: whatever face you turn toward you is in daylight
+  const sunDir = new Vector3(-0.35, 0.35, 1).normalize();
 
   const loader = new TextureLoader();
   const suffix = options.hiRes ? "4k" : "2k";
@@ -374,6 +385,38 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
   let points: Points | null = null;
   let pointMaterial: ShaderMaterial | null = null;
 
+  // A faint, always-flowing network of every scene's routes, so wherever the
+  // visitor spins the planet there are routes alive on it
+  const ambientGroup = new Group();
+  globe.add(ambientGroup);
+  const ambient: { sceneIndex: number; mesh: Mesh; material: ShaderMaterial }[] = [];
+  scenes.forEach((sceneItem, sceneIdx) => {
+    sceneItem.origins.forEach((origin, i) => {
+      const geometry = new TubeGeometry(arcCurve(origin, sceneItem.destination), 96, 0.0042, 6, false);
+      const material = new ShaderMaterial({
+        vertexShader: ARC_VERTEX,
+        fragmentShader: ARC_FRAGMENT,
+        uniforms: {
+          progress: { value: 1 },
+          fade: { value: 0.55 },
+          base: { value: 0.28 },
+          time: { value: 0 },
+          offset: { value: (sceneIdx * 0.37 + i * 0.19) % 1 },
+          color: { value: BRASS },
+        },
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      });
+      const mesh = new Mesh(geometry, material);
+      ambientGroup.add(mesh);
+      ambient.push({ sceneIndex: sceneIdx, mesh, material });
+    });
+  });
+  const showAmbientFor = (active: number) => {
+    for (const item of ambient) item.mesh.visible = item.sceneIndex !== active;
+  };
+
   function clearRoutes() {
     for (const arc of arcs) {
       arc.mesh.geometry.dispose();
@@ -391,6 +434,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
 
   function buildRoutes(index: number) {
     clearRoutes();
+    showAmbientFor(index);
     const current = scenes[index];
     current.origins.forEach((origin, i) => {
       const curve = arcCurve(origin, current.destination);
@@ -401,6 +445,9 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
         uniforms: {
           progress: { value: reduced ? 1 : 0 },
           fade: { value: 1 },
+          base: { value: 1 },
+          time: { value: 0 },
+          offset: { value: i * 0.23 },
           color: { value: BRASS },
         },
         transparent: true,
@@ -598,6 +645,9 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
         points?.scale.setScalar(pulse);
       }
       starMaterial.uniforms.time.value = (now - clockStart) / 1000;
+      const seconds = (now - clockStart) / 1000;
+      for (const arc of arcs) arc.material.uniforms.time.value = seconds;
+      for (const item of ambient) item.material.uniforms.time.value = seconds;
       const fading = 1 - clamp01((elapsed - (SCENE_MS - 700)) / 600);
       emitLabels(arrival * fading, (index) => {
         const delay = arcs[index]?.delay ?? 0;
@@ -655,6 +705,10 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       canvas.removeEventListener("pointermove", onReducedInteract);
       window.removeEventListener("pointerup", onPointerUp);
       clearRoutes();
+      for (const item of ambient) {
+        item.mesh.geometry.dispose();
+        item.material.dispose();
+      }
       earthGeometry.dispose();
       earthMaterial.dispose();
       atmosphereGeometry.dispose();
