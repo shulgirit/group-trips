@@ -41,14 +41,8 @@ export function Companion({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
-  const [webgl, setWebgl] = useState(false);
-
+  // No WebGL2? The Orb bails out on its own and the CSS orb remains
   useEffect(() => {
-    try {
-      setWebgl(Boolean(document.createElement("canvas").getContext("webgl2")));
-    } catch {
-      setWebgl(false);
-    }
     const node = ref.current;
     if (!node) return;
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
@@ -73,7 +67,7 @@ export function Companion({
       data-ground={ground}
     >
       <span aria-hidden className="companion-fallback absolute inset-[14%] rounded-full" />
-      {webgl && (
+      {(
         <Orb
           colors={PALETTE}
           backgroundColor={BACKGROUND[ground]}
