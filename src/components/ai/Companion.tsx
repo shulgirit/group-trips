@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { Glyph } from "@/components/ui/Icon";
 
 // WebGL orb (React Bits) — loaded only where the guide appears
 const Orb = dynamic(() => import("@/components/vendor/react-bits/Orb"), { ssr: false });
@@ -24,6 +25,7 @@ export function Companion({
   interactive = false,
   className = "",
   label,
+  glyph,
 }: {
   state?: CompanionState;
   size?: number;
@@ -34,6 +36,8 @@ export function Companion({
   className?: string;
   /** Accessible name; decorative when omitted */
   label?: string;
+  /** The persona's chosen icon (trip setup), shown at the heart of the orb */
+  glyph?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
@@ -86,6 +90,11 @@ export function Companion({
           dpr={Math.min(2, typeof window === "undefined" ? 1 : window.devicePixelRatio || 1)}
           className="absolute inset-0"
         />
+      )}
+      {glyph && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-white drop-shadow-[0_1px_3px_rgb(7_12_22/0.55)]">
+          <Glyph value={glyph} size={Math.round(size * 0.3)} strokeWidth={1.75} />
+        </span>
       )}
     </div>
   );

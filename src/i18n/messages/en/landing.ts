@@ -70,6 +70,10 @@ const landing: typeof he = {
     },
   },
   ai: {
+    hello: "Hi, I'm {name}",
+    youChoose: "You choose my name and personality",
+    tapMe: "Tap me",
+    personas: { butler: "The Butler", pilot: "The Pilot", buddy: "The Buddy", guide: "The Guide" },
     meet: "Meet your guide",
     caps: {
       places: { title: "Finds real places", text: "Searches Google Maps, with photos, ratings and hours." },

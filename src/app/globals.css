@@ -347,3 +347,27 @@ body {
     #1c2a43;
   box-shadow: 0 0 0 2px rgb(176 138 85 / 0.18);
 }
+
+/* Until the 3D guide loads (or without WebGL): a soft silhouette of light */
+.robot-poster {
+  background:
+    radial-gradient(22% 18% at 50% 34%, rgb(244 245 242 / 0.16), transparent 70%),
+    radial-gradient(18% 16% at 50% 62%, rgb(244 245 242 / 0.12), transparent 70%),
+    radial-gradient(26% 5% at 50% 90%, rgb(127 182 196 / 0.28), transparent 70%);
+  transition: opacity 0.7s;
+}
+.robot-poster[data-ready="true"] {
+  opacity: 0;
+}
+/* bubble tail pointing toward the robot (inline-end side) */
+.robot-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: 10px;
+  inset-inline-end: -7px;
+  height: 14px;
+  width: 14px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}

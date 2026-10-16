@@ -56,6 +56,10 @@ const landing: PartialMessages["landing"] = {
     },
   },
   ai: {
+    hello: "Hola, soy {name}",
+    youChoose: "Tú eliges mi nombre y mi personalidad",
+    tapMe: "Tócame",
+    personas: { butler: "El Mayordomo", pilot: "El Piloto", buddy: "El Colega", guide: "El Guía" },
     meet: "Conoce a tu guía",
     caps: {
       places: { title: "Encuentra lugares reales", text: "Busca en Google Maps, con fotos, valoraciones y horarios." },

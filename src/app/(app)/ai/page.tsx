@@ -451,7 +451,7 @@ export default function AiPage() {
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       {/* The guide, present: its living orb beside its name */}
       <header className="mb-4 flex items-center gap-4">
-        <Companion size={64} state={loading ? "thinking" : "idle"} ground="page" label={trip.ai.title} />
+        <Companion size={64} state={loading ? "thinking" : "idle"} ground="page" label={trip.ai.title} glyph={trip.ai.emoji} />
         <div className="min-w-0">
           <h1 className="truncate font-serif text-[1.75rem] font-medium leading-tight text-ink-900">
             {trip.ai.title}
@@ -540,7 +540,7 @@ export default function AiPage() {
         {messages.length === 0 && (
           <>
             <div className="rounded-[1.75rem] bg-night-950 px-6 pb-6 pt-8 text-cream-50">
-              <Companion size={112} ground="night" interactive className="mx-auto" />
+              <Companion size={112} ground="night" interactive glyph={trip.ai.emoji} className="mx-auto" />
               <p className="mx-auto mt-5 max-w-sm text-center text-[15px] leading-relaxed text-cream-50/85">
                 {trip.ai.heroBlurb}
               </p>

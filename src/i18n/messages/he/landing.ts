@@ -69,6 +69,10 @@ const landing = {
     },
   },
   ai: {
+    hello: "היי, אני {name}",
+    youChoose: "את השם והאופי בוחרים אתם",
+    tapMe: "גע בי",
+    personas: { butler: "המשרת", pilot: "הטייס", buddy: "החבר", guide: "המדריך" },
     meet: "הכירו את המדריך שלכם",
     caps: {
       places: { title: "מוצא מקומות באמת", text: "מחפש ב-Google Maps, עם תמונות, דירוגים ושעות." },

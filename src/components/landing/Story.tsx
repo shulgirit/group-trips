@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Companion } from "@/components/ai/Companion";
+import { Robot } from "./robot/Robot";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
@@ -300,14 +301,8 @@ function AiSection() {
     <section className="relative isolate overflow-hidden bg-night-950 px-5 py-24 text-cream-50 lg:px-10 lg:py-32">
       <div aria-hidden className="ai-aura absolute inset-0 -z-10" />
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:gap-14">
-          <Companion
-            size={176}
-            ground="night"
-            interactive
-            label={t("landing.ai.meet")}
-            className="lg:order-2 lg:ms-auto lg:!h-[260px] lg:!w-[260px]"
-          />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-14">
+          <Robot className="order-2 mx-auto aspect-square w-full max-w-[22rem] lg:ms-auto lg:me-0 lg:max-w-[26rem]" />
           <div className="max-w-xl lg:order-1">
             <p className="text-sm text-brass-300">{t("landing.ai.meet")}</p>
             <h2 className="mt-2 font-serif text-display-sm font-medium lg:text-display">{t("landing.ai.title")}</h2>
