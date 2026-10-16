@@ -5,6 +5,7 @@ import { Glyph } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { formatShortDate } from "@/i18n/format";
 import type { TripSummary } from "@/lib/my-trips";
+import { auth } from "@/lib/firebase/client";
 import { useTripCover } from "@/lib/place-photo";
 
 function daysUntil(dateIso: string, todayIso: string): number {
@@ -25,6 +26,28 @@ export function TripCard({
   // trips without a cover get their destination's photo (once, server-side)
   useTripCover(trip.id, !trip.coverImage && !trip.legacy);
   const isDraft = trip.status === "draft";
+
+  /**
+   * Sicily/Sardinia still sit behind their own session cookie. A signed-in
+   * member gets it from their Google identity first — otherwise the trip
+   * would bounce to its login page (or back here).
+   */
+  async function openLegacy(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    try {
+      const idToken = await auth().currentUser?.getIdToken();
+      if (idToken) {
+        await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken, tripId: trip.id }),
+        });
+      }
+    } catch {
+      // fall through: the trip's own login page handles anything left
+    }
+    window.location.assign(trip.href);
+  }
   const days = daysUntil(trip.startDate, today);
   const badge = isDraft
     ? { label: t("product.card.draft"), className: "bg-cream-50 text-ink-700" }
@@ -40,6 +63,7 @@ export function TripCard({
   return (
     <Link
       href={isDraft ? `/new?trip=${trip.id}` : trip.href}
+      onClick={trip.legacy ? (event) => openLegacy(event) : undefined}
       className={`card group block overflow-hidden transition active:scale-[0.99] ${trip.phase === "live" && !isDraft ? "ring-1 ring-terra-400" : ""}`}
     >
       <div className="relative h-36 overflow-hidden bg-sea-900">

@@ -92,7 +92,7 @@ const creator: typeof he = {
     days: { one: "{count} day", other: "{count} days" },
     stops: "{count} stops",
     countries: "{count} countries",
-    departureTime: "Departure time",
+    departureTime: "Leaving at (optional)",
     nameLabel: "Trip name",
     namePlaceholder: "Sicily 2026",
     thinking: "Thinking…",

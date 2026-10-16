@@ -58,31 +58,23 @@ export interface DestinationSuggestion {
   secondary: string;
 }
 
-export async function autocompleteDestination(
-  input: string
-): Promise<DestinationSuggestion[]> {
-  const response = await fetch(
-    "https://places.googleapis.com/v1/places:autocomplete",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key() },
-      body: JSON.stringify({
-        input,
-        languageCode: "he",
-        includedPrimaryTypes: [
-          "locality",
-          "administrative_area_level_1",
-          "administrative_area_level_2",
-          "country",
-          "island",
-          "natural_feature",
-        ],
-      }),
-    }
-  );
-  if (!response.ok) return [];
+async function autocompleteRequest(input: string, types: string[] | null) {
+  const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key() },
+    body: JSON.stringify({
+      input,
+      languageCode: "he",
+      // Google allows at most 5 types — more and the whole request fails
+      ...(types ? { includedPrimaryTypes: types } : {}),
+    }),
+  });
+  if (!response.ok) {
+    console.error("[destination] autocomplete", response.status, (await response.text()).slice(0, 200));
+    return [];
+  }
   const data = await response.json();
-  return ((data.suggestions ?? []) as {
+  return (data.suggestions ?? []) as {
     placePrediction?: {
       placeId: string;
       structuredFormat?: {
@@ -90,7 +82,22 @@ export async function autocompleteDestination(
         secondaryText?: { text?: string };
       };
     };
-  }[])
+  }[];
+}
+
+export async function autocompleteDestination(
+  input: string
+): Promise<DestinationSuggestion[]> {
+  let suggestions = await autocompleteRequest(input, [
+    "locality",
+    "administrative_area_level_1",
+    "administrative_area_level_2",
+    "country",
+    "natural_feature",
+  ]);
+  // Islands, regions with unusual types, landmarks: fall back to any place
+  if (!suggestions.length) suggestions = await autocompleteRequest(input, null);
+  return suggestions
     .map((s) => s.placePrediction)
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .slice(0, 6)

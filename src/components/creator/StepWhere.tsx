@@ -112,6 +112,13 @@ function DestinationSearch({
         autoFocus={autoFocus}
         aria-label={t("creator.where.searchLabel")}
         onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => {
+          // Enter takes the top suggestion instead of submitting nothing
+          if (event.key === "Enter" && suggestions[0]) {
+            event.preventDefault();
+            pick(suggestions[0]);
+          }
+        }}
         disabled={resolving}
       />
       {(suggestions.length > 0 || searching || resolving) && (

@@ -54,7 +54,7 @@ const creator = {
     myFamily: "המשפחה שלי",
     me: "אני",
     aiName: "העוזר",
-    departureNote: "ההמראה · {date} · {time}",
+    departureNote: "יוצאים לדרך · {date} · {time}",
   },
   validation: {
     stopSuffix: " (יעד {n})",
@@ -90,7 +90,7 @@ const creator = {
     days: { one: "יום אחד", other: "{count} ימים" },
     stops: "{count} יעדים",
     countries: "{count} ארצות",
-    departureTime: "שעת המראה",
+    departureTime: "שעת יציאה (לא חובה)",
     nameLabel: "שם הטיול",
     namePlaceholder: "סיציליה 2026",
     thinking: "חושב…",
