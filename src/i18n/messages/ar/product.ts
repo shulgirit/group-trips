@@ -137,8 +137,10 @@ const product: PartialMessages["product"] = {
     loadFailed: "تعذّر تحميل روابط الدعوة",
     create: "إنشاء رابط دعوة",
     creating: "جارٍ الإنشاء…",
-    general: "رابط عام للمجموعة كلها",
+    general: "رابط دعوة عام",
     joined: "انضم {uses}/{max}",
+    joinedCount: "انضم {count}",
+    notJoined: "لم ينضم أحد بعد",
     footnote:
       "رابط العائلة يحدّد العائلة مسبقًا، فيكفي أن يختار كل شخص اسمه. الروابط صالحة لمدة 60 يومًا.",
     message: {

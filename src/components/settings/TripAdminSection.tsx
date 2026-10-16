@@ -24,7 +24,7 @@ const ROLE_LABEL: Record<string, TKey | null> = {
 export function TripAdminSection() {
   const t = useT();
   const trip = useTrip();
-  const { user } = useFirebase();
+  const { user, profile } = useFirebase();
   const { families } = useFamilies();
   const { data: me } = useDocData<TripMember>(
     `${trip.path}/members/${user?.uid ?? "_"}`,
@@ -110,7 +110,8 @@ export function TripAdminSection() {
             tripId={trip.id}
             tripName={trip.name}
             emoji={trip.emoji}
-            families={(families ?? []).map((f) => ({ id: f.id, name: f.name }))}
+            families={(families ?? []).map((f) => ({ id: f.id, name: f.name, members: f.members.length }))}
+            myFamilyId={profile?.familyId ?? null}
           />
         </section>
       )}

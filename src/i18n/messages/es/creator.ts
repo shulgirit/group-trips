@@ -26,7 +26,8 @@ const creator: PartialMessages["creator"] = {
   },
   launched: {
     title: "¡{name} está listo!",
-    text: "Ahora invita al grupo: cada uno elige su nombre y se une",
+    text: "Ahora invita a todos. Cada uno abre el enlace y elige su nombre",
+    textOne: "Ahora envía el enlace a {name}. Lo abre, elige su nombre y listo",
     enter: "Entrar al viaje",
   },
   bookings: {

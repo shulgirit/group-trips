@@ -174,11 +174,14 @@ export function InviteLinks({
   tripName,
   emoji,
   families,
+  myFamilyId = null,
 }: {
   tripId: string;
   tripName: string;
   emoji: string;
-  families: { id: string; name: string }[];
+  families: { id: string; name: string; members?: number }[];
+  /** The viewer's own family: hidden when they're its only traveler (nobody to invite). */
+  myFamilyId?: string | null;
 }) {
   const t = useT();
   const [invites, setInvites] = useState<Invite[] | null>(null);
@@ -220,6 +223,7 @@ export function InviteLinks({
 
   const general = invites.find((i) => !i.familyId && i.role === "member");
   const perFamily = families
+    .filter((family) => !(family.id === myFamilyId && (family.members ?? 2) <= 1))
     .map((family) => ({
       family,
       invite: invites.find((i) => i.familyId === family.id && i.role === "member"),
@@ -255,7 +259,11 @@ export function InviteLinks({
             key={family.id}
             icon={Users}
             label={family.name}
-            hint={t("product.invite.joined", { uses: invite!.uses, max: invite!.maxUses })}
+            hint={
+              invite!.uses > 0
+                ? t("product.invite.joinedCount", { count: invite!.uses })
+                : t("product.invite.notJoined")
+            }
             url={inviteUrl(invite!.code)}
             message={inviteMessage({
               tripName,

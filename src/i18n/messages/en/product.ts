@@ -141,10 +141,12 @@ const product: typeof he = {
     loadFailed: "Couldn't load the invite links",
     create: "Create an invite link",
     creating: "Creating…",
-    general: "General link for the whole group",
+    general: "General invite link",
     joined: "{uses}/{max} joined",
+    joinedCount: "{count} joined",
+    notJoined: "Not joined yet",
     footnote:
-      "A family link preselects the family — people just pick their name. Links are valid for 60 days.",
+      "A family link preselects the family, so people just pick their name. Links are valid for 60 days.",
     message: {
       title: "You're invited to \"{trip}\"{who}!",
       body: "Our schedule, map, expenses and AI assistant — all in one place.",

@@ -299,6 +299,16 @@ export function CreatorWizard() {
   const stepKey = STEPS[step].key;
   const routeArrow = dir === "rtl" ? " ← " : " → ";
 
+  // Who still needs a link: everyone outside the creator's own family, plus
+  // anyone else inside it. A couple trip reads "send Daniel the link".
+  const invitees = state.families.flatMap((f) =>
+    f.members.filter((m) => !m.kid && m.id !== state.me?.memberId).map((m) => m.name)
+  );
+  const launchedInviteText =
+    invitees.length === 1
+      ? t("creator.launched.textOne", { name: invitees[0] })
+      : t("creator.launched.text");
+
   if (launched && state.tripId) {
     return (
       <ProductShell>
@@ -308,7 +318,7 @@ export function CreatorWizard() {
             <h1 className="mt-4 font-display text-3xl font-light text-ink-900">
               {t("creator.launched.title", { name: state.name })}
             </h1>
-            <p className="mt-2 text-ink-500">{t("creator.launched.text")}</p>
+            <p className="mt-2 text-ink-500">{launchedInviteText}</p>
           </div>
           {summary ? (
             <div className="card px-5 py-5">
@@ -325,7 +335,8 @@ export function CreatorWizard() {
             tripId={state.tripId}
             tripName={state.name}
             emoji={state.emoji}
-            families={state.families.map((f) => ({ id: f.id, name: f.name }))}
+            families={state.families.map((f) => ({ id: f.id, name: f.name, members: f.members.length }))}
+            myFamilyId={state.me?.familyId ?? null}
           />
           <Link href={`/t/${state.tripId}`} className="btn-primary w-full gap-2 py-4 text-lg">
             {t("creator.launched.enter")}

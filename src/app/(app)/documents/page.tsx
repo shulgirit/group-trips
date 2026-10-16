@@ -14,8 +14,8 @@ import {
   deleteObject,
   getDownloadURL,
   ref as storageRef,
-  uploadBytes,
 } from "firebase/storage";
+import { uploadToTrip } from "@/lib/firebase/upload";
 import {
   FileImage,
   FileText,
@@ -124,7 +124,7 @@ export default function DocumentsPage() {
     try {
       const visibility = tab;
       const path = `${tripPath}/documents/${visibility}/${user.uid}/${Date.now()}-${file.name}`;
-      await uploadBytes(storageRef(storage(), path), file, {
+      await uploadToTrip(path, file, {
         contentType: file.type || "application/octet-stream",
       });
       await addDoc(collection(db(), `${tripPath}/documents`), {

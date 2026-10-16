@@ -14,9 +14,8 @@ import {
 } from "firebase/firestore";
 import {
   getDownloadURL,
-  ref as storageRef,
-  uploadBytes,
 } from "firebase/storage";
+import { uploadToTrip } from "@/lib/firebase/upload";
 import {
   ArrowUp,
   CalendarPlus,
@@ -43,7 +42,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { addPlace } from "@/lib/db";
 import { useFamilies } from "@/lib/hooks";
-import { db, storage, apiFetch } from "@/lib/firebase/client";
+import { db, apiFetch } from "@/lib/firebase/client";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
@@ -312,8 +311,7 @@ export default function AiPage() {
     if (pendingImage) {
       try {
         const path = `${tripPath}/photos/chat/${user?.uid ?? "anon"}/${Date.now()}.jpg`;
-        const fileRef = storageRef(storage(), path);
-        await uploadBytes(fileRef, pendingImage.blob, {
+        const fileRef = await uploadToTrip(path, pendingImage.blob, {
           contentType: "image/jpeg",
         });
         imageUrl = await getDownloadURL(fileRef);

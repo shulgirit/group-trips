@@ -141,8 +141,10 @@ const product: PartialMessages["product"] = {
     loadFailed: "No se pudieron cargar los enlaces de invitación",
     create: "Crear un enlace de invitación",
     creating: "Creando…",
-    general: "Enlace general para todo el grupo",
+    general: "Enlace de invitación general",
     joined: "{uses}/{max} unidos",
+    joinedCount: "Unidos: {count}",
+    notJoined: "Aún no se ha unido nadie",
     footnote:
       "Un enlace de familia ya selecciona la familia: solo hay que elegir el nombre. Los enlaces son válidos durante 60 días.",
     message: {

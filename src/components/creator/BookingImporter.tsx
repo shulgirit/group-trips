@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ref, uploadBytes } from "firebase/storage";
+import { uploadToTrip } from "@/lib/firebase/upload";
 import {
   BedDouble,
   CarFront,
@@ -20,7 +20,7 @@ import {
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { tActive } from "@/i18n/active";
-import { apiFetch, auth, storage } from "@/lib/firebase/client";
+import { apiFetch, auth } from "@/lib/firebase/client";
 import type { BookingItem } from "@/lib/booking";
 
 const KIND_ICON: Record<BookingItem["kind"], LucideIcon> = {
@@ -124,7 +124,7 @@ export function BookingImporter({
       try {
         const safeName = file.name.replace(/[^\w.\-א-ת]+/g, "_").slice(-80);
         const storagePath = `trips/${tripId}/imports/${uid}/${Date.now()}-${safeName}`;
-        await uploadBytes(ref(storage(), storagePath), file, {
+        await uploadToTrip(storagePath, file, {
           contentType: file.type || "application/octet-stream",
         });
         await extract(key, { storagePath, fileName: file.name });
