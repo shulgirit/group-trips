@@ -7,6 +7,8 @@ import type { Place, PlaceCategory } from "@/types";
 import { useTrip } from "@/components/providers/TripProvider";
 import { CategoryIcon, STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
+import { usePlacePhoto } from "@/lib/place-photo";
+import { RouteArt } from "@/components/journal/RouteArt";
 
 /** Quiet, category-tinted fallback fields for places without photography */
 const CATEGORY_TONES: Record<PlaceCategory, string> = {
@@ -33,8 +35,9 @@ export function PlaceCard({
   /** "1.2 km" when sorting by distance from the user */
   distanceLabel?: string | null;
 }) {
-  const { prefix } = useTrip();
+  const { prefix, id: tripId } = useTrip();
   const t = useT();
+  usePlacePhoto(tripId, place);
   const categoryKey: PlaceCategory = place.category in CATEGORY_TONES ? place.category : "other";
   const categoryLabel = t(`trip.categories.${categoryKey}`);
 
@@ -54,9 +57,7 @@ export function PlaceCard({
           />
         ) : (
           <div className={`absolute inset-0 ${CATEGORY_TONES[categoryKey]}`}>
-            <span className="absolute inset-0 flex items-center justify-center text-cream-50/60">
-              <CategoryIcon category={categoryKey} size={40} strokeWidth={1.25} />
-            </span>
+            <RouteArt seed={place.id} />
           </div>
         )}
         <div

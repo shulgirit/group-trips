@@ -1,5 +1,8 @@
 "use client";
 
+import { RouteArt } from "@/components/journal/RouteArt";
+import { usePlacePhoto } from "@/lib/place-photo";
+
 import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,7 +42,7 @@ import { deletePlace, updatePlace } from "@/lib/db";
 import { useEvents, usePlace } from "@/lib/hooks";
 import { googleMapsUrl, wazeUrl } from "@/lib/nav";
 import { useTrip } from "@/components/providers/TripProvider";
-import { CategoryIcon, STROKE } from "@/components/ui/Icon";
+import { STROKE } from "@/components/ui/Icon";
 import { useDayLabel, useT } from "@/i18n";
 
 export default function PlaceDetailPage({
@@ -57,6 +60,7 @@ export default function PlaceDetailPage({
   // also enforced server-side in the security rules
   const canDelete = isPersonalUser(user);
   const { place, loading } = usePlace(placeId);
+  usePlacePhoto(tripId, place);
   const { events } = useEvents();
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
@@ -222,11 +226,7 @@ export default function PlaceDetailPage({
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-sea-900">
-            <span className="absolute inset-0 flex items-center justify-center pb-10 text-cream-50/40">
-              <CategoryIcon category={place.category} size={64} strokeWidth={1} />
-            </span>
-          </div>
+          <RouteArt seed={place.id} focus="top" />
         )}
         <div className="hero-overlay absolute inset-0" />
 

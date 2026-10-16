@@ -23,6 +23,7 @@ import { ListSkeleton } from "@/components/ui/Skeleton";
 import { Glyph, STROKE } from "@/components/ui/Icon";
 import { RouteArt } from "@/components/journal/RouteArt";
 import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { usePlacePhoto, useTripCover } from "@/lib/place-photo";
 import { useDayLabel, useLocale, useT, type TKey } from "@/i18n";
 import { intlLocale } from "@/i18n/format";
 import { useDocData, useEvents, useFamilies, usePlaces } from "@/lib/hooks";
@@ -130,6 +131,8 @@ export default function HomePage() {
     end: dateFormat.format(new Date(`${trip.endDate}T12:00:00`)),
   });
   const timeUntil = nextEvent && now ? timeUntilLabel(eventStart(nextEvent), now, t) : null;
+  usePlacePhoto(trip.id, nextPlace);
+  useTripCover(trip.id, !trip.legacy && !trip.heroImage);
 
   const quick: { href: string; label: TKey; Icon: LucideIcon }[] = [
     { href: `${prefix}/calendar`, label: "trip.home.quick.schedule", Icon: CalendarDays },
@@ -245,9 +248,9 @@ export default function HomePage() {
         ) : nextEvent ? (
           <article className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_1px_2px_rgb(15_27_45/0.05),0_18px_40px_-28px_rgb(15_27_45/0.35)]">
             <div className="relative h-44">
-              {nextPlace?.imageUrl ? (
+              {nextPlace?.imageUrl || (!nextPlace && trip.heroImage) ? (
                 <Image
-                  src={nextPlace.imageUrl}
+                  src={(nextPlace?.imageUrl || trip.heroImage)!}
                   alt=""
                   fill
                   sizes="(max-width: 768px) 100vw, 576px"
