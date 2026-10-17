@@ -287,6 +287,25 @@ export default defineSchema({
     .index("by_trip", ["tripId"])
     .index("by_trip_creator", ["tripId", "createdBy"]),
 
+  /** One row per AI reply: latency and cost for the admin dashboard (no message text) */
+  aiRuns: defineTable({
+    tripId: v.id("trips"),
+    ok: v.boolean(),
+    totalMs: v.number(),
+    llmMs: v.number(),
+    toolMs: v.number(),
+    decorateMs: v.number(),
+    rounds: v.number(),
+    firstEffort: v.string(),
+    tools: v.array(v.string()),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    model: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_trip", ["tripId"])
+    .index("by_created", ["createdAt"]),
+
   /** Monthly AI quota per trip */
   usage: defineTable({
     tripId: v.id("trips"),

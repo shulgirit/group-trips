@@ -4,6 +4,7 @@ import { translate } from "@together/i18n/translate";
 import {
   buildContext,
   type ChatPlace,
+  type ChatStats,
   decorateCandidates,
   findSamePlace,
   resolveParticipants,
@@ -194,8 +195,13 @@ export const run = internalAction({
     }
     const trip = context.trip;
     const ideas: string[] = [];
+    const startedAt = Date.now();
+    const stats: ChatStats = { firstEffort: "low", rounds: 0, llmMs: 0, toolMs: 0, tools: [], promptTokens: 0, completionTokens: 0 };
+    let decorateMs = 0;
+    let ok = false;
     try {
       const answer = await runChat({
+        stats,
         openai: new OpenAI(),
         system: systemPrompt(trip, locale),
         context: buildContext({
@@ -217,12 +223,31 @@ export const run = internalAction({
         range: { startDate: trip.startDate, endDate: trip.endDate },
         execute: executor(ctx, context, locale, ideas),
       });
+      const decorating = Date.now();
       const candidates = await decorateCandidates(answer.candidates, regionOf(trip));
+      decorateMs = Date.now() - decorating;
       await ctx.runMutation(internal.chat.finish, { replyId, content: answer.reply, candidates });
+      ok = true;
     } catch (error) {
       console.error("[chat] run failed", error);
       await failWith("ai.errors.failed");
     } finally {
+      const totalMs = Date.now() - startedAt;
+      console.log(`[chat] ${ok ? "ok" : "failed"} total=${totalMs}ms llm=${stats.llmMs}ms tools=${stats.toolMs}ms decorate=${decorateMs}ms rounds=${stats.rounds} effort=${stats.firstEffort} tokens=${stats.promptTokens}+${stats.completionTokens} [${stats.tools.join(",")}]`);
+      await ctx.runMutation(internal.chat.logRun, {
+        tripId: trip._id,
+        ok,
+        totalMs,
+        llmMs: stats.llmMs,
+        toolMs: stats.toolMs,
+        decorateMs,
+        rounds: stats.rounds,
+        firstEffort: stats.firstEffort,
+        tools: stats.tools,
+        promptTokens: stats.promptTokens,
+        completionTokens: stats.completionTokens,
+        model: process.env.OPENAI_MODEL ?? "gpt-5.1",
+      }).catch(() => undefined);
       await ctx.runMutation(internal.chat.notifyIdeas, { tripId: trip._id, labels: ideas, excludeUserId: context.ownerId });
     }
   },

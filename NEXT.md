@@ -40,6 +40,17 @@ Legend: 🧑 needs Omer · 🤖 an agent can do it. Update this file as you fini
 - Archive the final Firestore export (encrypted, off-repo); delete the Firebase project after ~90 days.
 - Update `docs/migration/checklist.md` (web column becomes "removed").
 
+## D0. AI guide performance (2026-10-17)
+Measured (cloud dev, gpt-5.1): the 20 s was **14.5 s of model time over 4 sequential rounds** (tools 1.2 s, Google photos 0.3 s). Done: per-reply
+timing/tokens logged to console and to the new `aiRuns` table (`chat.logRun`); read-only tools (`search_google_places`) run in parallel; first-round
+reasoning is `low` unless the request is planning/long/has a photo (`firstRoundEffort`); later rounds use `none` (or `low` after a planning
+request) — override with Convex env `AI_REASONING_FIRST` / `AI_REASONING_TOOLS`; the prompt tells the model to issue independent tool calls in
+the same turn. Result on `apps/web/scripts/ai-eval.mjs` (4 realistic requests × 2 runs, 8/8 pass): p50 9.8 s, max 10.9 s (was ~20 s);
+actions 3–5 s. **Next**: (1) stream the reply text into the message row (Convex reactive; UI must render partial `pending` content in `apps/mobile/.../guide.tsx`
+and the web `ai/page.tsx`) → first words in ~2 s even when the full answer takes 10 s; (2) shrink the final structured JSON (candidate descriptions dominate output tokens);
+(3) show `aiRuns` p50/p95 + cost in the admin panel; (4) extend the eval (multi-turn, photos, he/ar/es, prompt-injection document) and run it in CI against dev before changing model/prompt.
+Run the eval: `CONVEX_URL=<dev> AUTH_TOKEN=<convex_jwt cookie> node apps/web/scripts/ai-eval.mjs --runs 2` (refuses prod, deletes its trips).
+
 ## D. Nice-to-have / hardening
 - Convex rate limits per user on AI/import actions beyond the existing monthly `usage` quota; alerting on prod errors.
 - Playwright sweep in CI for web (the ad-hoc scripts used so far lived in a scratch dir and are not in the repo).

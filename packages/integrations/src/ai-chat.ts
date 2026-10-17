@@ -411,6 +411,47 @@ export interface ChatTurn {
 
 export type ToolExecutor = (name: string, args: unknown) => Promise<Record<string, unknown>>;
 
+/** What a reply cost: filled by runChat for the admin latency/cost dashboard. */
+export interface ChatStats {
+  firstEffort: "low" | "medium";
+  rounds: number;
+  llmMs: number;
+  toolMs: number;
+  tools: string[];
+  promptTokens: number;
+  completionTokens: number;
+}
+
+/** Tools that only read (safe to run side by side); everything else keeps the model's order. */
+const READ_ONLY_TOOLS = new Set(["search_google_places"]);
+
+const PLANNING_HINT = /תכנן|מסלול|לו"?ז|לוז|יום\s|plan|itinerar|route|schedule|day\s|itinerario|ruta|horario|خطة|مسار|جدول/i;
+
+/**
+ * Rounds after the first only call tools or write the answer. Measured on the eval
+ * (apps/web/scripts/ai-eval.mjs): "none" cuts the median from ~11 s to ~8 s with the same
+ * results on simple requests; planning requests (first round medium) keep "low" so events
+ * still get linked to saved places. AI_REASONING_TOOLS ("none" | "low" | "medium") overrides.
+ */
+function laterEffort(first: "low" | "medium"): "none" | "low" | "medium" {
+  const value = process.env.AI_REASONING_TOOLS;
+  if (value === "none" || value === "low" || value === "medium") return value;
+  return first === "medium" ? "low" : "none";
+}
+
+/**
+ * Deep reasoning only where it pays: planning requests, long messages and photos.
+ * Everything else answers noticeably faster with low effort. AI_REASONING_FIRST
+ * ("low" | "medium") overrides the heuristic.
+ */
+export function firstRoundEffort(turns: ChatTurn[]): "low" | "medium" {
+  const forced = process.env.AI_REASONING_FIRST;
+  if (forced === "low" || forced === "medium") return forced;
+  const last = [...turns].reverse().find((turn) => turn.role === "user");
+  if (!last) return "low";
+  return last.imageUrl || last.content.length > 320 || PLANNING_HINT.test(last.content) ? "medium" : "low";
+}
+
 /**
  * Up to 4 rounds: tool calls are executed and fed back; the final answer
  * is structured JSON. Deep reasoning on the first pass, quick synthesis
@@ -424,7 +465,12 @@ export async function runChat(options: {
   turns: ChatTurn[];
   range: { startDate: string; endDate: string };
   execute: ToolExecutor;
+  /** Optional: receives timings and token counts for this reply. */
+  stats?: ChatStats;
 }): Promise<AiResponse> {
+  const stats: ChatStats = options.stats ?? { firstEffort: "low", rounds: 0, llmMs: 0, toolMs: 0, tools: [], promptTokens: 0, completionTokens: 0 };
+  const firstEffort = firstRoundEffort(options.turns);
+  stats.firstEffort = firstEffort;
   const conversation: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: options.system },
     { role: "system", content: `הקשר הטיול העדכני:\n${options.context}` },
@@ -447,28 +493,48 @@ export async function runChat(options: {
   const tools = buildTools(options.range);
 
   for (let round = 0; round < 4; round++) {
+    const started = Date.now();
     const completion = await options.openai.chat.completions.create({
       model: process.env.OPENAI_MODEL ?? "gpt-5.1",
-      reasoning_effort: round === 0 ? "medium" : "low",
+      reasoning_effort: round === 0 ? firstEffort : laterEffort(firstEffort),
       messages: conversation,
       tools,
       response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
     });
+    stats.rounds = round + 1;
+    stats.llmMs += Date.now() - started;
+    stats.promptTokens += completion.usage?.prompt_tokens ?? 0;
+    stats.completionTokens += completion.usage?.completion_tokens ?? 0;
     const message = completion.choices[0]?.message;
     if (!message) throw new Error("empty_completion");
 
     if (message.tool_calls?.length) {
       conversation.push(message);
-      for (const call of message.tool_calls) {
-        if (call.type !== "function") continue;
-        let result: Record<string, unknown>;
+      const calls = message.tool_calls.filter((call) => call.type === "function");
+      const runCall = async (call: (typeof calls)[number]): Promise<Record<string, unknown>> => {
+        if (call.type !== "function") return { ok: false, error: "unknown_tool" };
+        stats.tools.push(call.function.name);
         try {
-          result = await options.execute(call.function.name, JSON.parse(call.function.arguments || "{}"));
+          return await options.execute(call.function.name, JSON.parse(call.function.arguments || "{}"));
         } catch (error) {
           console.error("[chat] tool failed", call.function.name, error);
-          result = { ok: false, error: "הפעולה נכשלה" };
+          return { ok: false, error: "הפעולה נכשלה" };
         }
-        conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+      };
+      const toolsStarted = Date.now();
+      // Read-only lookups run side by side; writes keep the model's order (an event may need the place added just before it)
+      const results = new Map<string, Record<string, unknown>>();
+      await Promise.all(
+        calls
+          .filter((call) => call.type === "function" && READ_ONLY_TOOLS.has(call.function.name))
+          .map(async (call) => results.set(call.id, await runCall(call)))
+      );
+      for (const call of calls) {
+        if (!results.has(call.id)) results.set(call.id, await runCall(call));
+      }
+      stats.toolMs += Date.now() - toolsStarted;
+      for (const call of calls) {
+        conversation.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(results.get(call.id)) });
       }
       continue;
     }

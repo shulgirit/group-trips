@@ -296,6 +296,26 @@ export const finish = internalMutation({
   },
 });
 
+export const logRun = internalMutation({
+  args: {
+    tripId: v.id("trips"),
+    ok: v.boolean(),
+    totalMs: v.number(),
+    llmMs: v.number(),
+    toolMs: v.number(),
+    decorateMs: v.number(),
+    rounds: v.number(),
+    firstEffort: v.string(),
+    tools: v.array(v.string()),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("aiRuns", { ...args, createdAt: Date.now() });
+  },
+});
+
 export const failReply = internalMutation({
   args: { replyId: v.id("chatMessages"), content: v.string() },
   handler: async (ctx, { replyId, content }) => {
