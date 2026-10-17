@@ -100,10 +100,11 @@ Mobile verified in the iOS simulator (Hebrew/RTL) against the *local* anonymous 
 - Vercel `api` CLI: PATCH/POST bodies via `--input -` with JSON; one object per POST for env vars; strip the CLI banner before parsing JSON.
 - Pushing to `main` deploys production. Pushing other branches builds a Vercel preview via `.github/workflows/preview.yml`.
 
-## State of each area (2026-10-17, branch `convex-web`, HEAD `76f65dd`)
+## State of each area (2026-10-17, branch `convex-web`; CI = `.github/workflows/ci.yml` runs `pnpm turbo run typecheck test`, green)
 - Convex backend: done, deployed to dev + prod, 26 tests. Authorization via `userQuery/tripQuery/tripMutation` (`convex/lib`).
 - Web on Convex: done and verified locally and on cloud dev. Not yet live.
 - Mobile: all screens built and type/lint clean; simulator-verified; push code written (backend tested) but unverified on a device.
 - Migration tooling: export/load/verify built; **real export done** (3 trips, 20 users, 109 places, 77 events, 69 expenses, 72 chat sessions,
   27 files); dry-run load OK. The **real load + verify rehearsal passed on the local Convex** (idempotent, counts match).
-- Store launch, AASA/assetlinks, Apple, Expo init, production cutover, Firebase/Capacitor cleanup: **not started**.
+- Done since the first draft: welcome-back hint, kids reconnect card, Apple button gating (`providers.available`), `/account/delete`, AASA/assetlinks routes (need `APPLE_TEAM_ID` / `ANDROID_SHA256_CERTS` in Vercel env), CI.
+- Store launch, Apple, Expo init, production cutover, Firebase/Capacitor cleanup: **not started**.
