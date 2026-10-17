@@ -114,6 +114,7 @@ const product: PartialMessages["product"] = {
     confirmDelete: "حذف الحساب نهائيًا",
     yourData: "بياناتكم",
     privacyLink: "سياسة الخصوصية",
+    contactSupport: "التواصل مع الدعم",
     termsLink: "شروط الاستخدام",
     deleting: "جارٍ الحذف…",
     deleteFailed:

@@ -118,6 +118,7 @@ const product: typeof he = {
     confirmDelete: "Delete account permanently",
     yourData: "Your data",
     privacyLink: "Privacy Policy",
+    contactSupport: "Contact support",
     termsLink: "Terms of Use",
     deleting: "Deleting…",
     deleteFailed:

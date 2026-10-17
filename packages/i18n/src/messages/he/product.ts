@@ -117,6 +117,7 @@ const product = {
     confirmDelete: "מחיקת החשבון לצמיתות",
     yourData: "המידע שלכם",
     privacyLink: "מדיניות הפרטיות",
+    contactSupport: "פנייה לתמיכה",
     termsLink: "תנאי השימוש",
     deleting: "מוחקים…",
     deleteFailed: "המחיקה נכשלה. אם התחברתם מזמן — התנתקו, התחברו מחדש ונסו שוב.",

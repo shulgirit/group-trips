@@ -9,6 +9,8 @@ export const resend = new Resend(components.resend, {
 });
 
 const FROM = process.env.AUTH_EMAIL_FROM ?? "Together <no-reply@togethergroup.app>";
+// Replies to the automatic sign-in mail reach a human (Cloudflare Email Routing → Omer's inbox)
+const REPLY_TO = process.env.AUTH_REPLY_TO ?? "support@togethergroup.app";
 
 const COPY = {
   he: { subject: "קוד הכניסה שלך ל-Together", lead: "הקוד שלך:", note: "הקוד בתוקף ל-5 דקות. אם לא ביקשת אותו, אפשר להתעלם." },
@@ -31,6 +33,7 @@ export async function sendOtpEmail(
   const dir = lang === "he" || lang === "ar" ? "rtl" : "ltr";
   await resend.sendEmail(ctx, {
     from: FROM,
+    replyTo: [REPLY_TO],
     to: email,
     subject: copy.subject,
     html: `<div dir="${dir}" style="font-family:system-ui,sans-serif;font-size:16px;color:#0f1b2d">

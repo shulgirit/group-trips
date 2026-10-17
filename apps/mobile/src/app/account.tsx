@@ -4,9 +4,9 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { FileText, LayoutGrid, LogOut, ShieldCheck, UserRound } from "lucide-react-native";
+import { FileText, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react-native";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-native";
 import { SignIn } from "@/components/auth/SignIn";
 import { ConfirmSheet } from "@/components/more/ConfirmSheet";
 import { LanguagePicker } from "@/components/more/LanguagePicker";
@@ -130,6 +130,7 @@ export default function Account() {
             <Group title={t("product.account.yourData")}>
               <Row icon={ShieldCheck} label={t("product.account.privacyLink")} onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)} />
               <Row icon={FileText} label={t("product.account.termsLink")} onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}/terms`)} />
+              <Row icon={Mail} label={t("product.account.contactSupport")} description="support@togethergroup.app" onPress={() => Linking.openURL("mailto:support@togethergroup.app")} />
               <Row icon={LogOut} label={busy ? t("settings.logout.busy") : t("settings.logout.title")} description={t("settings.logout.description")} onPress={busy ? undefined : handleSignOut} last />
             </Group>
 

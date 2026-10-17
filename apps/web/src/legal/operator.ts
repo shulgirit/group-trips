@@ -25,8 +25,8 @@ export const OPERATOR: {
   businessName: { en: "Tal Development", he: "טל פיתוח" },
   registrationNumber: null,
   location: { en: "Tel Aviv, Israel", he: "תל אביב, ישראל" },
-  privacyEmail: "privacy@togethertrips.app",
-  supportEmail: "support@togethertrips.app",
+  privacyEmail: "privacy@togethergroup.app",
+  supportEmail: "support@togethergroup.app",
   effectiveDate: { en: "October 14, 2026", he: "14 באוקטובר 2026" },
   minimumAge: 16,
 };
