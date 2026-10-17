@@ -2,6 +2,27 @@
 
 Legend: 🧑 needs Omer · 🤖 an agent can do it. Update this file as you finish items.
 
+## Round 2 status (2026-10-17, later) — Omer's 10 items
+| # | Item | Status |
+|---|---|---|
+| 1 | Landing problems | globe drag fixed (desktop mouse + touch verified headless). 🧑 Omer still owes the list of *other* landing issues (screenshots) |
+| 2/4 | EAS builds + stores | Android **preview** build started (EAS project `@shulgirit/together-group-plans`, keystore created). iOS waits for Apple. 🧑 Play Console steps below |
+| 3 | OTA | done: `eas update:configure`, fingerprint runtime version, `docs/ota.md` |
+| 5 | Resend + invites | web `/j/<code>` has "Open in the Together app" (phones); 🧑 OTP deliverability test needs Omer's OK + inbox; universal links wait for AASA/assetlinks values |
+| 6 | Native vs web speed | to measure on the preview build (release mode), not Expo Go |
+| 7 | Domain emails | code done (legal pages + Account row use `privacy@/support@togethergroup.app`, reply-to on sign-in mail). 🧑 Cloudflare Email Routing steps below |
+| 8 | AI speed | ~20 s → p50 9.8 s / max 10.9 s, actions 3–5 s (see D0); streaming is next |
+| 9 | Admin panel | **backend foundation done and tested** (`convex/admin.ts`, `platformAdmins`, `adminAudit`, `appConfig`, `config.get`). UI app `apps/admin` not started |
+| 10 | Globe | same fix as 1 |
+
+### 🧑 Omer — Cloudflare Email Routing (≈10 min)
+Cloudflare → togethergroup.app → Email → Email Routing → Enable (accept the MX/SPF records it adds) → Destination addresses: add `omertalmail@gmail.com` and click the verification link in Gmail → Routing rules: `privacy@togethergroup.app` → that address, `support@togethergroup.app` → that address (optional `hello@`).
+Send *as* support@ from Gmail: Gmail → Settings → Accounts and Import → "Send mail as" → add `support@togethergroup.app` → SMTP server `smtp.resend.com`, port 465 (SSL), username `resend`, password = a Resend API key with **sending access** (create a second key just for this) → confirm the code that arrives via the routing rule.
+### 🧑 Omer — Google Play (personal account ⇒ 12 testers × 14 days)
+1. Play Console → Create app "Together" (default language Hebrew or English), free, app/game = app. 2. Set up store listing basics later. 3. Testing → Closed testing → create a track, add a Google Group of ≥12 testers (the clock starts when 12 are opted in). 4. Upload the first **production** AAB manually (build with `npx eas-cli build -p android --profile production`; ask the agent). 5. Setup → API access → create a service account with "Release manager" rights → JSON key → keep it out of git; then `eas submit -p android` works. 6. App signing: copy the **SHA-256 of the app signing key** → Vercel env `ANDROID_SHA256_CERTS` (feeds `/.well-known/assetlinks.json`).
+### 🤖 Admin panel next step
+Scaffold `apps/admin` (Next.js 16, Tailwind, Better Auth client already in web — reuse pattern from `apps/web/src/lib/convex.ts`), screens: overview (`admin.overview`), trips, users, audit log, config editor; gate the whole app on `admin.me` and show nothing to non-admins. Seed the first admin after the cutover: `npx convex run admin:grantAdmin '{"email":"omertalmail@gmail.com"}' --prod` (the account must have signed in once).
+
 ## A. Before the production cutover (do these first)
 1. ✅ **Rehearsal done (2026-10-17)**: real snapshot loaded into the *local* anonymous Convex twice — second run changed nothing (idempotent),
    all per-trip counts match (Sicily 89 places/57 events/32 expenses/68 chats/4 polls; Sardinia 13 places…), 27 files copied. `verify` only flags

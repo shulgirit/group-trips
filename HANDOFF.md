@@ -106,4 +106,5 @@ Mobile verified in the iOS simulator (Hebrew/RTL) against the *local* anonymous 
 - Migration tooling: export/load/verify built; **real export done** (3 trips, 20 users, 109 places, 77 events, 69 expenses, 72 chat sessions,
   27 files); dry-run load OK. The **real load + verify rehearsal passed on the local Convex** (idempotent, counts match).
 - Done since the first draft: welcome-back hint, kids reconnect card, Apple button gating (`providers.available`), `/account/delete`, AASA/assetlinks routes (need `APPLE_TEAM_ID` / `ANDROID_SHA256_CERTS` in Vercel env), CI.
+- Round 2 (2026-10-17): globe drag fix, OTA config (`docs/ota.md`), contact emails, AI ~2× faster (`aiRuns`, `apps/web/scripts/ai-eval.mjs`), admin API backend (`convex/admin.ts`), invite-page "Open in app", Android preview build on EAS. See the table at the top of NEXT.md.
 - Store launch, Apple, Expo init, production cutover, Firebase/Capacitor cleanup: **not started**.
