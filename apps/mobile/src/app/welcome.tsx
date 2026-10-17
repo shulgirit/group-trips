@@ -3,7 +3,7 @@ import { useConvexAuth } from "convex/react";
 import { Redirect, router } from "expo-router";
 import { CalendarDays, Link2, Sparkles, UsersRound, type LucideIcon } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { FlatList, I18nManager, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SignIn } from "@/components/auth/SignIn";
 import { Logo } from "@/components/brand/Logo";
@@ -111,7 +111,6 @@ export default function Welcome() {
             data={CARDS}
             horizontal
             pagingEnabled
-            inverted={I18nManager.isRTL}
             showsHorizontalScrollIndicator={false}
             keyExtractor={(card) => card.key}
             onMomentumScrollEnd={(event) => setPage(Math.round(event.nativeEvent.contentOffset.x / width))}

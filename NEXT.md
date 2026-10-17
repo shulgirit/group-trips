@@ -26,6 +26,11 @@ Scaffold `apps/admin` (Next.js 16, Tailwind, Better Auth client already in web �
 ### Landing CTA after the apps ship (Omer, not now)
 Today the hero shows Google/email sign-in. When the iOS/Android apps are live, replace it with "Download on the App Store / Get it on Google Play" badges (keep a small "continue on the web" link only if the web product stays). Design: read a public Convex `appConfig` key `landing.stores` = `{ ios: <url>, android: <url> }` via `config.get`; when set, the hero (`apps/web/src/components/landing/Hero.tsx`) renders the badges instead of `SignInPanel`; invite page `/j/[code]` shows the same badges next to "Open in the app". No code change needed to flip it — set the key from the admin panel (`admin.setConfig`).
 
+### Builds so far (EAS project `@shulgirit/together-group-plans`)
+- Android **preview** APK (dev backend, identity `app.together.trips.dev`) — built 2026-10-17; install link in the EAS dashboard (Builds). 🧑 Omer tests on an Android phone (email code: ask the agent to read it from `npx convex logs`, dev doesn't email).
+- iOS **simulator** build (`--profile preview-simulator`, no Apple account) — built OK and installed/launched on Omer's simulator (release mode, Hebrew welcome renders). Real iPhone / TestFlight build needs the paid Apple Developer account: `eas build -p ios --profile preview`.
+- ⚠️ Unverified: `welcome.tsx` pager no longer uses `inverted` in RTL (the release build showed the wrong page dot on the first card). Check on a device in Hebrew: first card shows the first (right-most) dot, swiping/"Next" advances the dot correctly; revert to `inverted={I18nManager.isRTL}` if Android misbehaves.
+
 ## A. Before the production cutover (do these first)
 1. ✅ **Rehearsal done (2026-10-17)**: real snapshot loaded into the *local* anonymous Convex twice — second run changed nothing (idempotent),
    all per-trip counts match (Sicily 89 places/57 events/32 expenses/68 chats/4 polls; Sardinia 13 places…), 27 files copied. `verify` only flags
