@@ -8,7 +8,8 @@
     "./api": "./convex/_generated/api.js",
     "./dataModel": "./convex/_generated/dataModel.d.ts",
     "./server": "./convex/_generated/server.js",
-    "./migrationRecords": "./convex/lib/migrationRecords.ts"
+    "./migrationRecords": "./convex/lib/migrationRecords.ts",
+    "./shapes": "./client/shapes.ts"
   },
   "scripts": {
     "dev": "convex dev",

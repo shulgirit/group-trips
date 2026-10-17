@@ -7,7 +7,7 @@ const repoRoot = path.join(__dirname, "../..");
 const nextConfig: NextConfig = {
   turbopack: { root: repoRoot },
   // Workspace packages ship TypeScript source
-  transpilePackages: ["@together/i18n", "@together/integrations", "@together/shared"],
+  transpilePackages: ["@together/backend", "@together/i18n", "@together/integrations", "@together/shared"],
   outputFileTracingRoot: repoRoot,
   // The original Sicily/Sardinia URLs now live under their migrated trips
   async redirects() {

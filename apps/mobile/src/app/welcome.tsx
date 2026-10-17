@@ -42,7 +42,7 @@ export default function Welcome() {
       setInviteError(t("landing.app.inviteInvalid"));
       return;
     }
-    router.push(`/join/${code}`);
+    router.push(`/j/${code}`);
   }
 
   function next() {

@@ -40,6 +40,27 @@ function interpolate(template: string, vars?: TVars): string {
 }
 
 /**
+ * CLDR plural category. Hermes (React Native) has no Intl.PluralRules, so the
+ * app falls back to the rules of our four languages (integers only).
+ */
+function pluralRule(locale: Locale, count: number): string {
+  if (typeof Intl !== "undefined" && typeof Intl.PluralRules === "function") return new Intl.PluralRules(locale).select(count);
+  const n = Math.abs(Math.trunc(count));
+  if (locale === "ar") {
+    const mod = n % 100;
+    if (n === 0) return "zero";
+    if (n === 1) return "one";
+    if (n === 2) return "two";
+    if (mod >= 3 && mod <= 10) return "few";
+    if (mod >= 11) return "many";
+    return "other";
+  }
+  if (n === 1) return "one";
+  if (locale === "he" && n === 2) return "two";
+  return "other";
+}
+
+/**
  * Translates a key. Plural keys ({one, other, two?}) take `count`.
  * Missing keys fall back to Hebrew (source of truth), then the key itself.
  */
@@ -48,7 +69,7 @@ export function translate(locale: Locale, key: TKey, vars?: TVars & { count?: nu
   if (value && typeof value === "object") {
     const forms = value as PluralForms;
     const count = Number(vars?.count ?? 0);
-    const rule = new Intl.PluralRules(locale).select(count) as keyof PluralForms;
+    const rule = pluralRule(locale, count) as keyof PluralForms;
     value = (count === 0 && forms.zero) || forms[rule] || forms.other;
   }
   if (typeof value !== "string") return key;

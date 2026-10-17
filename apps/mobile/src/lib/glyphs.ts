@@ -140,3 +140,8 @@ export function glyphIcon(value: string | null | undefined, fallback: LucideIcon
   return KEY_TO_ICON[value] ?? EMOJI_TO_ICON[value] ?? EMOJI_TO_ICON[value.replace(/️/g, "")] ?? fallback;
 }
 
+
+/** A place category's icon (unknown categories → pin). */
+export function categoryIcon(category: string | null | undefined): LucideIcon {
+  return CATEGORY_ICON[category as PlaceCategory] ?? MapPin;
+}
