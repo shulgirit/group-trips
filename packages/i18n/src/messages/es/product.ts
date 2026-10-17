@@ -153,6 +153,7 @@ const product: PartialMessages["product"] = {
     signedInAs: "Sesión iniciada como {name}",
     guestHint: "Te unes como invitado. El acceso se guarda en este móvil",
     stepOf: "Paso {n} de {total}",
+    openInApp: "Abrir en la app Together",
     guideRole: "El guía del viaje, ya te espera",
     travelers: { one: "1 viajero", other: "{count} viajeros" },
     errorTitles: {

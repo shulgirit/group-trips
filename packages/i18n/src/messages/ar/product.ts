@@ -149,6 +149,7 @@ const product: PartialMessages["product"] = {
     signedInAs: "مسجّل الدخول باسم {name}",
     guestHint: "الانضمام كضيف. يُحفظ الوصول على هذا الهاتف",
     stepOf: "الخطوة {n} من {total}",
+    openInApp: "فتح في تطبيق Together",
     guideRole: "مرشد الرحلة، ينتظركم بالفعل",
     travelers: { one: "مسافر واحد", other: "{count} مسافرين" },
     errorTitles: {

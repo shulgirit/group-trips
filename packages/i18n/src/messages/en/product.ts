@@ -153,6 +153,7 @@ const product: typeof he = {
     signedInAs: "Signed in as {name}",
     guestHint: "Joining as a guest — access is saved on this phone",
     stepOf: "Step {n} of {total}",
+    openInApp: "Open in the Together app",
     guideRole: "Your trip guide, already waiting",
     travelers: { one: "1 traveler", other: "{count} travelers" },
     errorTitles: {

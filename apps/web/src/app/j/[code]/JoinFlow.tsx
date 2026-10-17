@@ -7,7 +7,7 @@ import type { Id } from "@together/backend/dataModel";
 import { avatarSrc } from "@together/shared/avatars";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Ban, Check, Hourglass, Link2Off, Lock, UsersRound, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Ban, Check, Hourglass, Link2Off, Lock, UsersRound, type LucideIcon } from "lucide-react";
 import { RouteArt } from "@/components/journal/RouteArt";
 import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
 import { SignInPanel } from "@/components/auth/SignInPanel";
@@ -86,9 +86,18 @@ const ERRORS: Record<string, TKey> = {
   trip_closed: "product.join.errors.tripClosed",
 };
 
+/** App scheme for "Open in the app": the dev build (togehter.app / localhost) has its own scheme. */
+function appLink(code: string): string {
+  const dev = /^(togehter\.app|localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  return `${dev ? "together-dev" : "together"}://j/${code}`;
+}
+
 export function JoinFlow({ code }: { code: string }) {
   const router = useRouter();
   const t = useT();
+  // Phones (touch) can hand the invite to the installed app; desktops can't
+  const [touch, setTouch] = useState(false);
+  useEffect(() => setTouch(window.matchMedia("(pointer: coarse)").matches), []);
   const { user, personal, loading } = useAuthUser();
   // Public, live preview of the invite (works before sign-in)
   const result = useQuery(api.invites.preview, { code });
@@ -290,6 +299,16 @@ export function JoinFlow({ code }: { code: string }) {
             </div>
           )}
         </section>
+
+        {touch && (
+          <a
+            href={appLink(code)}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-chart-200 bg-white px-4 py-3.5 text-[15px] font-medium text-ink-900"
+          >
+            {t("product.join.openInApp")}
+            <ArrowUpRight size={18} strokeWidth={STROKE} aria-hidden className="shrink-0 text-route-500" />
+          </a>
+        )}
 
         {!canPick ? (
           <section className="space-y-5">

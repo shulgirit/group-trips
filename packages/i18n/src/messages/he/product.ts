@@ -151,6 +151,7 @@ const product = {
     signedInAs: "מחוברים כ-{name}",
     guestHint: "נכנסים כאורח — הגישה נשמרת בטלפון הזה",
     stepOf: "שלב {n} מתוך {total}",
+    openInApp: "פתיחה באפליקציית Together",
     guideRole: "המדריך של הטיול, כבר מחכה לכם",
     travelers: { one: "נוסע אחד", other: "{count} נוסעים" },
     errorTitles: {
