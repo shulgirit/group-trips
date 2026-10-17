@@ -61,7 +61,7 @@ export const authComponent = createClient<DataModel, typeof authSchema>(componen
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
-const env = (name: string) => process.env[name] || undefined;
+const env = (name: string): string | undefined => process.env[name] || undefined;
 
 /** Better Auth runs inside Convex HTTP actions, which can run mutations. */
 function canMutate(ctx: GenericCtx<DataModel>): ctx is ActionCtx {
@@ -82,7 +82,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       "together://",
       "together-dev://",
       "https://appleid.apple.com",
-      ...(env("EXTRA_TRUSTED_ORIGINS")?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? []),
+      ...(env("EXTRA_TRUSTED_ORIGINS")?.split(",").map((origin: string) => origin.trim()).filter(Boolean) ?? []),
     ],
     socialProviders: {
       ...(googleClientId && {
