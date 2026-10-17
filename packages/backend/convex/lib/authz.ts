@@ -46,6 +46,20 @@ export async function requireAccount(ctx: QueryCtx): Promise<Doc<"users">> {
   return user;
 }
 
+/**
+ * A platform owner (admin panel). Every function under admin.ts goes through this —
+ * identity from the token, role from the platformAdmins table, never from arguments.
+ */
+export async function requirePlatformAdmin(ctx: QueryCtx): Promise<Doc<"users">> {
+  const user = await requireAccount(ctx);
+  const row = await ctx.db
+    .query("platformAdmins")
+    .withIndex("by_user", (q) => q.eq("userId", user._id))
+    .unique();
+  if (!row) fail("forbidden");
+  return user;
+}
+
 export async function getMembership(ctx: QueryCtx, tripId: Id<"trips">, userId: Id<"users">) {
   return ctx.db
     .query("memberships")

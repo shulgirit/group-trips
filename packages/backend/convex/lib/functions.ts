@@ -1,7 +1,7 @@
 import { customCtxAndArgs, customMutation, customQuery } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 import { mutation, type QueryCtx, query } from "../_generated/server";
-import { requireAccount, requireMember, requireUser } from "./authz";
+import { requireAccount, requireMember, requirePlatformAdmin, requireUser } from "./authz";
 
 /**
  * Function builders that resolve identity once:
@@ -36,3 +36,14 @@ const tripArgs = customCtxAndArgs({
 
 export const tripQuery = customQuery(query, tripArgs);
 export const tripMutation = customMutation(mutation, tripArgs);
+
+/** Admin-panel functions: ctx.admin is the signed-in platform owner. */
+export const adminQuery = customQuery(query, {
+  args: {},
+  input: async (ctx) => ({ ctx: { admin: await requirePlatformAdmin(ctx) }, args: {} }),
+});
+
+export const adminMutation = customMutation(mutation, {
+  args: {},
+  input: async (ctx) => ({ ctx: { admin: await requirePlatformAdmin(ctx) }, args: {} }),
+});

@@ -10,10 +10,12 @@
 
 import type * as access from "../access.js";
 import type * as account from "../account.js";
+import type * as admin from "../admin.js";
 import type * as assist from "../assist.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chatRun from "../chatRun.js";
+import type * as config from "../config.js";
 import type * as crons from "../crons.js";
 import type * as destinations from "../destinations.js";
 import type * as documents from "../documents.js";
@@ -54,10 +56,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   access: typeof access;
   account: typeof account;
+  admin: typeof admin;
   assist: typeof assist;
   auth: typeof auth;
   chat: typeof chat;
   chatRun: typeof chatRun;
+  config: typeof config;
   crons: typeof crons;
   destinations: typeof destinations;
   documents: typeof documents;

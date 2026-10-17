@@ -287,6 +287,29 @@ export default defineSchema({
     .index("by_trip", ["tripId"])
     .index("by_trip_creator", ["tripId", "createdBy"]),
 
+  /** Platform owners (the admin panel). Granted only with the CLI: `npx convex run admin:grantAdmin '{"email":"…"}'` */
+  platformAdmins: defineTable({
+    userId: v.id("users"),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  /** Append-only record of everything an admin changed */
+  adminAudit: defineTable({
+    adminId: v.id("users"),
+    action: v.string(),
+    target: v.string(),
+    detail: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_created", ["createdAt"]),
+
+  /** Remote content & flags the apps read at runtime (banners, feature flags, defaults) — no app update needed */
+  appConfig: defineTable({
+    key: v.string(),
+    value: v.any(),
+    updatedBy: v.id("users"),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
   /** One row per AI reply: latency and cost for the admin dashboard (no message text) */
   aiRuns: defineTable({
     tripId: v.id("trips"),
