@@ -9,7 +9,10 @@ import { ConvexClientProvider } from "@/components/providers/ConvexClientProvide
 import { LocaleSync } from "@/components/providers/LocaleSync";
 import { getToken } from "@/lib/auth-server";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://togethergroup.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Together",
     template: "%s · Together",

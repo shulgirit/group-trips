@@ -109,7 +109,7 @@ function InviteSection() {
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">{t("landing.invite.message")}</span>
                 <span className="block text-xs text-cream-50/55" dir="ltr">
-                  together.app/j/sicily
+                  togethergroup.app/j/sicily
                 </span>
               </span>
             </div>

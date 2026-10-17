@@ -8,7 +8,7 @@ export const resend = new Resend(components.resend, {
   testMode: process.env.RESEND_LIVE !== "1",
 });
 
-const FROM = process.env.AUTH_EMAIL_FROM ?? "Together <no-reply@together.app>";
+const FROM = process.env.AUTH_EMAIL_FROM ?? "Together <no-reply@togethergroup.app>";
 
 const COPY = {
   he: { subject: "קוד הכניסה שלך ל-Together", lead: "הקוד שלך:", note: "הקוד בתוקף ל-5 דקות. אם לא ביקשת אותו, אפשר להתעלם." },

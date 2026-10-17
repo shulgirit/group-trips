@@ -12,7 +12,7 @@
       "bundleIdentifier": "app.together.trips",
       "supportsTablet": true,
       "associatedDomains": [
-        "applinks:together.app"
+        "applinks:togethergroup.app"
       ],
       "infoPlist": {
         "CFBundleLocalizations": [
@@ -41,12 +41,12 @@
           "data": [
             {
               "scheme": "https",
-              "host": "together.app",
+              "host": "togethergroup.app",
               "pathPrefix": "/j/"
             },
             {
               "scheme": "https",
-              "host": "together.app",
+              "host": "togethergroup.app",
               "pathPrefix": "/t/"
             }
           ],

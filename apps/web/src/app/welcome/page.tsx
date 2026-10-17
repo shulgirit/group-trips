@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { WelcomeClient } from "@/components/landing/WelcomeClient";
+
+// The only indexable page (the root layout is noindex); the dev domain stays hidden in robots.ts
+export const metadata: Metadata = { robots: { index: true, follow: true }, alternates: { canonical: "/welcome" } };
 
 /**
  * Web visitors get the story landing page (server-rendered, fast, indexable);

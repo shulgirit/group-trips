@@ -30,7 +30,7 @@ const ERRORS: Record<string, { icon: LucideIcon; title: TKey; text: TKey }> = {
 };
 
 /**
- * An invite link (together.app/j/<code> or together://j/<code>): the trip as
+ * An invite link (togethergroup.app/j/<code> or together://j/<code>): the trip as
  * an invitation, sign-in or guest, then "which one are you?".
  */
 export default function Join() {

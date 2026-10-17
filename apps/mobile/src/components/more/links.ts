@@ -2,7 +2,7 @@ import { translate } from "@together/i18n/translate";
 import type { Locale } from "@together/i18n/config";
 
 /** The public site that serves /j/<code> (opens the app via universal links, else the stores). */
-export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || "https://together.app").replace(/\/$/, "");
+export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || "https://togethergroup.app").replace(/\/$/, "");
 
 export function inviteUrl(code: string): string {
   return `${SITE_URL}/j/${code}`;

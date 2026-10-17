@@ -8,7 +8,7 @@ Together is a live Next.js 16 product: a landing page plus the trip app, running
 Decisions taken with Omer (2026-10-16):
 - After the store launch the website is **landing + invite/join + legal + web account deletion**. All trip features live in the app.
 - **Sicily and Sardinia migrate as normal trips.** The shared password and the pick-your-name kid login are retired; kids rejoin with a kid invite link.
-- **Domain: `together.app`** (DNS at Cloudflare). It hosts the landing page, universal links and email (OTP sender).
+- **Domain: `togethergroup.app`** (DNS at Cloudflare). It hosts the landing page, universal links and email (OTP sender).
 - **Convex project "together" already exists in the EU (Ireland, `aws-eu-west-1`).** Omer runs `npx convex login` once; the browser profile I control isn't signed in.
 
 ## A. Current architecture (from the audit)
@@ -66,7 +66,7 @@ Decisions taken with Omer (2026-10-16):
 ```
 Expo app (iOS/Android) ─┐                     ┌─ Convex (EU): schema, queries/mutations,
                         ├─ Better Auth ──────►│  actions (OpenAI, Places, Firecrawl),
-Next.js together.app ───┘  (Convex component) │  file storage, scheduler + crons,
+Next.js togethergroup.app ───┘  (Convex component) │  file storage, scheduler + crons,
   landing · join · legal · account-delete     └─ Expo push component
 ```
 **Key choices**
@@ -125,7 +125,7 @@ Next.js together.app ───┘  (Convex component) │  file storage, schedul
 **Methods**
 - **Apple:** native `expo-apple-authentication` (idToken + nonce) on iOS; web flow on Android and web. It is mandatory under App Store guideline 4.8 because we offer Google. `appBundleIdentifier` is set. The client-secret JWT needs rotating every 6 months; there's a calendar note in the docs.
 - **Google:** native idToken through `@react-native-google-signin` on both platforms; redirect on web. `clientId: [web, ios, android]`.
-- **Email OTP:** a 6-digit code, the universal fallback, sent through Resend from `no-reply@together.app` (Cloudflare DNS: SPF, DKIM, DMARC).
+- **Email OTP:** a 6-digit code, the universal fallback, sent through Resend from `no-reply@togethergroup.app` (Cloudflare DNS: SPF, DKIM, DMARC).
 - **Anonymous:** guest and kid devices from invite links. `onLinkAccount` moves memberships when a guest later signs in.
 - **Not offered:**
   - Password login: OTP removes the reset and breach surface.
@@ -134,8 +134,8 @@ Next.js together.app ───┘  (Convex component) │  file storage, schedul
 
 **Sessions**
 - Mobile: `expoClient` keeps the session in `expo-secure-store`; the `convex()` plugin issues JWTs to `ConvexReactClient`. We don't set `expectAuth`, so the signed-out onboarding and join preview can still run queries.
-- Web: `convexBetterAuthNextJs` handler at `together.app/api/auth/*`, with httpOnly cookies.
-- `SITE_URL=https://together.app`, so OAuth redirect URIs live on our domain and no paid Convex custom domain is needed.
+- Web: `convexBetterAuthNextJs` handler at `togethergroup.app/api/auth/*`, with httpOnly cookies.
+- `SITE_URL=https://togethergroup.app`, so OAuth redirect URIs live on our domain and no paid Convex custom domain is needed.
 
 **Linking and deletion**
 - Account linking is on, with trusted providers google, apple and email-otp.
@@ -243,7 +243,7 @@ Next.js together.app ───┘  (Convex component) │  file storage, schedul
 - Scaffold `apps/mobile` with SDK 57, Expo Router, EAS profiles (development, preview, production) and `app.config.ts`:
   - bundle `app.together.trips`
   - scheme `together`
-  - associated domains `applinks:together.app`
+  - associated domains `applinks:togethergroup.app`
   - `usesAppleSignIn`
   - expo-localization RTL
 - Auth screens first, then screens in value order: trips hub · join · trip home · schedule + event sheet · places, detail and add · map + live location · AI chat (streaming) · expenses + settle · polls · documents · families/settings/invites/members · creator wizard · account/delete.
@@ -251,7 +251,7 @@ Next.js together.app ───┘  (Convex component) │  file storage, schedul
 
 **P8 · Store launch**
 - EAS Build/Submit to TestFlight and Play internal testing.
-- AASA (real Team ID) and assetlinks (Play signing SHA-256) on together.app.
+- AASA (real Team ID) and assetlinks (Play signing SHA-256) on togethergroup.app.
 - Review checklist: Apple sign-in, in-app deletion, privacy labels, demo account.
 - The web `/j` page starts sending people to the stores.
 
@@ -307,7 +307,7 @@ together/
 - **Auth:**
   - Rehearsal: sign in with Omer's real Google account against dev after the import. The same user is matched and his trips are visible.
   - Apple native on a TestFlight build. Email OTP end to end. Guest to Google linking keeps memberships.
-- **Mobile:** EAS development builds on a real iPhone and Android device; deep links `together://` and `https://together.app/j/<code>`; push reminder received; RTL in he and ar.
+- **Mobile:** EAS development builds on a real iPhone and Android device; deep links `together://` and `https://togethergroup.app/j/<code>`; push reminder received; RTL in he and ar.
 - **Cutover:** smoke script plus manual pass over trips, schedule, places, AI chat, expenses, polls and documents on production with a real account.
 
 ## What happens right after approval

@@ -109,7 +109,7 @@ function fixture(): Snapshot {
   };
 }
 
-const plan = () => transform(fixture(), { siteUrl: "https://together.app", legacyOwnerUid: "omer" });
+const plan = () => transform(fixture(), { siteUrl: "https://togethergroup.app", legacyOwnerUid: "omer" });
 
 describe("users", () => {
   it("maps Google identities to provider accounts by the provider's own id", () => {
@@ -134,7 +134,7 @@ describe("trips", () => {
     const sicily = plan().trips.find((trip) => trip.firebaseId === "sicily-2026")!;
     expect(sicily.legacyKey).toBe("sicily");
     expect(sicily.ownerFirebaseUid).toBe("omer");
-    expect(sicily.coverImage).toBe("https://together.app/images/hero.jpg");
+    expect(sicily.coverImage).toBe("https://togethergroup.app/images/hero.jpg");
     expect(sicily.ai.customPrompt).toContain("המשרת של חבורת מיחא");
     expect(sicily.aboutUs).toBe("ארבע משפחות");
     expect(JSON.stringify(sicily)).not.toContain("secret"); // join code never migrates

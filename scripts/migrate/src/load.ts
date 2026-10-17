@@ -94,7 +94,7 @@ async function main() {
   const legacyOwnerUid = ownerEmail ? snapshot.authUsers.find((user) => user.email?.toLowerCase() === ownerEmail)?.uid : undefined;
   if (ownerEmail && !legacyOwnerUid) throw new Error("--legacy-owner-email matches no Firebase user");
 
-  const plan = transform(snapshot, { siteUrl: flags.get("site-url") ?? "https://together.app", legacyOwnerUid });
+  const plan = transform(snapshot, { siteUrl: flags.get("site-url") ?? "https://togethergroup.app", legacyOwnerUid });
   const byKind = plan.warnings.reduce<Record<string, number>>((acc, w) => ({ ...acc, [w.kind]: (acc[w.kind] ?? 0) + 1 }), {});
   console.log("warnings:", JSON.stringify(byKind));
   writeFileSync(join(dirname(snapshotPath), "warnings.json"), JSON.stringify(plan.warnings, null, 2), { mode: 0o600 });

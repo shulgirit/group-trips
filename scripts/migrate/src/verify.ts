@@ -24,7 +24,7 @@ async function main() {
   const snapshot = JSON.parse(readFileSync(snapshotPath, "utf8")) as Snapshot;
   const ownerEmail = flags.get("legacy-owner-email")?.toLowerCase();
   const legacyOwnerUid = ownerEmail ? snapshot.authUsers.find((u) => u.email?.toLowerCase() === ownerEmail)?.uid : undefined;
-  const plan = transform(snapshot, { siteUrl: flags.get("site-url") ?? "https://together.app", legacyOwnerUid });
+  const plan = transform(snapshot, { siteUrl: flags.get("site-url") ?? "https://togethergroup.app", legacyOwnerUid });
 
   const actual: Counts = await adminQuery(convexAdmin(), internal.migration.counts, {});
   const problems: string[] = [];

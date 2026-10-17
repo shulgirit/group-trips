@@ -52,7 +52,7 @@ export async function signOut(): Promise<void> {
   await authClient.signOut();
 }
 
-/** "together.app/j/abc123", "https://…/j/abc123" or just the code → the code. */
+/** "togethergroup.app/j/abc123", "https://…/j/abc123" or just the code → the code. */
 export function inviteCode(input: string): string | null {
   const match = input.trim().toLowerCase().match(/(?:\/j\/)?([a-z0-9]{6,16})\/?$/);
   return match?.[1] ?? null;

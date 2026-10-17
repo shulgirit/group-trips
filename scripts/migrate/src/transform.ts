@@ -58,7 +58,7 @@ export interface Plan {
 }
 
 export interface TransformOptions {
-  /** Absolute origin for legacy hero images (e.g. https://together.app) */
+  /** Absolute origin for legacy hero images (e.g. https://togethergroup.app) */
   siteUrl: string;
   /** Who owns the migrated Sicily/Sardinia trips (no owner in Firestore) */
   legacyOwnerUid?: string;

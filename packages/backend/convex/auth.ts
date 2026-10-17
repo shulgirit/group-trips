@@ -75,7 +75,15 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   return {
     baseURL: siteUrl,
     database: authComponent.adapter(ctx),
-    trustedOrigins: [siteUrl, "together://", "https://appleid.apple.com"],
+    // The site, the app schemes (production + development builds), Apple, and any
+    // extra web origins (dev: localhost next to the dev domain)
+    trustedOrigins: [
+      siteUrl,
+      "together://",
+      "together-dev://",
+      "https://appleid.apple.com",
+      ...(env("EXTRA_TRUSTED_ORIGINS")?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? []),
+    ],
     socialProviders: {
       ...(googleClientId && {
         google: {
