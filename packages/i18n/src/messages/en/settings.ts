@@ -26,6 +26,7 @@ const settings: typeof he = {
     signInFailed: "Sign-in didn't finish. Make sure pop-ups are allowed and try again.",
   },
   trip: {
+    membersCanDeletePlaces: "Members can delete places",
     title: "The trip",
     dates: "Dates",
     days: { one: "1 day", two: "2 days", other: "{count} days" },

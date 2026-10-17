@@ -57,10 +57,11 @@ export default function Schedule() {
   const today = todayIso();
   const [selected, setSelected] = useState(params.day && days.includes(params.day) ? params.day : days.includes(today) ? today : days[0]);
   // Reminder pushes deep-link here with ?day=
-  useEffect(() => {
+  const [linkedDay, setLinkedDay] = useState(params.day);
+  if (params.day !== linkedDay) {
+    setLinkedDay(params.day);
     if (params.day && days.includes(params.day)) setSelected(params.day);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.day]);
+  }
   const events = useEvents();
   const places = usePlaces();
   const families = useFamilies();

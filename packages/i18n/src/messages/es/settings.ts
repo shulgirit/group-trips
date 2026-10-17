@@ -26,6 +26,7 @@ const settings: PartialMessages["settings"] = {
     signInFailed: "No se completó el inicio de sesión. Comprueba que las ventanas emergentes estén permitidas e inténtalo de nuevo.",
   },
   trip: {
+    membersCanDeletePlaces: "Los miembros pueden borrar lugares",
     title: "El viaje",
     dates: "Fechas",
     days: { one: "1 día", two: "2 días", other: "{count} días" },

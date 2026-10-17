@@ -25,6 +25,7 @@ const settings = {
     signInFailed: "ההתחברות לא הושלמה. ודאו שחלונות קופצים מותרים ונסו שוב",
   },
   trip: {
+    membersCanDeletePlaces: "חברי הטיול יכולים למחוק מקומות",
     title: "הטיול",
     dates: "תאריכים",
     days: { one: "יום אחד", two: "יומיים", other: "{count} ימים" },

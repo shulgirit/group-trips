@@ -238,6 +238,7 @@ const product = {
       owner: "מארגן/ת",
       admin: "מנהל/ת",
       kid: "ילד/ה",
+      member: "חבר/ה",
     },
   },
   legal: {

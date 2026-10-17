@@ -13,7 +13,17 @@
       "supportsTablet": true,
       "associatedDomains": [
         "applinks:together.app"
-      ]
+      ],
+      "infoPlist": {
+        "CFBundleLocalizations": [
+          "en",
+          "he",
+          "ar",
+          "es"
+        ],
+        "CFBundleDevelopmentRegion": "en"
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -70,6 +80,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "supportsRTL": true
     }
   }
 }

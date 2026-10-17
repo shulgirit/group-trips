@@ -26,6 +26,7 @@ const settings: PartialMessages["settings"] = {
     signInFailed: "لم يكتمل تسجيل الدخول. تأكدوا من السماح بالنوافذ المنبثقة وحاولوا مجددًا.",
   },
   trip: {
+    membersCanDeletePlaces: "يمكن للأعضاء حذف الأماكن",
     title: "الرحلة",
     dates: "التواريخ",
     days: { one: "يوم واحد", two: "يومان", other: "{count} أيام" },

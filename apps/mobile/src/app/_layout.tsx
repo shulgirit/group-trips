@@ -1,3 +1,4 @@
+import "@/lib/polyfills";
 import { ConvexBetterAuthProvider, type AuthClient } from "@convex-dev/better-auth/react";
 import { colors } from "@together/shared/tokens";
 import { useFonts } from "expo-font";

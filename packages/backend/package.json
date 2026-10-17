@@ -9,7 +9,8 @@
     "./dataModel": "./convex/_generated/dataModel.d.ts",
     "./server": "./convex/_generated/server.js",
     "./migrationRecords": "./convex/lib/migrationRecords.ts",
-    "./shapes": "./client/shapes.ts"
+    "./shapes": "./client/shapes.ts",
+    "./creator": "./client/creator.ts"
   },
   "scripts": {
     "dev": "convex dev",

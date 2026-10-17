@@ -240,6 +240,7 @@ const product: typeof he = {
       owner: "Organizer",
       admin: "Admin",
       kid: "Kid",
+      member: "Member",
     },
   },
   legal: {

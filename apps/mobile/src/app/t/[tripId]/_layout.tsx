@@ -45,8 +45,19 @@ export default function TripLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="documents" options={{ title: t("money.docs.title") }} />
+        <Stack.Screen name="families" options={{ title: "" }} />
+        <Stack.Screen name="invites" options={{ title: t("product.admin.inviteTitle") }} />
+        <Stack.Screen name="members" options={{ title: "" }} />
+        <Stack.Screen name="settings" options={{ title: t("settings.title") }} />
+        <Stack.Screen name="expenses" options={{ title: "" }} />
+        <Stack.Screen name="expense/new" options={{ presentation: "modal", title: t("money.add.title") }} />
+        <Stack.Screen name="polls" options={{ title: "" }} />
+        <Stack.Screen name="poll/new" options={{ presentation: "modal", title: t("polls.new.title") }} />
         <Stack.Screen name="event/[eventId]" options={{ title: "" }} />
         <Stack.Screen name="event/new" options={{ presentation: "modal", title: t("trip.quickAdd.addEvent") }} />
+        <Stack.Screen name="place/[placeId]" options={{ title: "", headerTransparent: true }} />
+        <Stack.Screen name="place/new" options={{ presentation: "modal", title: t("trip.newPlace.title") }} />
       </Stack>
     </TripProvider>
   );

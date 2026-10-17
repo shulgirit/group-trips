@@ -23,12 +23,22 @@ function deviceLocale(): Locale {
   return DEFAULT_LOCALE;
 }
 
+const RELOAD_KEY = "together.directionReload";
+
 async function applyDirection(locale: Locale) {
   const rtl = dirFor(locale) === "rtl";
-  if (I18nManager.isRTL === rtl) return;
+  const want = rtl ? "rtl" : "ltr";
+  if (I18nManager.isRTL === rtl) {
+    await AsyncStorage.removeItem(RELOAD_KEY).catch(() => undefined);
+    return;
+  }
   I18nManager.allowRTL(rtl);
   I18nManager.forceRTL(rtl);
-  // Layout direction is read at startup only
+  // Layout direction is read at startup, so reload — but only once per
+  // change: if the host refuses the direction, don't loop.
+  const tried = await AsyncStorage.getItem(RELOAD_KEY).catch(() => null);
+  if (tried === want) return;
+  await AsyncStorage.setItem(RELOAD_KEY, want).catch(() => undefined);
   try {
     await Updates.reloadAsync();
   } catch {

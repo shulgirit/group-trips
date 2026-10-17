@@ -236,6 +236,7 @@ const product: PartialMessages["product"] = {
       owner: "منظّم",
       admin: "مشرف",
       kid: "طفل",
+      member: "عضو",
     },
   },
   legal: { updated: "سارية اعتبارًا من {date}", contents: "المحتويات" },

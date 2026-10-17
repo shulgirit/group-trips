@@ -240,6 +240,7 @@ const product: PartialMessages["product"] = {
       owner: "Organizador",
       admin: "Administrador",
       kid: "Niño",
+      member: "Miembro",
     },
   },
   legal: {
