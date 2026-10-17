@@ -18,9 +18,10 @@ Legend: 🧑 needs Omer · 🤖 an agent can do it. Update this file as you fini
 6. 🤖 Re-run all checks (see HANDOFF "How to work locally") and `pnpm build` for `apps/web` before the merge. Then follow **CUTOVER.md**.
 
 ## B. Mobile app → real devices and stores
-1. 🧑 `npx eas-cli login`, then `cd apps/mobile && npx eas-cli init` (writes `extra.eas.projectId` into app.json — commit it). Create EAS env vars
-   (`EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_CONVEX_SITE_URL`, `EXPO_PUBLIC_SITE_URL`, `EXPO_PUBLIC_APP_ENV`) for development/preview/production
-   mirroring the Convex deployments (dev = mild-caterpillar-988, prod = tidy-dodo-188).
+1. ✅ **EAS linked (2026-10-17)**: Expo account **shulgirit**, project **`@shulgirit/together-group-plans`** (ID `b7f14588-d89f-4ee4-8e3e-a113ee10d933`, in `apps/mobile/app.json`
+   `extra.eas.projectId`, `owner`, `slug`). EAS env vars exist for development/preview (dev Convex + togehter.app) and production (prod Convex + togethergroup.app).
+   ⚠️ Omer's other Expo projects (`dr-fischer`, `dr-fischer-monorepo`, account `wiply`) are a live app — **never touch them**; always check `npx eas-cli project:info` shows `@shulgirit/together-group-plans`.
+   GitHub connection in Expo is not needed (builds run from the CLI). `eas.json` `submit.production.ios.ascAppId` is still a placeholder (App Store Connect app id).
 2. 🤖/🧑 First **development build** on a real iPhone and an Android phone (`eas build --profile development`); needs Apple Developer approval for iOS.
    Verify: Google sign-in (browser flow → deep link back `together-dev://`), push token registration + reminder, deep links, RTL (he/ar), camera/photos, location.
 3. 🧑 Apple: Services ID `togethergroup.app`, return URL `https://togethergroup.app/api/auth/callback/apple`, App ID with Sign in with Apple + Associated Domains,

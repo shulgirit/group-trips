@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Together",
-    "slug": "together",
+    "slug": "together-group-plans",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -101,7 +101,12 @@
       "reactCompiler": true
     },
     "extra": {
-      "supportsRTL": true
-    }
+      "supportsRTL": true,
+      "router": {},
+      "eas": {
+        "projectId": "b7f14588-d89f-4ee4-8e3e-a113ee10d933"
+      }
+    },
+    "owner": "shulgirit"
   }
 }

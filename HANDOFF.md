@@ -53,8 +53,7 @@ pnpm + Turborepo monorepo.
   Secret is in Convex env (dev+prod). The mobile app signs in with Google through the browser flow (callback via `SITE_URL`).
 - **Cloudflare** holds DNS for both domains. A/CNAME for Vercel exist for both.
 - **Apple**: waiting for Omer's Apple Developer approval. Backend ignores Apple until `APPLE_CLIENT_ID` is set; **TODO: hide the Apple button in the app until configured**.
-- **Expo/EAS**: NOT initialised. Omer must run `npx eas-cli login` and `cd apps/mobile && npx eas-cli init` (writes `extra.eas.projectId`
-  — push tokens can't register without it). Then create EAS env vars per profile (see `apps/mobile/eas.json`, `.env.example`).
+- **Expo/EAS**: linked to **`@shulgirit/together-group-plans`** (account `shulgirit`; ID in `apps/mobile/app.json`); EAS env vars created per environment. **Never touch Omer's `dr-fischer*` projects (account `wiply`, a live app).** CLI is logged in on Omer's laptop (`npx eas-cli whoami`).
 
 ## How to work locally
 ```bash
