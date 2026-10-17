@@ -74,7 +74,7 @@ export interface GlobeHandle {
 
 const RADIUS = 1;
 const SCENE_MS = 9000; // draw + hold per destination
-const DRAW_MS = 2600;
+const DRAW_MS = 2200;
 
 // Brand colors (docs/design/direction.md)
 const BRASS = new Color("#d8b277");
@@ -456,7 +456,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       });
       const mesh = new Mesh(geometry, material);
       routeGroup.add(mesh);
-      arcs.push({ mesh, material, delay: i * 220 });
+      arcs.push({ mesh, material, delay: i * 160 });
     });
 
     const all = [...current.origins, current.destination];
@@ -598,6 +598,22 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       const p = place(origin);
       return { id: origin.id ?? `o${index}`, kind: "origin", x: p.x, y: p.y, opacity: p.facing * originShown(index) };
     });
+    // The faint background network is named too (low opacity, only what faces the viewer), so
+    // no line ever leads to an anonymous dot. Current-scene labels keep priority in the layer.
+    const seen = new Set(labels.map((label) => label.id));
+    scenes.forEach((other, otherIndex) => {
+      if (otherIndex === sceneIndex) return;
+      const extras: { id: string; place: GlobePlace }[] = [
+        ...other.origins.map((origin, i) => ({ id: origin.id ?? `${other.id}-o${i}`, place: origin })),
+        { id: other.id, place: other.destination },
+      ];
+      for (const extra of extras) {
+        if (seen.has(extra.id)) continue;
+        seen.add(extra.id);
+        const p = place(extra.place);
+        labels.push({ id: extra.id, kind: "origin", x: p.x, y: p.y, opacity: p.facing * 0.5 });
+      }
+    });
     const d = place(current.destination);
     labels.push({ id: current.id, kind: "destination", x: d.x, y: d.y, opacity: d.facing * shown });
     options.onLabels(labels);
@@ -644,7 +660,7 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       tilt.y += (pointer.x * 0.12 - tilt.y) * 0.04;
       globe.rotation.set(rotation.x + tilt.x + dragTilt, rotation.y + tilt.y + drift + dragOffset, 0);
 
-      const drawStart = 900;
+      const drawStart = 500;
       for (const arc of arcs) {
         arc.material.uniforms.progress.value = easeInOut(
           clamp01((elapsed - drawStart - arc.delay) / DRAW_MS)
@@ -661,9 +677,11 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
       for (const arc of arcs) arc.material.uniforms.time.value = seconds;
       for (const item of ambient) item.material.uniforms.time.value = seconds;
       const fading = 1 - clamp01((elapsed - (SCENE_MS - 700)) / 600);
-      emitLabels(arrival * fading, (index) => {
+      // Names come with the lines: the destination from the first moments, each origin just
+      // before its route leaves it
+      emitLabels(clamp01((elapsed - 250) / 600) * fading, (index) => {
         const delay = arcs[index]?.delay ?? 0;
-        return clamp01((elapsed - drawStart - delay) / 450) * fading;
+        return clamp01((elapsed - drawStart - delay + 250) / 450) * fading;
       });
     } else {
       globe.rotation.set(rotation.x + dragTilt, rotation.y + dragOffset, 0);
