@@ -56,6 +56,10 @@ const product: PartialMessages["product"] = {
     sendFailed: "No pudimos enviar el código. Revisa la dirección e inténtalo de nuevo",
   },
   trips: {
+    nameTitle: "¿Cómo te llamamos?",
+    nameHint: "Así te verá tu grupo",
+    namePlaceholder: "Tu nombre",
+    nameSave: "Guardar",
     title: "Mis viajes",
     signedOutText: "Inicia sesión para ver tus viajes y empezar uno nuevo",
     greeting: "Hola, {name}",

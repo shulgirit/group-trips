@@ -6,6 +6,7 @@ import { LocaleProvider } from "@/i18n";
 import { dirFor } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";
 import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
+import { LocaleSync } from "@/components/providers/LocaleSync";
 import { getToken } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default async function RootLayout({
         <ConvexClientProvider initialToken={token}>
           <LocaleProvider locale={locale}>
             <NativeBridge />
+            <LocaleSync />
             {children}
           </LocaleProvider>
         </ConvexClientProvider>

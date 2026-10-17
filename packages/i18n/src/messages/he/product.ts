@@ -55,6 +55,10 @@ const product = {
     sendFailed: "לא הצלחנו לשלוח את הקוד. בדקו את הכתובת ונסו שוב",
   },
   trips: {
+    nameTitle: "איך לקרוא לך?",
+    nameHint: "כך תופיעו לחברים בטיול",
+    namePlaceholder: "השם שלך",
+    nameSave: "שמירה",
     title: "הטיולים שלי",
     signedOutText: "התחברו כדי לראות את הטיולים שלכם ולפתוח טיול חדש",
     greeting: "היי {name}",

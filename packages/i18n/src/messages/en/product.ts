@@ -56,6 +56,10 @@ const product: typeof he = {
     sendFailed: "We couldn't send the code. Check the address and try again",
   },
   trips: {
+    nameTitle: "What should we call you?",
+    nameHint: "This is how you'll appear to your group",
+    namePlaceholder: "Your name",
+    nameSave: "Save",
     title: "My trips",
     signedOutText: "Sign in to see your trips and start a new one",
     greeting: "Hi {name}",

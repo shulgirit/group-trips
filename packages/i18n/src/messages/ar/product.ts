@@ -52,6 +52,10 @@ const product: PartialMessages["product"] = {
     sendFailed: "تعذّر إرسال الرمز. تحققوا من العنوان وحاولوا مجددًا",
   },
   trips: {
+    nameTitle: "بماذا نناديك؟",
+    nameHint: "هكذا ستظهر لمجموعتك",
+    namePlaceholder: "اسمك",
+    nameSave: "حفظ",
     title: "رحلاتي",
     signedOutText: "سجّلوا الدخول لرؤية رحلاتكم وبدء رحلة جديدة",
     greeting: "مرحبًا {name}",

@@ -30,7 +30,6 @@
     "@together/shared": "workspace:*",
     "better-auth": "1.6.33",
     "convex": "1.46.0",
-    "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",
     "lucide-react": "^1.31.0",
     "motion": "^14.3.0",

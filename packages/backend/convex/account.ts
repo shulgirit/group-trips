@@ -128,3 +128,18 @@ async function successor(ctx: MutationCtx, trip: Doc<"trips">, ownerId: Id<"user
       .sort((a, b) => rank(a.role) - rank(b.role) || a.joinedAt - b.joinedAt)[0] ?? null
   );
 }
+
+/** Email sign-ups start without a name; this sets it (and on seats that have none yet). */
+export const setName = userMutation({
+  args: { name: v.string() },
+  handler: async (ctx, { name }) => {
+    const clean = name.trim().slice(0, 60);
+    if (!clean) return;
+    await ctx.db.patch(ctx.user._id, { name: clean, updatedAt: Date.now() });
+    const seats = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+      .collect();
+    for (const seat of seats) if (!seat.displayName) await ctx.db.patch(seat._id, { displayName: clean });
+  },
+});

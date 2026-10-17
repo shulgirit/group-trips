@@ -5,6 +5,7 @@ import { ChevronRight, Luggage, Plus } from "lucide-react";
 import { RouteArt } from "@/components/journal/RouteArt";
 import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
 import { SignInPanel } from "@/components/auth/SignInPanel";
+import { NameCard } from "@/components/product/NameCard";
 import { ProductShell } from "@/components/product/ProductShell";
 import { TripCard } from "@/components/product/TripCard";
 import { STROKE } from "@/components/ui/Icon";
@@ -77,6 +78,8 @@ export default function MyTripsPage() {
           </h1>
           <p className="mt-2 text-[17px] text-ink-500">{t("product.trips.subtitle")}</p>
         </header>
+
+        {personal && !user?.displayName && <NameCard />}
 
         {guest && (
           <p className="rounded-2xl border border-chart-200 bg-white px-5 py-4 text-sm leading-relaxed text-ink-700">
