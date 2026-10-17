@@ -1,5 +1,8 @@
 # Sicily Together (סיציליה 2026) — agent handoff
 
+> **Migration in progress (Convex + Better Auth + Expo). Start with [`HANDOFF.md`](HANDOFF.md), then [`NEXT.md`](NEXT.md) and [`CUTOVER.md`](CUTOVER.md).**
+> Production (`main`) is still the Firebase app; the new stack lives on branch `convex-web`. Sections below that mention Firebase describe the live production app.
+
 Private, Hebrew-first, RTL, mobile-first PWA for four Israeli families
 ("חבורת מיחא" — parents and deaf kids with cochlear implants) traveling in
 Sicily **Aug 15–24, 2026**. Production: https://sicily-together.vercel.app
