@@ -12,6 +12,7 @@
       "bundleIdentifier": "app.together.trips",
       "supportsTablet": true,
       "associatedDomains": [
+        "applinks:togethergroup.app",
         "applinks:togethergroup.app"
       ],
       "infoPlist": {
@@ -19,9 +20,14 @@
           "en",
           "he",
           "ar",
+          "es",
+          "en",
+          "he",
+          "ar",
           "es"
         ],
-        "CFBundleDevelopmentRegion": "en"
+        "CFBundleDevelopmentRegion": "en",
+        "ExpoLocalization_supportsRTL": true
       },
       "usesAppleSignIn": true
     },
@@ -54,7 +60,32 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "togethergroup.app",
+              "pathPrefix": "/j/"
+            },
+            {
+              "scheme": "https",
+              "host": "togethergroup.app",
+              "pathPrefix": "/t/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
+      ],
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -107,6 +138,12 @@
         "projectId": "b7f14588-d89f-4ee4-8e3e-a113ee10d933"
       }
     },
-    "owner": "shulgirit"
+    "owner": "shulgirit",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b7f14588-d89f-4ee4-8e3e-a113ee10d933"
+    }
   }
 }
