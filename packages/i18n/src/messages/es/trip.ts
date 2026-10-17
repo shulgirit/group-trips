@@ -135,6 +135,9 @@ const trip: PartialMessages["trip"] = {
     timelineDone: "Hecho",
     timelineNow: "Ahora",
     timelineNext: "Siguiente",
+    kidsTitle: "Los móviles de los niños aún no están conectados",
+    kidsText: "Los niños ya no entran eligiendo su nombre. Envía un enlace para niños al móvil de cada uno, sin correo ni contraseña.",
+    kidsCta: "Enlaces para niños",
     savedPlaces: {
       one: "1 lugar guardado. ¿Qué falta por programar?",
       two: "{count} lugares guardados. ¿Qué falta por programar?",

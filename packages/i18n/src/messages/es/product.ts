@@ -39,6 +39,7 @@ const product: PartialMessages["product"] = {
     },
   },
   signIn: {
+    welcomeBack: "¿Ya usabas Together? Inicia sesión con la misma cuenta de Google y tus viajes te estarán esperando.",
     google: "Continuar con Google",
     apple: "Continuar con Apple",
     connecting: "Iniciando sesión…",

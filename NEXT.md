@@ -3,22 +3,17 @@
 Legend: 🧑 needs Omer · 🤖 an agent can do it. Update this file as you finish items.
 
 ## A. Before the production cutover (do these first)
-1. 🤖 **Rehearse the real load + verify.** A fresh snapshot exists on Omer's laptop
-   (`scripts/migrate/.migrate/2026-10-17T09-41-50-653Z/snapshot.json`; re-export any time with
-   `GOOGLE_APPLICATION_CREDENTIALS=$PWD/group-trips-2f753-firebase-adminsdk-fbsvc.json pnpm --filter @together/migrate export`).
-   Dry run passed (`load --dry-run --legacy-owner-email omertalmail@gmail.com`). The real load needs a Convex **admin key**:
-   - easiest: load into the *local anonymous* deployment (`cd packages/backend && CONVEX_AGENT_MODE=anonymous npx convex dev`; key in
-     `packages/backend/.convex/local/default/config.json`), then `pnpm --filter @together/migrate verify`;
-   - or 🧑 create a **dev** deploy key in the Convex dashboard (Settings → URL & Deploy Key) and export `CONVEX_DEPLOY_KEY` + `CONVEX_URL`.
-   Check: counts per table, no orphan references, expense balances equal the Firestore ones (`verify`).
-2. 🤖 **"Welcome back" + kid re-invite** (not built): after migration everyone must sign in once with the same Google account
-   (`providerId+accountId` matching) — add a short "welcome back, sign in with the same Google account" hint on the sign-in screen/landing, and a one-time
-   notice to trip admins to re-invite kids (kid devices/shared logins don't carry over; `seat_not_migrated` warnings = 8). Convex `notices` union has `welcome`;
-   add a `kids_reinvite` type + per-locale copy (`packages/i18n` `server.push`), send after load.
-3. 🤖 **Hide the Apple sign-in button** in `apps/mobile/src/components/auth/SignIn.tsx` (and web `SignInPanel`) unless Apple is configured
-   (add a public `auth.providers` query exposing which providers have env set).
-4. 🤖 **Web account deletion page** `/account/delete` (Google Play requires a web URL): sign in with Better Auth, then `authClient.deleteUser()`.
-   Plus `.well-known/apple-app-site-association` and `assetlinks.json` served by `apps/web` (real Team ID / Play SHA-256 come from 🧑 — leave env-driven).
+1. ✅ **Rehearsal done (2026-10-17)**: real snapshot loaded into the *local* anonymous Convex twice — second run changed nothing (idempotent),
+   all per-trip counts match (Sicily 89 places/57 events/32 expenses/68 chats/4 polls; Sardinia 13 places…), 27 files copied. `verify` only flags
+   `users/accounts` totals because that local deployment also holds earlier emulator-rehearsal users (53 + 20 real + 2 test = 75). On the empty prod
+   deployment those totals must equal the plan (users 20, accounts 11). Re-export right before the real cutover (see CUTOVER.md).
+2. ✅ **Welcome-back + kid re-invite** (2026-10-17): sign-in screens (web `SignInPanel`, mobile `SignIn`) show `product.signIn.welcomeBack`; organizers see a
+   dismissible `KidsNudge` card on the mobile Now screen when roster kids have no connected phone (links to the Invites screen). Web has no kids card (web is being retired).
+3. ✅ **Apple button hidden until configured**: public query `providers.available` (`convex/providers.ts`) drives the mobile buttons; web uses `NEXT_PUBLIC_APPLE_SIGN_IN=1`.
+   Deploy the backend to prod before cutover so the query exists there (`npx convex deploy --yes`).
+4. ✅ **Web `/account/delete`** page (public, sign in → delete) for Google Play's data-safety form, and dynamic `/.well-known/apple-app-site-association` +
+   `/.well-known/assetlinks.json` routes (404 until Vercel env `APPLE_TEAM_ID` / `ANDROID_SHA256_CERTS` is set — 🧑 provides the values; dev domain togehter.app uses the `.dev` ids).
+   The old placeholder files in `apps/web/public/.well-known` were removed.
 5. 🧑 **Clean Cloudflare duplicate** `resend._domainkey` TXT (harmless, Resend is verified).
 6. 🤖 Re-run all checks (see HANDOFF "How to work locally") and `pnpm build` for `apps/web` before the merge. Then follow **CUTOVER.md**.
 

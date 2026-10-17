@@ -105,5 +105,5 @@ Mobile verified in the iOS simulator (Hebrew/RTL) against the *local* anonymous 
 - Web on Convex: done and verified locally and on cloud dev. Not yet live.
 - Mobile: all screens built and type/lint clean; simulator-verified; push code written (backend tested) but unverified on a device.
 - Migration tooling: export/load/verify built; **real export done** (3 trips, 20 users, 109 places, 77 events, 69 expenses, 72 chat sessions,
-  27 files); dry-run load OK. The **real load + verify rehearsal has not been run yet** (needs an admin key — see NEXT.md #1).
+  27 files); dry-run load OK. The **real load + verify rehearsal passed on the local Convex** (idempotent, counts match).
 - Store launch, AASA/assetlinks, Apple, Expo init, production cutover, Firebase/Capacitor cleanup: **not started**.

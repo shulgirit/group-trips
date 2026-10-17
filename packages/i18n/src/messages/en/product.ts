@@ -39,6 +39,7 @@ const product: typeof he = {
     },
   },
   signIn: {
+    welcomeBack: "Used Together before? Sign in with the same Google account and your trips will be waiting.",
     google: "Continue with Google",
     apple: "Continue with Apple",
     connecting: "Signing in…",

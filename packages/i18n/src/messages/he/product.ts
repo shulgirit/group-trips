@@ -38,6 +38,7 @@ const product = {
     },
   },
   signIn: {
+    welcomeBack: "כבר השתמשתם ב-Together? התחברו עם אותו חשבון Google והטיולים שלכם יחכו לכם.",
     google: "המשך עם Google",
     apple: "המשך עם Apple",
     connecting: "מתחברים…",

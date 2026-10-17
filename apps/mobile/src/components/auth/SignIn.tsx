@@ -1,5 +1,7 @@
 import { colors } from "@together/shared/tokens";
+import { api } from "@together/backend/api";
 import { Mail } from "lucide-react-native";
+import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -15,6 +17,7 @@ import { useT } from "@/lib/i18n";
  */
 export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
   const t = useT();
+  const providers = useQuery(api.providers.available);
   const [appleNative, setAppleNative] = useState(false);
   const [busy, setBusy] = useState<"apple" | "google" | "email" | null>(null);
   const [error, setError] = useState("");
@@ -71,7 +74,7 @@ export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
 
   return (
     <View style={{ gap: 12 }}>
-      {appleNative ? (
+      {providers?.apple !== true ? null : appleNative ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
@@ -82,10 +85,15 @@ export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
       ) : Platform.OS === "android" ? (
         <Button tone="light" label={t("product.signIn.apple")} busy={busy === "apple"} onPress={() => run("apple", () => signInWithBrowser("apple"))} />
       ) : null}
-      <Button tone="light" label={t("product.signIn.google")} busy={busy === "google"} onPress={() => run("google", () => signInWithBrowser("google"))} />
+      {providers?.google === false ? null : <Button tone="light" label={t("product.signIn.google")} busy={busy === "google"} onPress={() => run("google", () => signInWithBrowser("google"))} />}
 
       {step === "buttons" && (
-        <Button tone="ghost" icon={Mail} label={t("product.signIn.email")} onPress={() => setStep("email")} />
+        <>
+          <Button tone="ghost" icon={Mail} label={t("product.signIn.email")} onPress={() => setStep("email")} />
+          <Text variant="caption" color="rgba(241,243,239,0.6)" align="center">
+            {t("product.signIn.welcomeBack")}
+          </Text>
+        </>
       )}
       {step === "email" && (
         <View style={{ gap: 8 }}>

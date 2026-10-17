@@ -38,6 +38,7 @@ import type * as photos from "../photos.js";
 import type * as places from "../places.js";
 import type * as placesAi from "../placesAi.js";
 import type * as polls from "../polls.js";
+import type * as providers from "../providers.js";
 import type * as purge from "../purge.js";
 import type * as push from "../push.js";
 import type * as pushSend from "../pushSend.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   places: typeof places;
   placesAi: typeof placesAi;
   polls: typeof polls;
+  providers: typeof providers;
   purge: typeof purge;
   push: typeof push;
   pushSend: typeof pushSend;

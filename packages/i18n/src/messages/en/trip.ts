@@ -135,6 +135,9 @@ const trip: typeof he = {
     timelineDone: "Done",
     timelineNow: "Now",
     timelineNext: "Next",
+    kidsTitle: "Kids' phones aren't connected yet",
+    kidsText: "Kids no longer sign in by picking their name. Send each kid's phone a kid link — no email or password needed.",
+    kidsCta: "Kid links",
     savedPlaces: {
       one: "1 saved place. What's not scheduled yet?",
       two: "{count} saved places. What's not scheduled yet?",

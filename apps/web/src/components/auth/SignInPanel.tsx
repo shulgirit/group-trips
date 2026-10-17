@@ -129,6 +129,9 @@ export function SignInPanel({
           {t("product.signIn.email")}
         </button>
       )}
+      {emailStep === "closed" && (
+        <p className={`px-2 text-center text-xs leading-relaxed ${quietButton}`}>{t("product.signIn.welcomeBack")}</p>
+      )}
 
       {emailStep === "address" && (
         <form onSubmit={sendCode} className="space-y-2">

@@ -35,6 +35,7 @@ const product: PartialMessages["product"] = {
     },
   },
   signIn: {
+    welcomeBack: "هل استخدمت Together من قبل؟ سجّل الدخول بنفس حساب Google وستجد رحلاتك بانتظارك.",
     google: "المتابعة باستخدام Google",
     apple: "المتابعة باستخدام Apple",
     connecting: "جارٍ تسجيل الدخول…",
