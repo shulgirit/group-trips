@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { authClient, convex } from "@/lib/convex";
 import { FONT_ASSETS } from "@/lib/fonts";
+import { PushBridge } from "@/components/trip/PushBridge";
 import { LocaleProvider } from "@/lib/i18n";
 
 SplashScreen.preventAutoHideAsync();
@@ -32,6 +33,7 @@ export default function RootLayout() {
         <LocaleProvider>
           <ThemeProvider value={theme}>
             <StatusBar style="dark" />
+            <PushBridge />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.chart50 } }} />
           </ThemeProvider>
         </LocaleProvider>

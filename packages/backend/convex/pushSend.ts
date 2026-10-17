@@ -46,11 +46,60 @@ async function deliver(
   return { sent };
 }
 
+type AppToken = { _id: Id<"appPushTokens">; token: string; locale: string };
+
+const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+
+/** Expo push to the native app. Best effort; unregistered devices are dropped. */
+async function deliverApp(ctx: ActionCtx, tripId: Id<"trips">, item: Notice, rows: AppToken[]): Promise<{ sent: number }> {
+  if (!rows.length) return { sent: 0 };
+  const messages = rows.map((row) => {
+    const payload = renderNotice(tripId, item, localeOf(row.locale));
+    return {
+      to: row.token,
+      title: payload.title,
+      ...(payload.body ? { body: payload.body } : {}),
+      sound: "default" as const,
+      threadId: payload.tag,
+      data: { url: payload.url, ...(payload.navUrl ? { navUrl: payload.navUrl } : {}) },
+      // The app registers a "navigate" category: a Waze button on event pushes
+      ...(payload.navUrl ? { categoryId: "navigate" } : {}),
+    };
+  });
+  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
+  if (process.env.EXPO_ACCESS_TOKEN) headers.Authorization = `Bearer ${process.env.EXPO_ACCESS_TOKEN}`;
+  const gone: Id<"appPushTokens">[] = [];
+  let sent = 0;
+  for (let start = 0; start < messages.length; start += 100) {
+    const chunk = messages.slice(start, start + 100);
+    try {
+      const response = await fetch(EXPO_PUSH_URL, { method: "POST", headers, body: JSON.stringify(chunk) });
+      if (!response.ok) {
+        console.error("[push] expo send failed", response.status);
+        continue;
+      }
+      const { data } = (await response.json()) as { data: { status: "ok" | "error"; details?: { error?: string } }[] };
+      data.forEach((ticket, index) => {
+        if (ticket.status === "ok") sent++;
+        else if (ticket.details?.error === "DeviceNotRegistered") gone.push(rows[start + index]._id);
+      });
+    } catch (error) {
+      console.error("[push] expo send failed", (error as Error).message);
+    }
+  }
+  if (gone.length) await ctx.runMutation(internal.push.dropAppTokens, { ids: gone });
+  return { sent };
+}
+
 export const toTrip = internalAction({
   args: { tripId: v.id("trips"), notice, excludeUserId: v.optional(v.id("users")) },
   handler: async (ctx, { tripId, notice: item, excludeUserId }): Promise<{ sent: number }> => {
-    const rows: Doc<"webPushSubscriptions">[] = await ctx.runQuery(internal.push.subscriptions, { tripId, excludeUserId });
-    return deliver(ctx, tripId, item, rows);
+    const [rows, tokens]: [Doc<"webPushSubscriptions">[], AppToken[]] = await Promise.all([
+      ctx.runQuery(internal.push.subscriptions, { tripId, excludeUserId }),
+      ctx.runQuery(internal.push.appTokens, { tripId, excludeUserId }),
+    ]);
+    const [web, app] = await Promise.all([deliver(ctx, tripId, item, rows), deliverApp(ctx, tripId, item, tokens)]);
+    return { sent: web.sent + app.sent };
   },
 });
 

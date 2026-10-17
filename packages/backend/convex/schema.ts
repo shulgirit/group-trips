@@ -309,6 +309,18 @@ export default defineSchema({
     .index("by_trip_user", ["tripId", "userId"])
     .index("by_endpoint", ["endpoint"]),
 
+  /** Expo push tokens of the native app — per device, following its signed-in user */
+  appPushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    locale: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_token", ["token"]),
+
   /** Exchange-rate cache (EUR base), refreshed by a cron */
   rates: defineTable({
     base: v.string(),

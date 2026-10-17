@@ -39,6 +39,12 @@ export const mergeGuest = internalMutation({
   handler: async (ctx, { fromAuthId, toAuthId }) => {
     const [from, to] = await Promise.all([userByAuthId(ctx, fromAuthId), userByAuthId(ctx, toAuthId)]);
     if (!from || !to || from._id === to._id) return;
+    // The device keeps its notifications under the real account
+    const devices = await ctx.db
+      .query("appPushTokens")
+      .withIndex("by_user", (q) => q.eq("userId", from._id))
+      .collect();
+    for (const device of devices) await ctx.db.patch(device._id, { userId: to._id });
     const seats = await ctx.db
       .query("memberships")
       .withIndex("by_user", (q) => q.eq("userId", from._id))
@@ -94,6 +100,11 @@ export const purgeForAuthUser = internalMutation({
   handler: async (ctx, { authId }) => {
     const user = await userByAuthId(ctx, authId);
     if (!user) return;
+    const devices = await ctx.db
+      .query("appPushTokens")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const device of devices) await ctx.db.delete(device._id);
     const seats = await ctx.db
       .query("memberships")
       .withIndex("by_user", (q) => q.eq("userId", user._id))

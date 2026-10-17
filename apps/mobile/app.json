@@ -8,7 +8,7 @@
     "scheme": "together",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "app.together.trips",
       "supportsTablet": true,
       "associatedDomains": [
@@ -27,7 +27,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0f1b2d",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -75,7 +75,26 @@
         }
       ],
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#b08a55"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Together shows you on the trip map and finds places near you while the app is open."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Together uses your photos when you add one to the trip guide, a document or your guide avatar.",
+          "cameraPermission": "Together uses the camera when you photograph a ticket or document for the trip."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

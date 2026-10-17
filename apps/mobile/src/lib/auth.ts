@@ -2,6 +2,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
 import { authClient } from "./convex";
+import { unregisterDevice } from "./push";
 
 /**
  * Sign-in methods. Apple uses the native sheet on iOS (required by App Store
@@ -47,6 +48,7 @@ export async function signInAsGuest(): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
+  await unregisterDevice();
   await authClient.signOut();
 }
 

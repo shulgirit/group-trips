@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
-import { tripMutation } from "./lib/functions";
+import { tripMutation, userMutation } from "./lib/functions";
+import { fail } from "./lib/authz";
 import type { Notice } from "./lib/notices";
 
 /**
@@ -57,6 +58,67 @@ export const unsubscribeWeb = tripMutation({
       .withIndex("by_endpoint", (q) => q.eq("endpoint", endpoint))
       .collect();
     for (const row of rows) if (row.tripId === ctx.tripId && row.userId === ctx.user._id) await ctx.db.delete(row._id);
+  },
+});
+
+const EXPO_TOKEN = /^Expo(nent)?PushToken\[[A-Za-z0-9_-]{10,100}\]$/;
+
+/**
+ * The native app registers its Expo push token after sign-in (and on
+ * launch). A device belongs to whoever is signed in on it now.
+ */
+export const registerApp = userMutation({
+  args: { token: v.string(), platform: v.union(v.literal("ios"), v.literal("android")), locale: v.string() },
+  handler: async (ctx, { token, platform, locale }) => {
+    if (!EXPO_TOKEN.test(token)) fail("invalid", "token");
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("appPushTokens")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .unique();
+    const fields = { userId: ctx.user._id, platform, locale: locale.slice(0, 8), updatedAt: now };
+    if (existing) await ctx.db.patch(existing._id, fields);
+    else await ctx.db.insert("appPushTokens", { token, createdAt: now, ...fields });
+  },
+});
+
+/** Sign-out on a device: stop delivering to it. */
+export const unregisterApp = userMutation({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const row = await ctx.db
+      .query("appPushTokens")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .unique();
+    if (row && row.userId === ctx.user._id) await ctx.db.delete(row._id);
+  },
+});
+
+/** App devices of everyone in the trip (except the actor). */
+export const appTokens = internalQuery({
+  args: { tripId: v.id("trips"), excludeUserId: v.optional(v.id("users")) },
+  handler: async (ctx, { tripId, excludeUserId }) => {
+    const seats = await ctx.db
+      .query("memberships")
+      .withIndex("by_trip", (q) => q.eq("tripId", tripId))
+      .collect();
+    const userIds = seats.map((seat) => seat.userId).filter((id) => id !== excludeUserId);
+    const rows = await Promise.all(
+      userIds.map((userId) =>
+        ctx.db
+          .query("appPushTokens")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .collect()
+      )
+    );
+    return rows.flat().map(({ _id, token, locale }) => ({ _id, token, locale }));
+  },
+});
+
+export const dropAppTokens = internalMutation({
+  args: { ids: v.array(v.id("appPushTokens")) },
+  handler: async (ctx, { ids }) => {
+    for (const id of ids) if (await ctx.db.get(id)) await ctx.db.delete(id);
   },
 });
 

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Countdown } from "@/components/trip/Countdown";
+import { NotifyNudge } from "@/components/trip/NotifyNudge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -164,6 +165,8 @@ export default function Now() {
             </Pressable>
           ))}
         </View>
+
+        <NotifyNudge />
 
         {current && (
           <View style={styles.nowBanner}>
