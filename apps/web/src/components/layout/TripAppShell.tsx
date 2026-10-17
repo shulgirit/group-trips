@@ -1,27 +1,28 @@
 import { BottomNav } from "@/components/layout/BottomNav";
 import { GoHomeFab } from "@/components/layout/GoHomeFab";
 import { QuickAdd } from "@/components/layout/QuickAdd";
-import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
+import { SessionProvider } from "@/components/providers/SessionProvider";
 import { IdentityPrompt } from "@/components/providers/IdentityPrompt";
-import { ReminderPinger } from "@/components/providers/ReminderPinger";
 import { TripProvider } from "@/components/providers/TripProvider";
 import { TourLauncher } from "@/components/tour/TourLauncher";
-import type { TripConfig, TripKey } from "@together/shared/trips";
+import type { Doc } from "@together/backend/dataModel";
+import type { TripConfig } from "@together/shared/trips";
 
 /** Shared app chrome, mounted once per trip route tree. */
 export function TripAppShell({
-  tripKey,
   config,
+  me,
+  membersCanDeletePlaces,
   children,
 }: {
-  tripKey?: TripKey;
-  config?: TripConfig;
+  config: TripConfig;
+  me: Doc<"memberships">;
+  membersCanDeletePlaces: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <TripProvider tripKey={tripKey} config={config}>
-      <FirebaseProvider>
-        <ReminderPinger />
+    <TripProvider config={config}>
+      <SessionProvider me={me} membersCanDeletePlaces={membersCanDeletePlaces}>
         <TourLauncher />
         <IdentityPrompt />
         <div className="min-h-dvh lg:ps-24">
@@ -32,7 +33,7 @@ export function TripAppShell({
           <GoHomeFab />
           <BottomNav />
         </div>
-      </FirebaseProvider>
+      </SessionProvider>
     </TripProvider>
   );
 }

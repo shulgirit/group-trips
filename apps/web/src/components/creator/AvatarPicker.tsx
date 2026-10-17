@@ -2,13 +2,14 @@
 
 /* eslint-disable @next/next/no-img-element -- tiny local/storage avatars, no optimisation needed */
 import { useRef, useState } from "react";
-import { getDownloadURL } from "firebase/storage";
-import { uploadToTrip } from "@/lib/firebase/upload";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { useMutation } from "convex/react";
+import { uploadToTrip } from "@/lib/upload";
 import { Check, ImagePlus, Loader2 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
 import { avatarSrc, BOT_AVATARS } from "@together/shared/avatars";
-import { auth } from "@/lib/firebase/client";
 
 /** Square-crops and shrinks an image on the device (384px JPEG). */
 async function squareAvatar(file: File): Promise<Blob> {
@@ -35,8 +36,10 @@ export function AvatarPicker({
 }: {
   tripId: string | null;
   value: string | null;
-  onChange: (avatar: string | null) => void;
+  /** storageId is set for an uploaded image (its URL is the avatar shown) */
+  onChange: (avatar: string | null, storageId?: string | null) => void;
 }) {
+  const fileUrl = useMutation(api.documents.fileUrl);
   const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -49,11 +52,9 @@ export function AvatarPicker({
     setError("");
     try {
       const blob = await squareAvatar(file);
-      const uid = auth().currentUser?.uid ?? "anon";
-      const fileRef = await uploadToTrip(`trips/${tripId}/photos/avatar/${uid}-${Date.now()}.jpg`, blob, {
-        contentType: "image/jpeg",
-      });
-      onChange(await getDownloadURL(fileRef));
+      const storageId = await uploadToTrip(tripId, blob);
+      const url = await fileUrl({ tripId: tripId as Id<"trips">, storageId });
+      onChange(url, storageId);
     } catch {
       setError(t("creator.ai.avatar.uploadFailed"));
     } finally {

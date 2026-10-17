@@ -1,5 +1,8 @@
 "use client";
 
+import type { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+
 import { tActive } from "@together/i18n/active";
 import type { AiPreset, GroupKind } from "@together/shared/trip-doc";
 import type { TripInput } from "@together/shared/trip-schemas";
@@ -54,8 +57,10 @@ export interface CreatorState {
   ai: {
     name: string;
     emoji: string;
-    /** "bot:<id>" or uploaded image URL (src/lib/avatars.ts) */
+    /** "bot:<id>" or an uploaded image's URL (for display) */
     avatar: string | null;
+    /** The uploaded image in Convex storage (set together with its URL) */
+    avatarStorageId?: string | null;
     preset: AiPreset;
     rules: string[];
     customRules: string;
@@ -152,10 +157,13 @@ function stopSuffix(multi: boolean, index: number): string {
 }
 
 /** Wizard state → API payload. */
+/** The trips.create / trips.update payload. */
+export type ConvexTripInput = (typeof api.trips.create)["_args"]["input"];
+
 export function toTripInput(
   state: CreatorState,
   status: "draft" | "active"
-): TripInput {
+): ConvexTripInput {
   const families = state.families
     .map((family) => ({
       ...family,
@@ -202,7 +210,18 @@ export function toTripInput(
     groupName: state.groupName.trim(),
     aboutUs: state.aboutUs,
     families,
-    ai: { ...state.ai, name: state.ai.name.trim() || tActive("creator.defaults.aiName") },
+    ai: {
+      name: state.ai.name.trim() || tActive("creator.defaults.aiName"),
+      emoji: state.ai.emoji,
+      preset: state.ai.preset,
+      rules: state.ai.rules,
+      customRules: state.ai.customRules,
+      avatar: state.ai.avatar?.startsWith("bot:")
+        ? { kind: "bot" as const, id: state.ai.avatar.slice(4) }
+        : state.ai.avatarStorageId
+          ? { kind: "file" as const, storageId: state.ai.avatarStorageId as Id<"_storage"> }
+          : null,
+    },
     me: meValid ? state.me : null,
     status,
   };

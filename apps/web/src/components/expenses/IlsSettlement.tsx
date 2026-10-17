@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { calcCombinedBalances, calcSettlement } from "@together/shared/settlement";
 import type { Expense, Family } from "@together/shared/types";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import { useAction, useQuery } from "convex/react";
 import { currencyName, currencySymbol } from "@together/shared/currency";
 import { ArrowRight } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
@@ -39,9 +40,6 @@ export function IlsSettlement({
   expenses: Expense[];
   families: Family[];
 }) {
-  const [fetchedRates, setFetchedRates] = useState<
-    { ilsPer: Record<string, number>; updatedAt: number } | "error" | null
-  >(null);
   /** Per-currency rate text the user may override */
   const [rateText, setRateText] = useState<Record<string, string>>({});
   const t = useT();
@@ -52,35 +50,15 @@ export function IlsSettlement({
     [expenses]
   );
 
+  // Market rates (refreshed daily on the server; asked for once if missing)
+  const latest = useQuery(api.rates.latest);
+  const ensureFresh = useAction(api.rates.ensureFresh);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const response = await apiFetch("/api/rates");
-        // A stale session redirects to /gate with an HTML 200 — treat as failure
-        const isJson = response.headers
-          .get("content-type")
-          ?.includes("application/json");
-        if (!response.ok || !isJson) throw new Error("rates_unavailable");
-        const data = (await response.json()) as {
-          ilsPerEur: number;
-          ilsPerUsd: number;
-          ilsPer?: Record<string, number>;
-          updatedAt: number;
-        };
-        if (cancelled) return;
-        setFetchedRates({
-          ilsPer: data.ilsPer ?? { ILS: 1, EUR: data.ilsPerEur, USD: data.ilsPerUsd },
-          updatedAt: data.updatedAt,
-        });
-      } catch {
-        if (!cancelled) setFetchedRates("error");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (latest !== null && (latest === undefined || Date.now() - latest.updatedAt < 12 * 60 * 60 * 1000)) return;
+    ensureFresh().catch(() => setRefreshFailed(true));
+  }, [latest, ensureFresh]);
+  const fetchedRates = latest ? { ilsPer: latest.ilsPer, updatedAt: latest.updatedAt } : refreshFailed ? ("error" as const) : null;
 
   function rateFor(code: string): number {
     const typed = rateText[code];

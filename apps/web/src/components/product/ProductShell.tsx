@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { signOut } from "firebase/auth";
 import { LogOut, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { auth } from "@/lib/firebase/client";
+import { logoutEverywhere } from "@/lib/logout";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 /** Chrome for the product surfaces outside a trip (my trips, creator, join). */
@@ -23,9 +22,7 @@ export function ProductShell({
   const [menuOpen, setMenuOpen] = useState(false);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-    await signOut(auth()).catch(() => undefined);
-    window.location.replace("/welcome");
+    await logoutEverywhere();
   }
 
   return (

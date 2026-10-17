@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
 import {
   ArrowRight,
   BedDouble,
@@ -26,9 +27,10 @@ import { Glyph, STROKE } from "@/components/ui/Icon";
 import { formatShortDate } from "@together/i18n/format";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useLocale, useT, type TKey } from "@/i18n";
-import { apiFetch, auth, db } from "@/lib/firebase/client";
+import { convex } from "@/lib/convex";
+import { toTripDoc } from "@/lib/convex-trip";
 import { useMyTrips } from "@/lib/my-trips";
-import { stopsOf, type TripDoc } from "@together/shared/trip-doc";
+import { stopsOf } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 import { BookingImporter } from "./BookingImporter";
 import { StepAi } from "./StepAi";
@@ -75,15 +77,16 @@ function writeLocalDraft(state: CreatorState | null) {
 }
 
 /** Loads an existing trip (draft resume / organizer edit) into wizard state. */
-async function loadTripState(tripId: string): Promise<CreatorState | null> {
-  const snapshot = await getDoc(doc(db(), `trips/${tripId}`));
-  const data = snapshot.data() as TripDoc | undefined;
-  if (!data?.destination) return null;
-  const families = await getDocs(
-    query(collection(db(), `trips/${tripId}/families`), orderBy("order"))
-  );
-  const uid = auth().currentUser?.uid;
-  const me = uid ? (await getDoc(doc(db(), `trips/${tripId}/members/${uid}`))).data() : undefined;
+async function loadTripState(tripRef: string): Promise<CreatorState | null> {
+  const tripId = await convex.query(api.trips.resolve, { ref: tripRef });
+  if (!tripId) return null;
+  const [{ trip, me: seat, avatarUrl }, familyRows] = await Promise.all([
+    convex.query(api.trips.get, { tripId }),
+    convex.query(api.families.list, { tripId }),
+  ]);
+  const data = toTripDoc(trip, avatarUrl);
+  const familyKey = familyRows.find((f) => f._id === seat.familyId)?.key;
+  const me = familyKey && seat.memberKey ? { familyId: familyKey, memberId: seat.memberKey } : null;
   const departureTime = data.departureAt?.slice(11, 16) ?? "";
   return {
     tripId,
@@ -109,18 +112,17 @@ async function loadTripState(tripId: string): Promise<CreatorState | null> {
     departureTime,
     groupKind: data.groupKind,
     groupName: data.groupName,
-    families: families.docs.map((f) => ({
-      id: f.id,
-      name: String(f.data().name ?? ""),
-      members: ((f.data().members ?? []) as { id: string; name: string; kid?: boolean; age?: number }[]).map(
-        (m) => ({ id: m.id, name: m.name, kid: Boolean(m.kid), age: m.age ?? null })
-      ),
+    families: familyRows.map((f) => ({
+      id: f.key,
+      name: f.name,
+      members: f.members.map((m) => ({ id: m.key, name: m.name, kid: Boolean(m.kid), age: m.age ?? null })),
     })),
-    me: me?.familyId && me?.memberId ? { familyId: me.familyId, memberId: me.memberId } : null,
+    me,
     ai: {
       name: data.ai.name,
       emoji: data.ai.emoji,
       avatar: data.ai.avatar ?? null,
+      avatarStorageId: trip.ai.avatar?.kind === "file" ? trip.ai.avatar.storageId : null,
       preset: data.ai.preset,
       rules: data.ai.rules ?? [],
       customRules: data.ai.customRules ?? "",
@@ -133,7 +135,7 @@ async function loadTripState(tripId: string): Promise<CreatorState | null> {
 export function CreatorWizard() {
   const router = useRouter();
   const t = useT();
-  const { dir } = useLocale();
+  const { dir, locale } = useLocale();
   const params = useSearchParams();
   const editTripId = params.get("trip");
   const { user, personal, loading: authLoading } = useAuthUser();
@@ -184,30 +186,22 @@ export function CreatorWizard() {
     setSaving(true);
     setError("");
     try {
-      const payload = toTripInput(state, status);
-      const response = state.tripId
-        ? await apiFetch(`/api/trips/${state.tripId}`, {
-            method: "PATCH",
-            body: JSON.stringify(payload),
-          })
-        : await apiFetch("/api/trips", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(
-          body.error === "trip_limit"
-            ? t("creator.errors.tripLimit")
-            : t("creator.errors.saveFailed")
-        );
+      const input = toTripInput(state, status);
+      let tripId: string;
+      try {
+        if (state.tripId) {
+          await convex.mutation(api.trips.update, { tripId: state.tripId as Id<"trips">, input });
+          tripId = state.tripId;
+        } else {
+          tripId = await convex.mutation(api.trips.create, { input });
+        }
+      } catch (err) {
+        const detail = (err as { data?: { detail?: string } }).data?.detail;
+        setError(detail === "trip_limit" ? t("creator.errors.tripLimit") : t("creator.errors.saveFailed"));
         return null;
       }
-      const tripId: string = state.tripId ?? body.tripId;
       if (!state.tripId) {
         writeLocalDraft(null);
-        // New owner claim → storage uploads (booking import) work right away
-        await auth().currentUser?.getIdToken(true).catch(() => undefined);
         setState((current) => (current ? { ...current, tripId } : current));
         router.replace(`/new?trip=${tripId}`, { scroll: false });
         loadedFor.current = tripId;
@@ -247,12 +241,9 @@ export function CreatorWizard() {
     if (!tripId) return;
     setLaunched(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    apiFetch("/api/ai/trip-assist", {
-      method: "POST",
-      body: JSON.stringify({ action: "summary", tripId }),
-    })
-      .then((r) => r.json())
-      .then((body) => setSummary(body.summary ?? ""))
+    convex
+      .action(api.assist.summary, { tripId: tripId as Id<"trips">, locale })
+      .then((text) => setSummary(text))
       .catch(() => setSummary(""));
   }
 
@@ -490,9 +481,10 @@ export function CreatorWizard() {
               onApplied={(result) => {
                 if (result.homeBase) {
                   // Reflect the new home base so later saves don't clear it
-                  getDoc(doc(db(), `trips/${state.tripId}`)).then((snap) =>
-                    update({ homeBase: (snap.data() as TripDoc | undefined)?.homeBase ?? null })
-                  );
+                  convex
+                    .query(api.trips.get, { tripId: state.tripId as Id<"trips"> })
+                    .then(({ trip }) => update({ homeBase: trip.homeBase }))
+                    .catch(() => undefined);
                 }
               }}
             />

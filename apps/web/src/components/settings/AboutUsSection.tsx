@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
-import { useDocData } from "@/lib/hooks";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { useTrip } from "@/components/providers/TripProvider";
 import { useT } from "@/i18n";
 import { Glyph } from "@/components/ui/Icon";
@@ -16,8 +16,9 @@ import { SURFACE } from "@/components/settings/SettingsGroup";
 export function AboutUsSection() {
   const trip = useTrip();
   const t = useT();
-  const { path: tripPath } = trip;
-  const { data } = useDocData<{ aboutUs?: string }>(tripPath);
+  const tripId = trip.id as Id<"trips">;
+  const data = useQuery(api.trips.get, { tripId })?.trip;
+  const saveAboutUs = useMutation(api.trips.setAboutUs);
   const [text, setText] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,7 +35,7 @@ export function AboutUsSection() {
     setSaving(true);
     setMessage("");
     try {
-      await updateDoc(doc(db(), tripPath), { aboutUs: text.trim() });
+      await saveAboutUs({ tripId, aboutUs: text.trim() });
       setMessage(trip.ai.aboutSaved);
     } catch {
       setMessage(t("common.errors.saveFailed"));

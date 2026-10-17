@@ -1,12 +1,10 @@
 "use client";
 
+import { Mail } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  appleSignInAvailable,
-  signInWithApple,
-  signInWithGoogle,
-} from "@/lib/firebase/client";
-import { useT, type TKey } from "@/i18n";
+import { STROKE } from "@/components/ui/Icon";
+import { useT } from "@/i18n";
+import { appleSignInAvailable, sendEmailCode, signInWithProvider, verifyEmailCode } from "@/lib/sign-in";
 
 function GoogleGlyph() {
   return (
@@ -27,14 +25,11 @@ function AppleGlyph() {
   );
 }
 
-/** Firebase auth error → message key (null = silent, e.g. user closed the popup). */
-const ERRORS: Record<string, TKey | null> = {
-  "auth/popup-closed-by-user": null,
-  "auth/cancelled-popup-request": null,
-  "auth/network-request-failed": "product.signIn.network",
-};
-
-/** Google / Apple sign-in buttons. Calls onSignedIn after success. */
+/**
+ * Google / Apple (redirect to the provider and back) and a 6-digit email
+ * code. onSignedIn runs after an email sign-in; social sign-ins return to
+ * this page signed in.
+ */
 export function SignInPanel({
   onSignedIn,
   tone = "light",
@@ -43,33 +38,68 @@ export function SignInPanel({
   tone?: "light" | "dark";
 }) {
   const t = useT();
-  const [busy, setBusy] = useState<"google" | "apple" | null>(null);
+  const [busy, setBusy] = useState<"google" | "apple" | "email" | null>(null);
   const [error, setError] = useState("");
-  // Decided after mount — depends on the native shell (avoids hydration drift)
+  // Decided after mount (avoids hydration drift)
   const [showApple, setShowApple] = useState(false);
   useEffect(() => setShowApple(appleSignInAvailable()), []);
+  const [emailStep, setEmailStep] = useState<"closed" | "address" | "code">("closed");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
 
-  async function run(kind: "google" | "apple") {
+  async function social(kind: "google" | "apple") {
     if (busy) return;
     setBusy(kind);
     setError("");
     try {
-      await (kind === "google" ? signInWithGoogle() : signInWithApple());
-      onSignedIn?.();
-    } catch (err) {
-      const code = (err as { code?: string }).code ?? "";
-      const key = code in ERRORS ? ERRORS[code] : "product.signIn.failed";
-      setError(key ? t(key) : "");
+      await signInWithProvider(kind);
+    } catch {
+      setError(t("product.signIn.failed"));
+      setBusy(null);
+    }
+  }
+
+  async function sendCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || !/^\S+@\S+\.\S+$/.test(email.trim())) return;
+    setBusy("email");
+    setError("");
+    try {
+      await sendEmailCode(email);
+      setEmailStep("code");
+    } catch {
+      setError(t("product.signIn.sendFailed"));
     } finally {
       setBusy(null);
     }
   }
 
+  async function verify(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || code.trim().length < 6) return;
+    setBusy("email");
+    setError("");
+    try {
+      await verifyEmailCode(email, code);
+      onSignedIn?.();
+    } catch {
+      setError(t("product.signIn.invalidCode"));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const fieldClass =
+    tone === "dark"
+      ? "w-full rounded-xl border border-cream-50/20 bg-night-800 px-4 py-3.5 text-base text-cream-50 placeholder:text-cream-50/40"
+      : "field py-3.5 text-base";
+  const quietButton = tone === "dark" ? "text-cream-50/75" : "text-ink-500";
+
   return (
     <div className="space-y-3">
       <button
         type="button"
-        onClick={() => run("google")}
+        onClick={() => social("google")}
         disabled={Boolean(busy)}
         className="btn w-full border border-cream-200 bg-white py-3.5 text-base font-medium text-ink-900"
       >
@@ -79,7 +109,7 @@ export function SignInPanel({
       {showApple && (
         <button
           type="button"
-          onClick={() => run("apple")}
+          onClick={() => social("apple")}
           disabled={Boolean(busy)}
           className="btn w-full bg-ink-900 py-3.5 text-base font-medium text-cream-50"
         >
@@ -87,6 +117,78 @@ export function SignInPanel({
           {busy === "apple" ? t("product.signIn.connecting") : t("product.signIn.apple")}
         </button>
       )}
+
+      {emailStep === "closed" && (
+        <button
+          type="button"
+          onClick={() => setEmailStep("address")}
+          disabled={Boolean(busy)}
+          className={`btn w-full py-3.5 text-base font-medium ${tone === "dark" ? "border border-cream-50/25 text-cream-50" : "btn-outline"}`}
+        >
+          <Mail size={18} strokeWidth={STROKE} aria-hidden />
+          {t("product.signIn.email")}
+        </button>
+      )}
+
+      {emailStep === "address" && (
+        <form onSubmit={sendCode} className="space-y-2">
+          <label className="sr-only" htmlFor="sign-in-email">
+            {t("product.signIn.emailLabel")}
+          </label>
+          <input
+            id="sign-in-email"
+            type="email"
+            dir="ltr"
+            autoComplete="email"
+            inputMode="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t("product.signIn.emailPlaceholder")}
+            className={fieldClass}
+          />
+          <button type="submit" disabled={Boolean(busy)} className="btn-primary w-full py-3.5 text-base">
+            {busy === "email" ? t("product.signIn.connecting") : t("product.signIn.sendCode")}
+          </button>
+        </form>
+      )}
+
+      {emailStep === "code" && (
+        <form onSubmit={verify} className="space-y-2">
+          <p className={`text-center text-sm ${quietButton}`}>
+            {t("product.signIn.codeSent", { email: email.trim() })}
+          </p>
+          <label className="sr-only" htmlFor="sign-in-code">
+            {t("product.signIn.codeLabel")}
+          </label>
+          <input
+            id="sign-in-code"
+            dir="ltr"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            className={`${fieldClass} text-center text-2xl tracking-[0.4em] tabular-nums`}
+          />
+          <button type="submit" disabled={Boolean(busy) || code.length < 6} className="btn-primary w-full py-3.5 text-base">
+            {busy === "email" ? t("product.signIn.connecting") : t("product.signIn.verify")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailStep("address");
+              setCode("");
+              setError("");
+            }}
+            className={`w-full py-2 text-sm ${quietButton}`}
+          >
+            {t("product.signIn.changeEmail")}
+          </button>
+        </form>
+      )}
+
       {error && (
         <p
           role="alert"

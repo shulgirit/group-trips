@@ -9,7 +9,6 @@ import { formatShortDate } from "@together/i18n/format";
 import type { TripSummary } from "@/lib/my-trips";
 import { useTripCover } from "@/lib/place-photo";
 import { useState } from "react";
-import { auth } from "@/lib/firebase/client";
 import { DeleteTripButton } from "./DeleteTripButton";
 
 function daysUntil(dateIso: string, todayIso: string): number {
@@ -41,31 +40,10 @@ export function TripCard({
   useTripCover(trip.id, !trip.coverImage && !trip.legacy);
   const isDraft = trip.status === "draft";
   const [deleted, setDeleted] = useState(false);
-  const isOwner =
-    !trip.legacy &&
-    Boolean(trip.ownerUid) &&
-    trip.ownerUid === auth().currentUser?.uid;
+  const isOwner = Boolean(trip.isOwner);
   const live = trip.phase === "live" && !isDraft;
   const days = daysUntil(trip.startDate, today);
   const href = isDraft ? `/new?trip=${trip.id}` : trip.href;
-  // Legacy trips are gated by the session cookie: mint it before navigating
-  async function openLegacy(event: React.MouseEvent<HTMLAnchorElement>) {
-    if (!trip.legacy || isDraft) return;
-    event.preventDefault();
-    try {
-      const idToken = await auth().currentUser?.getIdToken();
-      if (idToken) {
-        await fetch("/api/auth/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken, tripId: trip.id }),
-        });
-      }
-    } catch {
-      // fall through: the gate will ask again
-    }
-    window.location.assign(href);
-  }
   const badge = isDraft
     ? { label: t("product.card.draft"), className: "bg-cream-50 text-ink-700" }
     : live
@@ -110,8 +88,7 @@ export function TripCard({
       >
         <Link
           href={href}
-          onClick={openLegacy}
-          className="flex min-w-0 flex-1 items-center gap-4 p-2.5 pe-2 transition active:scale-[0.99]"
+            className="flex min-w-0 flex-1 items-center gap-4 p-2.5 pe-2 transition active:scale-[0.99]"
         >
           <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-night-900">
             {trip.coverImage ? (
@@ -153,7 +130,6 @@ export function TripCard({
     <div className="relative">
       <Link
         href={href}
-        onClick={openLegacy}
         className={`group relative block overflow-hidden rounded-[1.5rem] bg-night-900 transition active:scale-[0.99] ${CARD_SHADOW} ${live ? "ring-2 ring-route-500 ring-offset-2 ring-offset-cream-50" : ""}`}
       >
         <div

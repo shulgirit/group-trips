@@ -110,9 +110,11 @@ export const list = tripQuery({
 });
 
 export const get = tripQuery({
-  args: { eventId: v.id("events") },
-  handler: async (ctx, { eventId }) => {
-    const event = await ctx.db.get(eventId);
+  // A string: URLs may carry stale or migrated ids — unknown ones are just null
+  args: { eventId: v.string() },
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId("events", args.eventId);
+    const event = id ? await ctx.db.get(id) : null;
     return event && event.tripId === ctx.tripId ? event : null;
   },
 });

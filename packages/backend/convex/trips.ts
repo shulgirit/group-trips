@@ -240,7 +240,11 @@ export const remove = tripMutation({
 /** The trip plus the caller's seat in it. */
 export const get = tripQuery({
   args: {},
-  handler: async (ctx) => ({ trip: ctx.trip, me: ctx.member }),
+  handler: async (ctx) => ({
+    trip: ctx.trip,
+    me: ctx.member,
+    avatarUrl: ctx.trip.ai.avatar?.kind === "file" ? await ctx.storage.getUrl(ctx.trip.ai.avatar.storageId) : null,
+  }),
 });
 
 /**

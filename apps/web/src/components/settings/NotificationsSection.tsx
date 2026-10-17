@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { BellRing, BellOff, Download } from "lucide-react";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { SURFACE } from "@/components/settings/SettingsGroup";
@@ -18,7 +17,6 @@ import {
 type Status = "loading" | "unsupported" | "install_first" | "off" | "on";
 
 export function NotificationsSection() {
-  const { user } = useFirebase();
   const t = useT();
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy] = useState(false);
@@ -41,10 +39,7 @@ export function NotificationsSection() {
   async function enable() {
     setBusy(true);
     setMessage("");
-    const result = await subscribeToPush({
-      uid: user?.uid,
-      userName: user?.displayName ?? undefined,
-    });
+    const result = await subscribeToPush();
     if (result === "subscribed") {
       setStatus("on");
       setMessage(t("settings.notifications.welcomeSent"));

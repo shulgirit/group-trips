@@ -1,23 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { api } from "@together/backend/api";
+import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { Compass, Lock, type LucideIcon } from "lucide-react";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { TripAppShell } from "@/components/layout/TripAppShell";
 import { STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useT } from "@/i18n";
-import { db } from "@/lib/firebase/client";
-import { tripConfigFromDoc, type TripDoc } from "@together/shared/trip-doc";
+import { toTripDoc } from "@/lib/convex-trip";
+import { tripConfigFromDoc } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
-
-type State =
-  | { kind: "loading" }
-  | { kind: "denied" }
-  | { kind: "missing" }
-  | { kind: "ready"; data: TripDoc };
 
 function Splash() {
   return (
@@ -55,12 +50,12 @@ function Notice({
 }
 
 /**
- * Entry to a self-serve trip: requires a signed-in identity that the
- * Firestore rules accept as a member, then mounts the regular trip app
- * with a config built from the live trip doc.
+ * Entry to a trip: resolves the URL reference (Convex id, or the Firestore
+ * id of a migrated trip), requires the caller to be a member, then mounts
+ * the trip app with a config built from the live trip.
  */
 export function TripGate({
-  tripId,
+  tripId: ref,
   children,
 }: {
   tripId: string;
@@ -68,29 +63,13 @@ export function TripGate({
 }) {
   const t = useT();
   const { user, loading } = useAuthUser();
-  const [state, setState] = useState<State>({ kind: "loading" });
-  const uid = user?.uid ?? null;
+  const tripId = useQuery(api.trips.resolve, user ? { ref } : "skip");
+  const data = useQuery(api.trips.get, tripId ? { tripId } : "skip");
 
-  useEffect(() => {
-    if (!uid) return;
-    setState({ kind: "loading" });
-    return onSnapshot(
-      doc(db(), `trips/${tripId}`),
-      (snapshot) => {
-        const data = snapshot.data() as TripDoc | undefined;
-        setState(
-          data?.destination ? { kind: "ready", data } : { kind: "missing" }
-        );
-      },
-      () => setState({ kind: "denied" })
-    );
-  }, [tripId, uid]);
-
-  const data = state.kind === "ready" ? state.data : null;
-  // Rebuild only when the doc content changes (aboutUs edits etc.)
-  const serialized = data ? JSON.stringify(data) : "";
+  // Rebuild only when the trip content changes (aboutUs edits etc.)
+  const serialized = data ? JSON.stringify([data.trip, data.avatarUrl]) : "";
   const config = useMemo(
-    () => (data ? tripConfigFromDoc(tripId, data) : null),
+    () => (data && tripId ? tripConfigFromDoc(tripId, toTripDoc(data.trip, data.avatarUrl)) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tripId, serialized]
   );
@@ -109,13 +88,9 @@ export function TripGate({
     );
   }
 
-  if (state.kind === "denied" || state.kind === "missing") {
+  if (tripId === null) {
     return (
-      <Notice
-        icon={Compass}
-        title={state.kind === "missing" ? t("product.gate.notFound") : t("product.gate.noAccess")}
-        text={t("product.gate.noAccessText")}
-      >
+      <Notice icon={Compass} title={t("product.gate.noAccess")} text={t("product.gate.noAccessText")}>
         <Link href="/trips" className="btn-primary w-full py-3">
           {t("product.gate.myTrips")}
         </Link>
@@ -123,7 +98,11 @@ export function TripGate({
     );
   }
 
-  if (!config) return <Splash />;
+  if (!config || !data) return <Splash />;
 
-  return <TripAppShell config={config}>{children}</TripAppShell>;
+  return (
+    <TripAppShell config={config} me={data.me} membersCanDeletePlaces={data.trip.membersCanDeletePlaces}>
+      {children}
+    </TripAppShell>
+  );
 }

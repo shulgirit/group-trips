@@ -1,183 +1,102 @@
 "use client";
 
-import {
-  addDoc,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  deleteField,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
-import type { PollOption } from "@together/shared/types";
-import { auth, db, isPersonalUser } from "@/lib/firebase/client";
-import { wazeUrl } from "@together/shared/nav";
-import { notifyGroup } from "@/lib/push-client";
-import { formatDayLabel } from "@together/shared/trip";
-import { activeTrip, activeTripPath } from "@/lib/active-trip";
-import { tActive } from "@together/i18n/active";
-import {
-  PlaceInputSchema,
-  EventInputSchema,
-  ExpenseInputSchema,
-  ExpenseSplitInputSchema,
-  PollInputSchema,
-  type PlaceInput,
-  type EventInput,
-  type ExpenseInput,
-  type ExpenseSplitInput,
-  type PollInput,
-} from "@together/shared/schemas";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import type { EventInput, ExpenseInput, ExpenseSplitInput, PlaceInput, PollInput } from "@together/shared/schemas";
 import type { Place } from "@together/shared/types";
+import { activeTrip } from "@/lib/active-trip";
+import { convex } from "@/lib/convex";
 
-/** Removes undefined values — Firestore rejects them. */
-function compact<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, v]) => v !== undefined)
-  ) as T;
-}
+/**
+ * Trip writes, called from event handlers. Each is a Convex mutation on the
+ * active trip; validation, permissions and the single group notification
+ * per action happen on the server.
+ */
 
-import { samePlaceName } from "@together/shared/place-name";
 export { normalizePlaceName, samePlaceName } from "@together/shared/place-name";
 
-export async function addPlace(
-  input: PlaceInput
-): Promise<{ id: string; existed: boolean }> {
-  const parsed = PlaceInputSchema.parse(input);
-  // Never create a duplicate — reuse the existing place instead
-  const snapshot = await getDocs(collection(db(), `${activeTripPath()}/places`));
-  const existing = snapshot.docs.find((docSnap) =>
-    samePlaceName(String(docSnap.data().name ?? ""), parsed.name)
-  );
-  if (existing) return { id: existing.id, existed: true };
+const tripId = () => activeTrip().id as Id<"trips">;
+const placeRef = (id: string | null | undefined) => (id ? (id as Id<"places">) : null);
 
-  const currentUser = auth().currentUser;
-  const ref = await addDoc(
-    collection(db(), `${activeTripPath()}/places`),
-    compact({
-      ...parsed,
-      createdAt: Date.now(),
-      createdByUid: currentUser?.uid,
-      // Google + kid identities carry a display name; the legacy shared
-      // identity stays anonymous
-      createdByName: currentUser?.displayName ?? undefined,
-    })
-  );
-  return { id: ref.id, existed: false };
+type PlaceArgs = typeof api.places.add._args.input;
+
+function placeArgs(input: Partial<PlaceInput> | Partial<Place>): Partial<PlaceArgs> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    // Convex rejects undefined fields; empty strings clear nothing either
+    if (value === undefined || key === "id" || key === "createdAt" || key === "createdByUid" || key === "createdByName") continue;
+    out[key] = value;
+  }
+  return out as Partial<PlaceArgs>;
 }
 
-export async function updatePlace(
-  placeId: string,
-  partial: Partial<Place>
-): Promise<void> {
-  await updateDoc(doc(db(), `${activeTripPath()}/places/${placeId}`), compact(partial));
+export async function addPlace(input: PlaceInput): Promise<{ id: string; existed: boolean }> {
+  return convex.mutation(api.places.add, { tripId: tripId(), input: placeArgs(input) as PlaceArgs });
+}
+
+export async function updatePlace(placeId: string, partial: Partial<Place>): Promise<void> {
+  await convex.mutation(api.places.update, { tripId: tripId(), placeId: placeId as Id<"places">, patch: placeArgs(partial) });
 }
 
 export async function deletePlace(placeId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${activeTripPath()}/places/${placeId}`));
+  await convex.mutation(api.places.remove, { tripId: tripId(), placeId: placeId as Id<"places"> });
+}
+
+function eventArgs(input: EventInput) {
+  const participants =
+    input.participants.type === "families"
+      ? { type: "families" as const, familyIds: input.participants.familyIds as Id<"families">[] }
+      : input.participants;
+  return {
+    title: input.title,
+    ...(input.emoji ? { emoji: input.emoji } : {}),
+    placeId: placeRef(input.placeId),
+    day: input.day,
+    startTime: input.startTime,
+    durationMin: input.durationMin ?? null,
+    participants,
+    ...(input.notes ? { notes: input.notes } : {}),
+  };
 }
 
 export async function addEvent(input: EventInput): Promise<string> {
-  const parsed = EventInputSchema.parse(input);
-  const currentUser = auth().currentUser;
-  const personal = isPersonalUser(currentUser);
-  const ref = await addDoc(
-    collection(db(), `${activeTripPath()}/events`),
-    compact({
-      ...parsed,
-      createdAt: Date.now(),
-      createdByUid: personal ? currentUser?.uid : undefined,
-      createdByName: personal
-        ? (currentUser?.displayName ?? undefined)
-        : undefined,
-    })
-  );
-  // The push deep-links to the day and, when possible, carries a Waze link
-  let navUrl: string | undefined;
-  if (parsed.placeId) {
-    try {
-      const placeSnap = await getDoc(
-        doc(db(), `${activeTripPath()}/places/${parsed.placeId}`)
-      );
-      const place = placeSnap.data();
-      if (place && (place.lat != null || place.address)) {
-        navUrl = wazeUrl(
-          {
-            name: String(place.name ?? parsed.title),
-            address: place.address ? String(place.address) : undefined,
-            lat: place.lat ?? null,
-            lng: place.lng ?? null,
-          },
-          activeTrip().searchRegionHint
-        );
-      }
-    } catch {
-      // navigation link is a bonus
-    }
-  }
-  notifyGroup(
-    "event",
-    parsed.title,
-    `${formatDayLabel(parsed.day)} · ${parsed.startTime}`,
-    currentUser?.uid,
-    { day: parsed.day, navUrl }
-  );
-  return ref.id;
+  return convex.mutation(api.events.add, { tripId: tripId(), input: eventArgs(input) });
 }
 
-export async function updateEvent(
-  eventId: string,
-  input: EventInput
-): Promise<void> {
-  const parsed = EventInputSchema.parse(input);
-  await updateDoc(doc(db(), `${activeTripPath()}/events/${eventId}`), {
-    title: parsed.title,
-    emoji: parsed.emoji ?? null,
-    placeId: parsed.placeId ?? null,
-    day: parsed.day,
-    startTime: parsed.startTime,
-    durationMin: parsed.durationMin ?? null,
-    participants: parsed.participants,
-    notes: parsed.notes ?? "",
-    // Time may have moved — let the reminder fire again for the new slot
-    reminderSentAt: deleteField(),
-  });
+export async function updateEvent(eventId: string, input: EventInput): Promise<void> {
+  await convex.mutation(api.events.update, { tripId: tripId(), eventId: eventId as Id<"events">, input: eventArgs(input) });
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${activeTripPath()}/events/${eventId}`));
+  await convex.mutation(api.events.remove, { tripId: tripId(), eventId: eventId as Id<"events"> });
 }
+
+const familyIds = (ids: string[] | null) => (ids ? (ids as Id<"families">[]) : null);
 
 export async function addExpense(input: ExpenseInput): Promise<string> {
-  const parsed = ExpenseInputSchema.parse(input);
-  const ref = await addDoc(
-    collection(db(), `${activeTripPath()}/expenses`),
-    compact({ ...parsed, createdAt: Date.now() })
-  );
-  return ref.id;
-}
-
-/** Changes only how an expense is split — never amount/payer. */
-export async function updateExpenseSplit(
-  expenseId: string,
-  input: ExpenseSplitInput
-): Promise<void> {
-  const parsed = ExpenseSplitInputSchema.parse(input);
-  await updateDoc(doc(db(), `${activeTripPath()}/expenses/${expenseId}`), {
-    participantFamilyIds: parsed.participantFamilyIds,
-    // deleteField clears stale counts when switching back to equal split
-    participantCounts: parsed.participantCounts ?? deleteField(),
+  return convex.mutation(api.expenses.add, {
+    tripId: tripId(),
+    payerFamilyId: input.payerFamilyId as Id<"families">,
+    description: input.description,
+    amount: input.amount,
+    currency: input.currency,
+    date: input.date,
+    participantFamilyIds: familyIds(input.participantFamilyIds),
+    ...(input.participantCounts ? { participantCounts: input.participantCounts } : {}),
   });
 }
 
-/**
- * Records that one family paid another back ("mark as paid"). Stored with
- * the expenses so every balance — per currency and the combined shekel
- * view — settles through the same math.
- */
+/** Changes only how an expense is split — never amount/payer. */
+export async function updateExpenseSplit(expenseId: string, input: ExpenseSplitInput): Promise<void> {
+  await convex.mutation(api.expenses.updateSplit, {
+    tripId: tripId(),
+    expenseId: expenseId as Id<"expenses">,
+    participantFamilyIds: familyIds(input.participantFamilyIds),
+    ...(input.participantCounts ? { participantCounts: input.participantCounts } : {}),
+  });
+}
+
+/** One family paid another back ("mark as paid"). */
 export async function recordSettlement(input: {
   fromFamilyId: string;
   toFamilyId: string;
@@ -185,158 +104,56 @@ export async function recordSettlement(input: {
   currency: string;
   date: string;
 }): Promise<string> {
-  const amount = Math.round(input.amount * 100) / 100;
-  if (!(amount > 0) || input.fromFamilyId === input.toFamilyId) throw new Error("invalid_settlement");
-  const currentUser = auth().currentUser;
-  const ref = await addDoc(
-    collection(db(), `${activeTripPath()}/expenses`),
-    compact({
-      kind: "settlement",
-      payerFamilyId: input.fromFamilyId,
-      participantFamilyIds: [input.toFamilyId],
-      description: "settlement",
-      amount,
-      currency: input.currency,
-      date: input.date,
-      createdAt: Date.now(),
-      settledByName: currentUser?.displayName ?? undefined,
-    })
-  );
-  return ref.id;
+  return convex.mutation(api.expenses.recordSettlement, {
+    tripId: tripId(),
+    fromFamilyId: input.fromFamilyId as Id<"families">,
+    toFamilyId: input.toFamilyId as Id<"families">,
+    amount: input.amount,
+    currency: input.currency,
+    date: input.date,
+  });
 }
 
 export async function deleteExpense(expenseId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${activeTripPath()}/expenses/${expenseId}`));
+  await convex.mutation(api.expenses.remove, { tripId: tripId(), expenseId: expenseId as Id<"expenses"> });
 }
 
 export async function addPoll(input: PollInput): Promise<string> {
-  const parsed = PollInputSchema.parse(input);
-  const ref = await addDoc(
-    collection(db(), `${activeTripPath()}/polls`),
-    compact({ ...parsed, votes: {}, closed: false, createdAt: Date.now() })
-  );
-  notifyGroup("poll", parsed.question, undefined, auth().currentUser?.uid);
-  return ref.id;
-}
-
-export async function removePollOption(
-  pollId: string,
-  optionId: string
-): Promise<void> {
-  const ref = doc(db(), `${activeTripPath()}/polls/${pollId}`);
-  const snapshot = await getDoc(ref);
-  const options = (snapshot.data()?.options ?? []) as PollOption[];
-  await updateDoc(ref, {
-    options: options.filter((option) => option.id !== optionId),
+  return convex.mutation(api.polls.create, {
+    tripId: tripId(),
+    question: input.question,
+    options: input.options.map((option) => ({ label: option.label, placeId: placeRef(option.placeId) })),
   });
 }
 
-export async function votePoll(
-  pollId: string,
-  voterUid: string,
-  optionId: string,
-  voterName: string
-): Promise<void> {
-  await updateDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`), {
-    [`votes.${voterUid}`]: { optionId, name: voterName },
-  });
+export async function removePollOption(pollId: string, optionId: string): Promise<void> {
+  await convex.mutation(api.polls.removeOption, { tripId: tripId(), pollId: pollId as Id<"polls">, optionId });
 }
 
-export async function setPollClosed(
-  pollId: string,
-  closed: boolean
-): Promise<void> {
-  await updateDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`), { closed });
+/** The voter is always the signed-in person (the server ignores anything else). */
+export async function votePoll(pollId: string, optionId: string): Promise<void> {
+  await convex.mutation(api.polls.vote, { tripId: tripId(), pollId: pollId as Id<"polls">, optionId });
+}
+
+export async function setPollClosed(pollId: string, closed: boolean): Promise<void> {
+  await convex.mutation(api.polls.setClosed, { tripId: tripId(), pollId: pollId as Id<"polls">, closed });
 }
 
 export async function deletePoll(pollId: string): Promise<void> {
-  await deleteDoc(doc(db(), `${activeTripPath()}/polls/${pollId}`));
-}
-
-export const GLOBAL_POLL_ID = "global";
-
-function newPollOption(label: string, placeId?: string | null): PollOption {
-  return {
-    id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    label,
-    placeId: placeId ?? null,
-  };
+  await convex.mutation(api.polls.remove, { tripId: tripId(), pollId: pollId as Id<"polls"> });
 }
 
 /** Adds an option to any existing poll (dedupes within that poll). */
-export async function addOptionToPoll(
-  pollId: string,
-  label: string,
-  placeId?: string | null
-): Promise<"added" | "exists"> {
-  const ref = doc(db(), `${activeTripPath()}/polls/${pollId}`);
-  const snapshot = await getDoc(ref);
-  const options = (snapshot.data()?.options ?? []) as PollOption[];
-  if (
-    options.some(
-      (option) =>
-        option.label === label || (placeId && option.placeId === placeId)
-    )
-  ) {
-    return "exists";
-  }
-  await updateDoc(ref, { options: arrayUnion(newPollOption(label, placeId)) });
-  return "added";
+export async function addOptionToPoll(pollId: string, label: string, placeId?: string | null): Promise<"added" | "exists"> {
+  return convex.mutation(api.polls.addOption, { tripId: tripId(), pollId: pollId as Id<"polls">, label, placeId: placeRef(placeId) });
 }
 
 /** Creates a brand-new poll seeded with one option; notifies the group once. */
-export async function createPollWithOption(
-  question: string,
-  label: string,
-  placeId?: string | null
-): Promise<string> {
-  const ref = await addDoc(collection(db(), `${activeTripPath()}/polls`), {
-    question: question.trim(),
-    options: [newPollOption(label, placeId)],
-    votes: {},
-    closed: false,
-    createdAt: Date.now(),
-  });
-  notifyGroup("poll", question.trim(), undefined, auth().currentUser?.uid);
-  return ref.id;
+export async function createPollWithOption(question: string, label: string, placeId?: string | null): Promise<string> {
+  return convex.mutation(api.polls.create, { tripId: tripId(), question, options: [{ label, placeId: placeRef(placeId) }] });
 }
 
-/**
- * Adds an option to the always-open group poll (creates the poll on first
- * use). Returns "exists" when the same place/label is already an option.
- */
-export async function addOptionToGlobalPoll(
-  label: string,
-  placeId?: string | null
-): Promise<"added" | "exists"> {
-  const ref = doc(db(), `${activeTripPath()}/polls/${GLOBAL_POLL_ID}`);
-  const snapshot = await getDoc(ref);
-  const options = (snapshot.data()?.options ?? []) as PollOption[];
-  if (
-    options.some(
-      (option) =>
-        option.label === label || (placeId && option.placeId === placeId)
-    )
-  ) {
-    return "exists";
-  }
-  const option: PollOption = {
-    id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    label,
-    placeId: placeId ?? null,
-  };
-  if (snapshot.exists()) {
-    await updateDoc(ref, { options: arrayUnion(option) });
-  } else {
-    await setDoc(ref, {
-      question: tActive("config.ideasPoll"),
-      options: [option],
-      votes: {},
-      closed: false,
-      pinned: true,
-      createdAt: Date.now(),
-    });
-  }
-  notifyGroup("poll_option", label, undefined, auth().currentUser?.uid);
-  return "added";
+/** Adds an option to the always-open group ideas poll (created on first use). */
+export async function addOptionToGlobalPoll(label: string, placeId?: string | null): Promise<"added" | "exists"> {
+  return convex.mutation(api.polls.addToIdeas, { tripId: tripId(), label, placeId: placeRef(placeId) });
 }

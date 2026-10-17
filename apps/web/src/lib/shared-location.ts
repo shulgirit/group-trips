@@ -1,15 +1,14 @@
 "use client";
 
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { deleteDoc, doc, setDoc } from "firebase/firestore";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { useTrip } from "@/components/providers/TripProvider";
-import { db } from "@/lib/firebase/client";
-import { useCollectionData } from "@/lib/hooks";
 import type { Fix } from "@/lib/location";
 import type { TKey } from "@/i18n";
 
-/** A member's opt-in, time-boxed live location (trips/{id}/locations/{uid}). */
+/** A member's opt-in, time-boxed live location. */
 export interface SharedLocation {
   id: string;
   name: string;
@@ -40,9 +39,10 @@ const WRITE_EVERY_MS = 30_000;
  * position is written at most every 30s; it expires on its own.
  */
 export function useSharedLocations(fix: Fix | null) {
-  const trip = useTrip();
-  const { user, profile } = useFirebase();
-  const { data } = useCollectionData<SharedLocation>(`${trip.path}/locations`);
+  const tripId = useTrip().id as Id<"trips">;
+  const rows = useQuery(api.locations.list, { tripId });
+  const share = useMutation(api.locations.share);
+  const stop = useMutation(api.locations.stop);
   const [now, setNow] = useState(() => Date.now());
   const lastWrite = useRef(0);
 
@@ -51,49 +51,49 @@ export function useSharedLocations(fix: Fix | null) {
     return () => clearInterval(timer);
   }, []);
 
-  const mine = data?.find((l) => l.id === user?.uid && l.expiresAt > now) ?? null;
-  const others = useMemo(
-    () => (data ?? []).filter((l) => l.id !== user?.uid && l.expiresAt > now),
-    [data, user?.uid, now]
+  const data: (SharedLocation & { isMe: boolean })[] = useMemo(
+    () =>
+      (rows ?? []).map((row) => ({
+        id: row.userId,
+        name: row.name,
+        familyId: row.familyId,
+        lat: row.lat,
+        lng: row.lng,
+        accuracy: row.accuracy ?? 0,
+        updatedAt: row.updatedAt,
+        expiresAt: row.expiresAt,
+        isMe: row.isMe,
+      })),
+    [rows]
   );
+  const mine = data.find((l) => l.isMe && l.expiresAt > now) ?? null;
+  const others = useMemo(() => data.filter((l) => !l.isMe && l.expiresAt > now), [data, now]);
 
   const sharing = Boolean(mine);
   const expiresAt = mine?.expiresAt ?? null;
 
   // Keep my dot fresh while sharing
   useEffect(() => {
-    if (!sharing || !fix || !user || !expiresAt) return;
+    if (!sharing || !fix || !expiresAt) return;
     if (Date.now() - lastWrite.current < WRITE_EVERY_MS) return;
     lastWrite.current = Date.now();
-    setDoc(doc(db(), `${trip.path}/locations/${user.uid}`), {
-      name: profile?.displayName || user.displayName || "",
-      familyId: profile?.familyId ?? null,
-      lat: fix.lat,
-      lng: fix.lng,
-      accuracy: Math.round(fix.accuracy),
-      updatedAt: Date.now(),
-      expiresAt,
-    }).catch(() => undefined);
-  }, [sharing, fix, user, profile, trip.path, expiresAt]);
+    share({ tripId, lat: fix.lat, lng: fix.lng, accuracy: Math.round(fix.accuracy), expiresAt }).catch(() => undefined);
+  }, [sharing, fix, tripId, expiresAt, share]);
 
   async function startSharing(durationId: (typeof SHARE_DURATIONS)[number]["id"], current: Fix) {
-    if (!user) return;
     const option = SHARE_DURATIONS.find((d) => d.id === durationId)!;
     lastWrite.current = Date.now();
-    await setDoc(doc(db(), `${trip.path}/locations/${user.uid}`), {
-      name: profile?.displayName || user.displayName || "",
-      familyId: profile?.familyId ?? null,
+    await share({
+      tripId,
       lat: current.lat,
       lng: current.lng,
       accuracy: Math.round(current.accuracy),
-      updatedAt: Date.now(),
       expiresAt: option.ms ? Date.now() + option.ms : endOfDay(),
     });
   }
 
   async function stopSharing() {
-    if (!user) return;
-    await deleteDoc(doc(db(), `${trip.path}/locations/${user.uid}`)).catch(() => undefined);
+    await stop({ tripId }).catch(() => undefined);
   }
 
   return { others, sharing, expiresAt, startSharing, stopSharing };

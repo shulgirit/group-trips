@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Link2, QrCode, Share2, Users, X, type LucideIcon } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { tActive } from "@together/i18n/active";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { useMutation, useQuery } from "convex/react";
 
 interface Invite {
   code: string;
@@ -184,40 +186,25 @@ export function InviteLinks({
   myFamilyId?: string | null;
 }) {
   const t = useT();
-  const [invites, setInvites] = useState<Invite[] | null>(null);
+  // Live list: new or used invites update on their own
+  const invites: Invite[] | undefined = useQuery(api.invites.list, { tripId: tripId as Id<"trips"> });
+  const createInvite = useMutation(api.invites.create);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const response = await apiFetch(`/api/trips/${tripId}/invites`);
-      if (!response.ok) throw new Error(String(response.status));
-      const { invites } = await response.json();
-      setInvites(invites);
-    } catch {
-      setError(t("product.invite.loadFailed"));
-      setInvites([]);
-    }
-  }, [tripId, t]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   async function createGeneral() {
     setCreating(true);
+    setError("");
     try {
-      await apiFetch(`/api/trips/${tripId}/invites`, {
-        method: "POST",
-        body: JSON.stringify({ role: "member" }),
-      });
-      await load();
+      await createInvite({ tripId: tripId as Id<"trips">, role: "member" });
+    } catch {
+      setError(t("product.invite.loadFailed"));
     } finally {
       setCreating(false);
     }
   }
 
-  if (invites === null) {
+  if (invites === undefined) {
     return <div className="h-32 animate-pulse rounded-3xl bg-cream-100" />;
   }
 

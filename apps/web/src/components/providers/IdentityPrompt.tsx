@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { useMutation } from "convex/react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useSession } from "@/components/providers/SessionProvider";
 import { useTrip } from "@/components/providers/TripProvider";
-import { db, isPersonalUser } from "@/lib/firebase/client";
 import { useFamilies } from "@/lib/hooks";
 import { useT } from "@/i18n";
 
@@ -15,7 +16,8 @@ import { useT } from "@/i18n";
  * they choose; name-pick logins are already linked and never see it.
  */
 export function IdentityPrompt() {
-  const { ready, user, profile } = useFirebase();
+  const { ready, user, personal, profile } = useSession();
+  const linkSeat = useMutation(api.memberships.linkSeat);
   const trip = useTrip();
   const t = useT();
   const { families } = useFamilies();
@@ -28,7 +30,7 @@ export function IdentityPrompt() {
     !dismissed &&
     ready &&
     Boolean(user) &&
-    isPersonalUser(user) &&
+    personal &&
     Boolean(profile) &&
     !profile?.memberId &&
     Boolean(families?.length);
@@ -40,12 +42,8 @@ export function IdentityPrompt() {
     setSaving(true);
     setError("");
     try {
-      await setDoc(
-        doc(db(), `${trip.path}/users/${user.uid}`),
-        { familyId, memberId },
-        { merge: true }
-      );
-      // profile snapshot updates → memberId set → the sheet closes itself
+      await linkSeat({ tripId: trip.id as Id<"trips">, familyId: familyId as Id<"families">, memberKey: memberId });
+      // membership updates → memberId set → the sheet closes itself
     } catch {
       setError(t("common.errors.saveFailed"));
       setSaving(false);

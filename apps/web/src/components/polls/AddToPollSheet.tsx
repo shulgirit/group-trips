@@ -6,7 +6,6 @@ import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import {
-  GLOBAL_POLL_ID,
   addOptionToGlobalPoll,
   addOptionToPoll,
   createPollWithOption,
@@ -38,7 +37,7 @@ export function AddToPollSheet({
   const [message, setMessage] = useState("");
 
   const openPolls = (polls ?? []).filter(
-    (poll) => !poll.closed && poll.id !== GLOBAL_POLL_ID
+    (poll) => !poll.closed && !poll.pinned
   );
 
   async function handleConfirm() {

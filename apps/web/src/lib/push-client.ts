@@ -1,34 +1,22 @@
 "use client";
 
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { activeLocale } from "@together/i18n/active";
 import { activeTrip } from "@/lib/active-trip";
-import { apiFetch } from "@/lib/firebase/client";
-import { isNative, nativePlugin } from "@/lib/native";
+import { convex } from "@/lib/convex";
 
-interface FirebaseMessagingPlugin {
-  requestPermissions(): Promise<{ receive: string }>;
-  checkPermissions(): Promise<{ receive: string }>;
-  getToken(): Promise<{ token: string }>;
-  deleteToken(): Promise<void>;
-}
-
-function messaging() {
-  return nativePlugin<FirebaseMessagingPlugin>("FirebaseMessaging");
-}
-
-/** Client helpers for web-push subscribe/unsubscribe. */
+/**
+ * Browser push (web app). Group notifications are sent by the server once
+ * per action; the native app uses Expo push instead.
+ */
 
 export function pushSupported(): boolean {
-  if (isNative()) return Boolean(messaging());
-  return (
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
-  );
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
 export function isIosSafariNotInstalled(): boolean {
-  if (typeof window === "undefined" || isNative()) return false;
+  if (typeof window === "undefined") return false;
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -55,121 +43,49 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 export async function getCurrentSubscription(): Promise<PushSubscription | null> {
   if (!pushSupported()) return null;
   const registration = await navigator.serviceWorker.getRegistration();
-  if (!registration) return null;
-  return registration.pushManager.getSubscription();
+  return registration ? registration.pushManager.getSubscription() : null;
 }
 
 /** Whether this device currently receives the trip's notifications. */
 export async function pushEnabled(): Promise<boolean> {
-  const native = messaging();
-  if (native) {
-    const permission = await native.checkPermissions().catch(() => null);
-    return permission?.receive === "granted";
-  }
   const subscription = await getCurrentSubscription();
   return Boolean(subscription) && Notification.permission === "granted";
 }
 
-/** Native app: FCM/APNs token registered with the trip. */
-async function subscribeNative(
-  native: FirebaseMessagingPlugin,
-  meta: { uid?: string; userName?: string }
-): Promise<"subscribed" | "denied" | "failed"> {
-  try {
-    const permission = await native.requestPermissions();
-    if (permission.receive !== "granted") return "denied";
-    const { token } = await native.getToken();
-    const response = await apiFetch("/api/push/subscribe", {
-      method: "POST",
-      body: JSON.stringify({
-        fcmToken: token,
-        uid: meta.uid,
-        userName: meta.userName,
-        tripId: activeTrip().id,
-      }),
-    });
-    return response.ok ? "subscribed" : "failed";
-  } catch {
-    return "failed";
-  }
-}
+const tripId = () => activeTrip().id as Id<"trips">;
 
-export async function subscribeToPush(meta: {
-  uid?: string;
-  userName?: string;
-}): Promise<"subscribed" | "denied" | "failed"> {
-  const native = messaging();
-  if (native) return subscribeNative(native, meta);
+export async function subscribeToPush(): Promise<"subscribed" | "denied" | "failed"> {
   if (!pushSupported()) return "failed";
-
   const registration = await registerServiceWorker();
   if (!registration) return "failed";
   await navigator.serviceWorker.ready;
-
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return "denied";
-
   try {
     const subscription =
       (await registration.pushManager.getSubscription()) ??
       (await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ) as unknown as BufferSource,
+        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!) as unknown as BufferSource,
       }));
-
-    const response = await apiFetch("/api/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subscription: subscription.toJSON(),
-        uid: meta.uid,
-        userName: meta.userName,
-        tripId: activeTrip().id,
-      }),
+    const json = subscription.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) return "failed";
+    await convex.mutation(api.push.subscribeWeb, {
+      tripId: tripId(),
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+      locale: activeLocale(),
     });
-    return response.ok ? "subscribed" : "failed";
+    return "subscribed";
   } catch {
     return "failed";
   }
 }
 
 export async function unsubscribeFromPush(): Promise<void> {
-  const native = messaging();
-  if (native) {
-    const token = await native.getToken().then((t) => t.token).catch(() => "");
-    if (token) {
-      await apiFetch("/api/push/subscribe", {
-        method: "DELETE",
-        body: JSON.stringify({ fcmToken: token, tripId: activeTrip().id }),
-      }).catch(() => undefined);
-    }
-    await native.deleteToken().catch(() => undefined);
-    return;
-  }
   const subscription = await getCurrentSubscription();
   if (!subscription) return;
-  await apiFetch("/api/push/subscribe", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint: subscription.endpoint, tripId: activeTrip().id }),
-  }).catch(() => undefined);
+  await convex.mutation(api.push.unsubscribeWeb, { tripId: tripId(), endpoint: subscription.endpoint }).catch(() => undefined);
   await subscription.unsubscribe().catch(() => undefined);
-}
-
-/** Fire-and-forget group notification (new poll / option / event). */
-export function notifyGroup(
-  type: "poll" | "poll_option" | "event",
-  title: string,
-  detail?: string,
-  actorUid?: string,
-  extras?: { day?: string; navUrl?: string }
-): void {
-  apiFetch("/api/push/notify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, title, detail, actorUid, tripId: activeTrip().id, ...extras }),
-    keepalive: true,
-  }).catch(() => undefined);
 }

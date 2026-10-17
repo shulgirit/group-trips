@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { Plus, Send } from "lucide-react";
 import { Glyph, STROKE } from "@/components/ui/Icon";
-import { useT, type TKey } from "@/i18n";
+import { useLocale, useT, type TKey } from "@/i18n";
 import { translate } from "@together/i18n/translate";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import { useAction } from "convex/react";
 import { PRESET_AVATAR } from "@together/shared/avatars";
 import { AvatarPicker } from "./AvatarPicker";
 import { AI_PRESETS, AI_RULES, type AiPreset } from "@together/shared/trip-doc";
-import { peopleCounts, primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
+import { primaryPlace, tripEnd, tripStart, type CreatorState } from "./state";
 
 const PRESET_ORDER: Exclude<AiPreset, "custom">[] = ["butler", "pilot", "buddy", "guide"];
 
@@ -36,6 +37,8 @@ export function StepAi({
   update: (patch: Partial<CreatorState>) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
+  const previewGuide = useAction(api.assist.preview);
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState<{ q: string; a: string } | null>(null);
   const [asking, setAsking] = useState(false);
@@ -70,31 +73,24 @@ export function StepAi({
     const place = primaryPlace(state);
     if (!text.trim() || asking || !place) return;
     setAsking(true);
-    const { people, kids } = peopleCounts(state);
     try {
-      const response = await apiFetch("/api/ai/trip-assist", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "preview",
-          draft: {
-            destination: state.stops
-              .map((stop) => stop.place?.label)
-              .filter(Boolean)
-              .join(" ← "),
-            startDate: tripStart(state),
-            endDate: tripEnd(state),
-            groupKind: state.groupKind,
-            groupName: state.groupName,
-            aboutUs: state.aboutUs,
-            peopleCount: people,
-            kidsCount: kids,
-          },
-          ai: { ...ai, name: ai.name.trim() || t("creator.defaults.aiName") },
-          question: text,
-        }),
+      const answer = await previewGuide({
+        draft: {
+          destination: state.stops
+            .map((stop) => stop.place?.label)
+            .filter(Boolean)
+            .join(" ← "),
+          startDate: tripStart(state),
+          endDate: tripEnd(state),
+          groupKind: state.groupKind,
+          groupName: state.groupName,
+          aboutUs: state.aboutUs,
+        },
+        ai: { name: ai.name.trim() || t("creator.defaults.aiName"), preset: ai.preset, rules: ai.rules, customRules: ai.customRules },
+        question: text,
+        locale,
       });
-      const body = await response.json();
-      setReply({ q: text, a: body.reply || "…" });
+      setReply({ q: text, a: answer || "…" });
       setQuestion("");
     } catch {
       setReply({ q: text, a: t("creator.ai.failed") });
@@ -133,7 +129,7 @@ export function StepAi({
         })}
       </section>
 
-      <AvatarPicker tripId={state.tripId} value={ai.avatar} onChange={(avatar) => setAi({ avatar })} />
+      <AvatarPicker tripId={state.tripId} value={ai.avatar} onChange={(avatar, storageId) => setAi({ avatar, avatarStorageId: storageId ?? null })} />
 
       <section>
         <label className="block space-y-1">

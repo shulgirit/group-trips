@@ -5,7 +5,9 @@ import { ArrowDown, ArrowUp, Clock, MapPin, Plus, Search, Sparkles, Trash2, X } 
 import { RouteArt } from "@/components/journal/RouteArt";
 import { Glyph, STROKE, TRIP_GLYPHS } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import { activeLocale } from "@together/i18n/active";
+import { convex } from "@/lib/convex";
 import {
   primaryPlace,
   shortId,
@@ -62,11 +64,8 @@ function DestinationSearch({
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const response = await apiFetch(
-          `/api/places/destination?q=${encodeURIComponent(q)}`
-        );
-        const body = await response.json();
-        if (id === requestId.current) setSuggestions(body.suggestions ?? []);
+        const found = await convex.action(api.destinations.autocomplete, { q });
+        if (id === requestId.current) setSuggestions(found);
       } catch {
         // keep typing
       } finally {
@@ -82,13 +81,10 @@ function DestinationSearch({
     setSuggestions([]);
     setQuery("");
     try {
-      const response = await apiFetch(
-        `/api/places/destination?placeId=${encodeURIComponent(suggestion.placeId)}`
-      );
-      if (!response.ok) throw new Error();
-      const { destination } = (await response.json()) as {
-        destination: CreatorDestination;
-      };
+      const destination: CreatorDestination | null = await convex.action(api.destinations.resolve, {
+        placeId: suggestion.placeId,
+      });
+      if (!destination) throw new Error("not_found");
       onPick({ ...destination, label: destination.label || suggestion.label });
     } catch {
       setError(t("creator.where.loadFailed"));
@@ -375,24 +371,20 @@ export function StepWhere({
     if (!firstPlace || naming) return;
     setNaming(true);
     try {
-      const response = await apiFetch("/api/ai/trip-assist", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "names",
-          draft: {
-            destination: stops
-              .map((s) => s.place?.label)
-              .filter(Boolean)
-              .join(" ← "),
-            startDate: start,
-            endDate: end,
-            groupKind: state.groupKind,
-            groupName: state.groupName,
-          },
-        }),
+      const found = await convex.action(api.assist.names, {
+        draft: {
+          destination: stops
+            .map((s) => s.place?.label)
+            .filter(Boolean)
+            .join(" ← "),
+          startDate: start,
+          endDate: end,
+          groupKind: state.groupKind,
+          groupName: state.groupName,
+        },
+        locale: activeLocale(),
       });
-      const body = await response.json();
-      setNames(body.names ?? []);
+      setNames(found);
     } catch {
       // optional nicety
     } finally {

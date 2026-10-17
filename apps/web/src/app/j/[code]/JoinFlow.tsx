@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { avatarSrc } from "@together/shared/avatars";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ban, Check, Hourglass, Link2Off, Lock, UsersRound, type LucideIcon } from "lucide-react";
 import { RouteArt } from "@/components/journal/RouteArt";
 import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
@@ -12,7 +16,7 @@ import { Glyph, STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useT, type TKey } from "@/i18n";
 import { formatShortDate } from "@together/i18n/format";
-import { apiFetch, auth, signInAsGuest } from "@/lib/firebase/client";
+import { signInAsGuest } from "@/lib/sign-in";
 import type { InvitePreview } from "@together/shared/trip-doc";
 import { useAuthUser } from "@/lib/use-auth-user";
 
@@ -28,6 +32,35 @@ type Preview = InvitePreview & {
   aiEmoji: string;
   aiAvatar?: string | null;
 };
+
+type PreviewResult = Extract<NonNullable<ReturnType<typeof useQuery<typeof api.invites.preview>>>, { ok: true }>;
+
+function toPreview(code: string, result: PreviewResult): Preview {
+  const familyId = result.families.length === 1 && result.familyName ? result.families[0].id : null;
+  return {
+    tripId: code,
+    name: result.trip.name,
+    emoji: result.trip.emoji,
+    destination: result.trip.destination,
+    startDate: result.trip.startDate,
+    endDate: result.trip.endDate,
+    coverImage: result.trip.coverImage,
+    groupName: result.trip.groupName,
+    familyName: result.familyName,
+    memberCount: result.trip.memberCount,
+    organizer: result.trip.organizer,
+    role: result.role,
+    familyId,
+    families: result.families.map((family) => ({
+      id: family.id,
+      name: family.name,
+      members: family.members.map((member) => ({ id: member.key, name: member.name, kid: member.kid })),
+    })),
+    aiName: result.trip.ai.name,
+    aiEmoji: result.trip.ai.emoji,
+    aiAvatar: avatarSrc(result.trip.ai.avatar),
+  };
+}
 
 const ERROR_ICON: Record<string, LucideIcon> = {
   not_found: Link2Off,
@@ -57,27 +90,26 @@ export function JoinFlow({ code }: { code: string }) {
   const router = useRouter();
   const t = useT();
   const { user, personal, loading } = useAuthUser();
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [error, setError] = useState("");
-  const [errorCode, setErrorCode] = useState("not_found");
-  const [familyId, setFamilyId] = useState<string | null>(null);
+  // Public, live preview of the invite (works before sign-in)
+  const result = useQuery(api.invites.preview, { code });
+  const redeem = useMutation(api.invites.redeem);
+  const preview: Preview | null = useMemo(() => (result?.ok ? toPreview(code, result) : null), [code, result]);
+  const errorCode = result && !result.ok ? (result.error in ERRORS ? result.error : "not_found") : "not_found";
+  const [joinError, setJoinError] = useState("");
+  const error = joinError || (result && !result.ok ? t(ERRORS[errorCode]) : "");
+  const setError = setJoinError;
+  const [pickedFamilyId, setFamilyId] = useState<string | null>(null);
+  const familyId = pickedFamilyId ?? preview?.familyId ?? null;
   const [joining, setJoining] = useState(false);
-
+  // A freshly created guest identity takes a moment to reach Convex
+  const { isAuthenticated } = useConvexAuth();
+  const authed = useRef(isAuthenticated);
   useEffect(() => {
-    fetch(`/api/invites/preview?code=${encodeURIComponent(code)}`)
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? "not_found");
-        setPreview(body);
-        setFamilyId(body.familyId);
-        setError("");
-      })
-      .catch((err: Error) => {
-        const known = err.message in ERRORS ? err.message : "not_found";
-        setErrorCode(known);
-        setError(t(ERRORS[known]));
-      });
-  }, [code, t]);
+    authed.current = isAuthenticated;
+  }, [isAuthenticated]);
+  async function waitForAuth() {
+    for (let i = 0; i < 50 && !authed.current; i++) await new Promise((r) => setTimeout(r, 200));
+  }
 
   const isKidInvite = preview?.role === "kid";
   const [asGuest, setAsGuest] = useState(false);
@@ -89,27 +121,33 @@ export function JoinFlow({ code }: { code: string }) {
     setJoining(true);
     setError("");
     try {
-      if ((isKidInvite || asGuest) && !auth().currentUser) await signInAsGuest();
-      const response = await apiFetch("/api/invites/redeem", {
-        method: "POST",
-        body: JSON.stringify({ code, familyId: memberFamilyId, memberId }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
+      if ((isKidInvite || asGuest) && !user) {
+        await signInAsGuest();
+        // The new identity must reach Convex before redeeming
+        await waitForAuth();
+      }
+      let tripId: string;
+      try {
+        tripId = await redeem({
+          code,
+          familyId: memberFamilyId as Id<"families"> | null,
+          memberKey: memberId,
+        });
+      } catch (err) {
+        const detail = (err as { data?: { detail?: string; code?: string } }).data;
+        const reason = detail?.detail ?? detail?.code ?? "";
         setError(
           t(
-            body.error === "trip_full"
+            reason === "trip_full"
               ? "product.join.errors.tripFull"
-              : body.error === "sign_in_required"
+              : reason === "sign_in_required"
                 ? "product.join.errors.signInRequired"
-                : (ERRORS[body.error] ?? "product.join.errors.failed")
+                : (ERRORS[reason] ?? "product.join.errors.failed")
           )
         );
         return;
       }
-      // Fresh token carries the trip's storage claim
-      await auth().currentUser?.getIdToken(true).catch(() => undefined);
-      router.replace(`/t/${body.tripId}`);
+      router.replace(`/t/${tripId}`);
     } catch {
       setError(t("product.join.errors.failedNetwork"));
     } finally {

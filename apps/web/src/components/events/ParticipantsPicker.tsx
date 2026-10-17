@@ -1,6 +1,6 @@
 "use client";
 
-import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useSession } from "@/components/providers/SessionProvider";
 import { useTrip } from "@/components/providers/TripProvider";
 import type { Family, Participants } from "@together/shared/types";
 import { useT } from "@/i18n";
@@ -14,7 +14,7 @@ export function ParticipantsPicker({
   onChange: (next: Participants) => void;
   families: Family[];
 }) {
-  const { profile } = useFirebase();
+  const { profile } = useSession();
   const { group } = useTrip();
   const t = useT();
   const modes = [

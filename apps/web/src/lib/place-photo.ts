@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { convex } from "@/lib/convex";
 
 /** Ids already requested in this tab — each place is asked for at most once. */
 const requested = new Set<string>();
@@ -9,7 +11,7 @@ const requested = new Set<string>();
 /**
  * Makes sure a saved place gets its real photo. When the place has none,
  * asks the server once to find it (Google Places); the photo then arrives
- * through the normal Firestore subscription, for everyone in the trip.
+ * through the normal realtime subscription, for everyone in the trip.
  */
 export function usePlacePhoto(
   tripId: string,
@@ -22,10 +24,7 @@ export function usePlacePhoto(
     const key = `${tripId}/${placeId}`;
     if (requested.has(key)) return;
     requested.add(key);
-    apiFetch("/api/places/photo", {
-      method: "POST",
-      body: JSON.stringify({ tripId, placeId }),
-    }).catch(() => undefined);
+    convex.mutation(api.photos.request, { tripId: tripId as Id<"trips">, placeId: placeId as Id<"places"> }).catch(() => undefined);
   }, [tripId, placeId, missing]);
 }
 
@@ -36,9 +35,6 @@ export function useTripCover(tripId: string, enabled: boolean) {
     const key = `${tripId}/cover`;
     if (requested.has(key)) return;
     requested.add(key);
-    apiFetch("/api/places/photo", {
-      method: "POST",
-      body: JSON.stringify({ tripId, cover: true }),
-    }).catch(() => undefined);
+    convex.mutation(api.photos.request, { tripId: tripId as Id<"trips"> }).catch(() => undefined);
   }, [tripId, enabled]);
 }

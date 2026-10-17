@@ -1,132 +1,75 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { collection, doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
-import { useTrip } from "@/components/providers/TripProvider";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
 import { resolveHomeBase } from "@together/shared/home-base";
 import { todayIso } from "@together/shared/trip";
-import type { Expense, Family, Place, Poll, TripEvent } from "@together/shared/types";
+import { useQuery } from "convex/react";
+import { useMemo } from "react";
+import { useTrip } from "@/components/providers/TripProvider";
+import { toEvent, toExpense, toFamily, toPlace, toPoll } from "@/lib/convex-shapes";
 
-export function useCollectionData<T extends { id: string }>(path: string) {
-  const { ready, epoch } = useFirebase();
-  const [data, setData] = useState<T[] | null>(null);
-  const [error, setError] = useState(false);
+/** Realtime trip data (Convex subscriptions), in the shapes the pages render. */
 
-  useEffect(() => {
-    if (!ready) return;
-    return onSnapshot(
-      collection(db(), path),
-      (snapshot) => {
-        setData(
-          snapshot.docs.map(
-            (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as T
-          )
-        );
-        setError(false);
-      },
-      () => setError(true)
-    );
-    // epoch bumps after trip membership is provisioned — re-subscribe
-  }, [ready, path, epoch]);
-
-  return { data, loading: data === null && !error, error };
+function useTripId(): Id<"trips"> {
+  return useTrip().id as Id<"trips">;
 }
 
-export function useDocData<T>(path: string) {
-  const { ready, epoch } = useFirebase();
-  const [data, setData] = useState<T | null | undefined>(undefined);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    if (!ready) return;
-    return onSnapshot(
-      doc(db(), path),
-      (snapshot) => {
-        setData(
-          snapshot.exists()
-            ? ({ id: snapshot.id, ...snapshot.data() } as T)
-            : null
-        );
-        setError(false);
-      },
-      () => setError(true)
-    );
-    // epoch bumps after trip membership is provisioned — re-subscribe
-  }, [ready, path, epoch]);
-
-  return { data, loading: data === undefined && !error, error };
-}
+const state = <T,>(data: T | undefined) => ({ loading: data === undefined, error: false });
 
 export function usePlaces() {
-  const { path } = useTrip();
-  const { data, ...rest } = useCollectionData<Place>(`${path}/places`);
-  const sorted = useMemo(
-    () => data?.slice().sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
-    [data]
-  );
-  return { places: sorted ?? null, ...rest };
+  const rows = useQuery(api.places.list, { tripId: useTripId() });
+  const places = useMemo(() => rows?.map(toPlace).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)) ?? null, [rows]);
+  return { places, ...state(rows) };
 }
 
 export function usePlace(placeId: string) {
-  const { path } = useTrip();
-  const { data, ...rest } = useDocData<Place>(`${path}/places/${placeId}`);
-  return { place: data, ...rest };
+  const row = useQuery(api.places.get, { tripId: useTripId(), placeId });
+  return { place: row === undefined ? undefined : row ? toPlace(row) : null, ...state(row) };
 }
 
 export function useEvents() {
-  const { path } = useTrip();
-  const { data, ...rest } = useCollectionData<TripEvent>(`${path}/events`);
-  const sorted = useMemo(
+  const rows = useQuery(api.events.list, { tripId: useTripId() });
+  const events = useMemo(
     () =>
-      data
-        ?.slice()
-        .sort((a, b) =>
-          a.day === b.day
-            ? a.startTime.localeCompare(b.startTime)
-            : a.day.localeCompare(b.day)
-        ),
-    [data]
+      rows
+        ?.map(toEvent)
+        .sort((a, b) => (a.day === b.day ? a.startTime.localeCompare(b.startTime) : a.day.localeCompare(b.day))) ?? null,
+    [rows]
   );
-  return { events: sorted ?? null, ...rest };
+  return { events, ...state(rows) };
+}
+
+export function useEvent(eventId: string) {
+  const row = useQuery(api.events.get, { tripId: useTripId(), eventId });
+  return { event: row === undefined ? undefined : row ? toEvent(row) : null, ...state(row) };
 }
 
 export function useExpenses() {
-  const { path } = useTrip();
-  const { data, ...rest } = useCollectionData<Expense>(`${path}/expenses`);
-  const sorted = useMemo(
-    () =>
-      data
-        ?.slice()
-        .sort(
-          (a, b) =>
-            b.date.localeCompare(a.date) ||
-            (b.createdAt ?? 0) - (a.createdAt ?? 0)
-        ),
-    [data]
+  const rows = useQuery(api.expenses.list, { tripId: useTripId() });
+  const expenses = useMemo(
+    () => rows?.map(toExpense).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? 0) - (a.createdAt ?? 0)) ?? null,
+    [rows]
   );
-  return { expenses: sorted ?? null, ...rest };
+  return { expenses, ...state(rows) };
 }
 
 export function usePolls() {
-  const { path } = useTrip();
-  const { data, ...rest } = useCollectionData<Poll>(`${path}/polls`);
-  const sorted = useMemo(
-    () => data?.slice().sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
-    [data]
-  );
-  return { polls: sorted ?? null, ...rest };
+  const rows = useQuery(api.polls.list, { tripId: useTripId() });
+  const polls = useMemo(() => rows?.map(toPoll).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)) ?? null, [rows]);
+  return { polls, ...state(rows) };
 }
 
 export function useFamilies() {
-  const { path } = useTrip();
-  const { data, ...rest } = useCollectionData<Family>(`${path}/families`);
-  const sorted = useMemo(
-    () => data?.slice().sort((a, b) => a.order - b.order),
-    [data]
-  );
-  return { families: sorted ?? null, ...rest };
+  const rows = useQuery(api.families.list, { tripId: useTripId() });
+  const families = useMemo(() => rows?.map(toFamily).sort((a, b) => a.order - b.order) ?? null, [rows]);
+  return { families, ...state(rows) };
+}
+
+/** Everyone in the trip (avatars, members list). */
+export function useMembers() {
+  const rows = useQuery(api.memberships.list, { tripId: useTripId() });
+  return { members: rows ?? null, ...state(rows) };
 }
 
 /**
@@ -137,9 +80,6 @@ export function useFamilies() {
  */
 export function useHomeBase() {
   const { places, ...rest } = usePlaces();
-  const home = useMemo(
-    () => (places ? resolveHomeBase(places, todayIso()) : null),
-    [places]
-  );
+  const home = useMemo(() => (places ? resolveHomeBase(places, todayIso()) : null), [places]);
   return { home, ...rest };
 }

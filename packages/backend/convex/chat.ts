@@ -138,6 +138,21 @@ export const send = tripMutation({
   },
 });
 
+/** Re-runs a failed reply in place (the question is not sent twice). */
+export const retry = tripMutation({
+  args: { replyId: v.id("chatMessages"), locale: v.optional(v.string()) },
+  handler: async (ctx, { replyId, locale }) => {
+    const reply = await ctx.db.get(replyId);
+    if (!reply || reply.role !== "assistant" || reply.status !== "error") fail("not_found");
+    await ownSession(ctx, reply.sessionId, ctx.tripId, ctx.user._id);
+    if (!(await quotaLeft(ctx, ctx.tripId, "aiCalls"))) fail("limit", "quota_exceeded");
+    await ctx.db.patch(replyId, { status: "pending", content: "" });
+    await recordUsage(ctx, ctx.tripId, "aiCalls");
+    const lang = isLocale(locale) ? locale : isLocale(ctx.user.locale) ? ctx.user.locale : "he";
+    await ctx.scheduler.runAfter(0, internal.chatRun.run, { replyId, locale: lang });
+  },
+});
+
 // ── candidate cards ───────────────────────────────────────────────────
 
 async function ownCandidate(ctx: MutationCtx, messageId: Id<"chatMessages">, index: number, tripId: Id<"trips">, userId: Id<"users">) {

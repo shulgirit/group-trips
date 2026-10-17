@@ -5,7 +5,9 @@ import { Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { apiFetch } from "@/lib/firebase/client";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { convex } from "@/lib/convex";
 
 /** Owner-only: delete a trip straight from My trips (same flow as Settings). */
 export function DeleteTripButton({
@@ -29,10 +31,7 @@ export function DeleteTripButton({
   async function purge() {
     setError("");
     try {
-      const response = await apiFetch(`/api/trips/${tripId}?purge=1`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error(String(response.status));
+      await convex.mutation(api.trips.remove, { tripId: tripId as Id<"trips"> });
       setOpen(false);
       onDeleted();
     } catch {

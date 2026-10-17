@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { BellRing, Check } from "lucide-react";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { isNative } from "@/lib/native";
@@ -17,7 +16,6 @@ const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
  */
 export function NotifyNudge({ tripId }: { tripId: string }) {
   const t = useT();
-  const { user } = useFirebase();
   const key = `together-notify-nudge-${tripId}`;
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,7 +55,7 @@ export function NotifyNudge({ tripId }: { tripId: string }) {
   async function enable() {
     setBusy(true);
     setMessage("");
-    const result = await subscribeToPush({ uid: user?.uid, userName: user?.displayName ?? undefined });
+    const result = await subscribeToPush();
     setBusy(false);
     if (result === "subscribed") {
       setDone(true);

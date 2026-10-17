@@ -38,7 +38,7 @@ const JSON_SCHEMA = {
     type: "object",
     additionalProperties: false,
     properties: {
-      reply: { type: "string", description: "תשובה שיחתית קצרה בעברית" },
+      reply: { type: "string", description: "תשובה שיחתית קצרה, בשפה שבה המשתמש כותב" },
       candidates: {
         type: "array",
         description: "מקומות מומלצים קונקרטיים. ריק אם השאלה לא מבקשת המלצות על מקומות.",
@@ -80,7 +80,7 @@ export function buildTools(range: { startDate: string; endDate: string }): OpenA
           properties: {
             query: { type: "string", description: "כתובת או תיאור חופשי, למשל: 'parking Piazza Ungheria Palermo'" },
             url: { type: "string", description: "קישור לאתר/דף של המקום (אם המשתמש נתן קישור)" },
-            name: { type: "string", description: "שם עברי/ידידותי למקום, למשל: 'חניון פיאצה אונגריה'" },
+            name: { type: "string", description: "שם ידידותי למקום בשפה שבה המשתמש כותב, למשל: 'חניון פיאצה אונגריה'" },
             category: { type: "string", enum: CATEGORY_KEYS },
             region: {
               type: "string",
@@ -100,7 +100,7 @@ export function buildTools(range: { startDate: string; endDate: string }): OpenA
         parameters: {
           type: "object",
           properties: {
-            title: { type: "string", description: "שם הפעילות בעברית" },
+            title: { type: "string", description: "שם הפעילות, בשפה שבה המשתמש כותב" },
             emoji: {
               type: "string",
               description: "מפתח אייקון אחד: plane, hotel, car, ticket, dining, pin, luggage, sun, waves, mountain, city, wine, castle",
@@ -165,7 +165,7 @@ export function buildTools(range: { startDate: string; endDate: string }): OpenA
         parameters: {
           type: "object",
           properties: {
-            question: { type: "string", description: "שאלת הסקר בעברית" },
+            question: { type: "string", description: "שאלת הסקר, בשפה שבה המשתמש כותב" },
             options: {
               type: "array",
               description: "2-6 אפשרויות",

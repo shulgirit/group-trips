@@ -9,6 +9,19 @@ const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source
   transpilePackages: ["@together/i18n", "@together/integrations", "@together/shared"],
   outputFileTracingRoot: repoRoot,
+  // The original Sicily/Sardinia URLs now live under their migrated trips
+  async redirects() {
+    const sicily = ["ai", "calendar", "map", "places", "polls", "expenses", "documents", "families", "more", "settings"];
+    return [
+      { source: "/sardinia", destination: "/t/sardinia-2026", permanent: false },
+      { source: "/sardinia/:path*", destination: "/t/sardinia-2026/:path*", permanent: false },
+      ...sicily.flatMap((section) => [
+        { source: `/${section}`, destination: `/t/sicily-2026/${section}`, permanent: false },
+        { source: `/${section}/:path*`, destination: `/t/sicily-2026/${section}/:path*`, permanent: false },
+      ]),
+      { source: "/gate", destination: "/welcome", permanent: false },
+    ];
+  },
   // iOS fetches the universal-links file without an extension — it must be JSON
   async headers() {
     return [

@@ -3,16 +3,17 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Check, Copy, Pencil, Smartphone, UserPlus } from "lucide-react";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useSession } from "@/components/providers/SessionProvider";
 import { useTrip } from "@/components/providers/TripProvider";
 import { InviteLinks, inviteUrl } from "@/components/product/InviteLinks";
 import { SURFACE } from "@/components/settings/SettingsGroup";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { STROKE } from "@/components/ui/Icon";
 import { useT, type TKey } from "@/i18n";
-import { apiFetch } from "@/lib/firebase/client";
-import { useCollectionData, useDocData } from "@/lib/hooks";
-import type { TripMember } from "@together/shared/trip-doc";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
+import { convex } from "@/lib/convex";
+import { useMembers } from "@/lib/hooks";
 
 const ROLE_LABEL: Record<string, TKey | null> = {
   owner: "product.admin.roles.owner",
@@ -31,25 +32,14 @@ export interface TripRole {
 
 /** My role in a self-serve trip (legacy trips have no roles). */
 export function useTripRole(): TripRole {
-  const trip = useTrip();
-  const { user } = useFirebase();
-  const { data: me } = useDocData<TripMember>(
-    trip.legacy ? "_/_" : `${trip.path}/members/${user?.uid ?? "_"}`,
-  );
-  const ready = !trip.legacy && !!user && !!me;
+  const { role } = useSession();
+  const ready = role !== null;
   return {
     ready,
-    isAdmin: ready && (me!.role === "owner" || me!.role === "admin"),
-    isOwner: ready && me!.role === "owner",
-    isKid: ready && me!.role === "kid",
+    isAdmin: role === "owner" || role === "admin",
+    isOwner: role === "owner",
+    isKid: role === "kid",
   };
-}
-
-async function deleteFromTrip(tripId: string, query: string) {
-  const response = await apiFetch(`/api/trips/${tripId}?${query}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error(String(response.status));
 }
 
 /** Admins: the trip's invite links, front and center. */
@@ -113,12 +103,7 @@ export function KidDevicesCard() {
     setBusy(true);
     setMessage("");
     try {
-      const response = await apiFetch(`/api/trips/${trip.id}/invites`, {
-        method: "POST",
-        body: JSON.stringify({ role: "kid" }),
-      });
-      if (!response.ok) throw new Error();
-      const { code } = await response.json();
+      const code = await convex.mutation(api.invites.create, { tripId: trip.id as Id<"trips">, role: "kid" });
       setKidLink(inviteUrl(code));
     } catch {
       setMessage(t("product.admin.kidLinkFailed"));
@@ -193,11 +178,9 @@ export function KidDevicesCard() {
 export function MembersCard() {
   const t = useT();
   const trip = useTrip();
-  const { user } = useFirebase();
-  const { data: members } = useCollectionData<TripMember & { id: string }>(
-    `${trip.path}/members`,
-  );
-  const [target, setTarget] = useState<{ uid: string; name: string } | null>(null);
+  const { user } = useSession();
+  const { members } = useMembers();
+  const [target, setTarget] = useState<{ membershipId: string; name: string } | null>(null);
   const [error, setError] = useState("");
   const close = useCallback(() => {
     setTarget(null);
@@ -236,10 +219,10 @@ export function MembersCard() {
                 </span>
               )}
             </span>
-            {member.role !== "owner" && member.id !== user.uid && (
+            {member.role !== "owner" && !member.isMe && (
               <button
                 type="button"
-                onClick={() => setTarget({ uid: member.id, name: member.displayName })}
+                onClick={() => setTarget({ membershipId: member.id, name: member.displayName })}
                 className="-me-2 min-h-11 shrink-0 rounded-xl px-3 text-sm font-medium text-terra-600 active:bg-terra-100"
               >
                 {t("product.admin.remove")}
@@ -258,7 +241,10 @@ export function MembersCard() {
           if (!target) return;
           setError("");
           try {
-            await deleteFromTrip(trip.id, `member=${encodeURIComponent(target.uid)}`);
+            await convex.mutation(api.memberships.remove, {
+              tripId: trip.id as Id<"trips">,
+              membershipId: target.membershipId as Id<"memberships">,
+            });
             close();
           } catch {
             setError(t("product.admin.removeFailed"));
@@ -281,10 +267,13 @@ export function TripDangerZone({ isOwner }: { isOwner: boolean }) {
     setError("");
   }, []);
 
-  async function run(query: string, failKey: TKey) {
+  async function run(action: "leave" | "purge", failKey: TKey) {
     setError("");
     try {
-      await deleteFromTrip(trip.id, query);
+      const tripId = trip.id as Id<"trips">;
+      await (action === "leave"
+        ? convex.mutation(api.memberships.leave, { tripId })
+        : convex.mutation(api.trips.remove, { tripId }));
       window.location.replace("/trips");
     } catch {
       setError(t(failKey));
@@ -330,7 +319,7 @@ export function TripDangerZone({ isOwner }: { isOwner: boolean }) {
         confirmWord={t("common.confirm.word")}
         confirmLabel={t("product.admin.leaveAction")}
         error={error}
-        onConfirm={() => run("member=self", "product.admin.leaveFailed")}
+        onConfirm={() => run("leave", "product.admin.leaveFailed")}
         onClose={close}
       />
       <ConfirmDialog
@@ -346,7 +335,7 @@ export function TripDangerZone({ isOwner }: { isOwner: boolean }) {
         confirmWord={t("common.confirm.word")}
         confirmLabel={t("product.admin.deleteTrip")}
         error={error}
-        onConfirm={() => run("purge=1", "product.admin.deleteTripFailed")}
+        onConfirm={() => run("purge", "product.admin.deleteTripFailed")}
         onClose={close}
       />
     </>

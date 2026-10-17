@@ -63,7 +63,17 @@ export const preview = query({
         endDate: trip.endDate,
         coverImage: trip.coverImage,
         groupName: trip.groupName,
-        ai: { name: trip.ai.name, avatar: trip.ai.avatar ?? null },
+        ai: {
+          name: trip.ai.name,
+          emoji: trip.ai.emoji,
+          // "bot:<id>" or the uploaded image's URL — ready to display
+          avatar:
+            trip.ai.avatar?.kind === "bot"
+              ? `bot:${trip.ai.avatar.id}`
+              : trip.ai.avatar?.kind === "file"
+                ? await ctx.storage.getUrl(trip.ai.avatar.storageId)
+                : null,
+        },
         organizer: owner?.name ?? "",
         memberCount: members.length,
       },

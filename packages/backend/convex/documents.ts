@@ -73,3 +73,13 @@ export const remove = tripMutation({
     await ctx.db.delete(documentId);
   },
 });
+
+/** URL of a file just uploaded for the trip (e.g. the guide's avatar preview). */
+export const fileUrl = tripMutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, { storageId }) => {
+    const url = await ctx.storage.getUrl(storageId);
+    if (!url) fail("not_found");
+    return url;
+  },
+});

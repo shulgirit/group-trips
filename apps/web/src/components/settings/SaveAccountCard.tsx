@@ -2,24 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Check, Lock } from "lucide-react";
-import { useFirebase } from "@/components/providers/FirebaseProvider";
+import { useSession } from "@/components/providers/SessionProvider";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { SURFACE } from "@/components/settings/SettingsGroup";
-import {
-  apiFetch,
-  appleSignInAvailable,
-  auth,
-  linkGuestAccount,
-} from "@/lib/firebase/client";
+import { appleSignInAvailable, signInWithProvider } from "@/lib/sign-in";
 
 /**
- * Guests (joined without an account) can attach Google/Apple later — same
- * identity, so nothing is lost, and the trip opens on any new phone.
+ * Guests (joined without an account) can attach Google/Apple later — their
+ * trips move to the account, so nothing is lost and it opens on any phone.
  */
 export function SaveAccountCard() {
   const t = useT();
-  const { user } = useFirebase();
+  const { user } = useSession();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [done, setDone] = useState(false);
@@ -32,19 +27,11 @@ export function SaveAccountCard() {
     setBusy(true);
     setMessage("");
     try {
-      await linkGuestAccount(kind);
-      await auth().currentUser?.getIdToken(true);
-      await apiFetch("/api/account", { method: "POST" }).catch(() => undefined);
+      // Redirects to the provider; the guest's trips move to the account on return
+      await signInWithProvider(kind);
       setDone(true);
-    } catch (error) {
-      const code = (error as { code?: string }).code ?? "";
-      setMessage(
-        code === "auth/credential-already-in-use" || code === "auth/email-already-in-use"
-          ? t("product.saveAccount.alreadyExists")
-          : code === "auth/popup-closed-by-user"
-            ? ""
-            : t("product.saveAccount.failed")
-      );
+    } catch {
+      setMessage(t("product.saveAccount.failed"));
     } finally {
       setBusy(false);
     }

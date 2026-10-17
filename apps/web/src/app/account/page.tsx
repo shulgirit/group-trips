@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { signOut } from "firebase/auth";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
 import { ChevronRight, FileText, LayoutGrid, ShieldCheck, UserRound } from "lucide-react";
@@ -12,7 +11,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { STROKE } from "@/components/ui/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useT } from "@/i18n";
-import { apiFetch, auth } from "@/lib/firebase/client";
+import { authClient } from "@/lib/convex";
 import { useAuthUser } from "@/lib/use-auth-user";
 
 export default function AccountPage() {
@@ -28,10 +27,10 @@ export default function AccountPage() {
   async function deleteAccount() {
     setError("");
     try {
-      const response = await apiFetch("/api/account", { method: "DELETE" });
-      if (!response.ok) throw new Error();
-      await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-      await signOut(auth()).catch(() => undefined);
+      // Trips pass to another organizer (or are deleted) on the server first
+      const result = await authClient.deleteUser();
+      if (result.error) throw new Error(result.error.code ?? "delete_failed");
+      await authClient.signOut().catch(() => undefined);
       window.location.replace("/welcome");
     } catch {
       setError(t("product.account.deleteFailed"));

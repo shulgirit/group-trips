@@ -1,14 +1,9 @@
 "use client";
 
-import { signOut } from "firebase/auth";
-import { activeTrip } from "@/lib/active-trip";
-import { auth } from "@/lib/firebase/client";
+import { authClient } from "@/lib/convex";
 
-/** Full logout: clears the app session cookie and the Firebase identity,
- *  then lands on the gate. */
+/** Signs out of this device and lands on the welcome page. */
 export async function logoutEverywhere(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-  await signOut(auth()).catch(() => undefined);
-  const trip = activeTrip();
-  window.location.replace(trip.legacy ? `${trip.prefix}/gate` : "/welcome");
+  await authClient.signOut().catch(() => undefined);
+  window.location.replace("/welcome");
 }

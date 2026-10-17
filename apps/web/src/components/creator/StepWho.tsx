@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
 import {
   Baby,
   Heart,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { db } from "@/lib/firebase/client";
+import { convex } from "@/lib/convex";
 import type { GroupKind } from "@together/shared/trip-doc";
 import type { TripSummary } from "@/lib/my-trips";
 import {
@@ -183,17 +184,16 @@ export function StepWho({
   async function copyFrom(tripId: string) {
     setCopying(true);
     try {
-      const snapshot = await getDocs(
-        query(collection(db(), `trips/${tripId}/families`), orderBy("order"))
-      );
-      const families: CreatorFamily[] = snapshot.docs.map((doc) => ({
+      const sourceId = tripId as Id<"trips">;
+      const [rows, source] = await Promise.all([
+        convex.query(api.families.list, { tripId: sourceId }),
+        convex.query(api.trips.get, { tripId: sourceId }).then(({ trip }) => ({ doc: trip })),
+      ]);
+      const families: CreatorFamily[] = rows.map((row) => ({
         id: shortId("f"),
-        name: String(doc.data().name ?? ""),
-        members: ((doc.data().members ?? []) as { name: string; kid?: boolean; age?: number }[]).map(
-          (m) => ({ id: shortId("m"), name: m.name, kid: Boolean(m.kid), age: m.age ?? null })
-        ),
+        name: row.name,
+        members: row.members.map((m) => ({ id: shortId("m"), name: m.name, kid: Boolean(m.kid), age: m.age ?? null })),
       }));
-      const source = previousTrips.find((t) => t.id === tripId);
       if (families.length) {
         update({
           families,
@@ -207,7 +207,8 @@ export function StepWho({
                   name: source.doc.ai.name,
                   emoji: source.doc.ai.emoji,
                   // uploaded pictures live with the old trip — only gallery robots carry over
-                  avatar: source.doc.ai.avatar?.startsWith("bot:") ? source.doc.ai.avatar : null,
+                  avatar: source.doc.ai.avatar?.kind === "bot" ? `bot:${source.doc.ai.avatar.id}` : null,
+                  avatarStorageId: null,
                   preset: source.doc.ai.preset,
                   rules: source.doc.ai.rules,
                   customRules: source.doc.ai.customRules,

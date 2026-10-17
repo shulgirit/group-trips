@@ -5,6 +5,8 @@ import { NativeBridge } from "@/components/native/NativeBridge";
 import { LocaleProvider } from "@/i18n";
 import { dirFor } from "@together/i18n/config";
 import { requestLocale } from "@/i18n/server";
+import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
+import { getToken } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
   title: {
@@ -36,14 +38,16 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const locale = await requestLocale();
+  const [locale, token] = await Promise.all([requestLocale(), getToken().catch(() => null)]);
   return (
     <html lang={locale} dir={dirFor(locale)} className={`${plex.variable} ${jost.variable} ${frank.variable} ${plexArabic.variable} ${amiri.variable} ${openSans.variable}`}>
       <body className="antialiased">
-        <LocaleProvider locale={locale}>
-          <NativeBridge />
-          {children}
-        </LocaleProvider>
+        <ConvexClientProvider initialToken={token}>
+          <LocaleProvider locale={locale}>
+            <NativeBridge />
+            {children}
+          </LocaleProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );

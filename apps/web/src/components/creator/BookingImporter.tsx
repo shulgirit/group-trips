@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadToTrip } from "@/lib/firebase/upload";
+import { api } from "@together/backend/api";
+import type { Doc, Id } from "@together/backend/dataModel";
+import { convex } from "@/lib/convex";
+import { uploadToTrip } from "@/lib/upload";
 import {
   BedDouble,
   CarFront,
@@ -19,8 +22,7 @@ import {
 } from "lucide-react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
-import { tActive } from "@together/i18n/active";
-import { apiFetch, auth } from "@/lib/firebase/client";
+import { activeLocale, tActive } from "@together/i18n/active";
 import type { BookingItem } from "@together/shared/booking";
 
 const KIND_ICON: Record<BookingItem["kind"], LucideIcon> = {
@@ -39,6 +41,25 @@ interface PendingImport {
   importId?: string;
   items: (BookingItem & { include: boolean })[];
   message?: string;
+}
+
+/** Resolves once the AI has read the import (it leaves "processing"). */
+function untilRead(tripId: Id<"trips">, importId: Id<"imports">): Promise<Doc<"imports">> {
+  return new Promise((resolve, reject) => {
+    const watch = convex.watchQuery(api.imports.get, { tripId, importId });
+    const unsubscribe = watch.onUpdate(() => {
+      try {
+        const row = watch.localQueryResult();
+        if (row && row.status !== "processing") {
+          unsubscribe();
+          resolve(row);
+        }
+      } catch (error) {
+        unsubscribe();
+        reject(error);
+      }
+    });
+  });
 }
 
 function itemWhen(item: BookingItem) {
@@ -73,44 +94,43 @@ export function BookingImporter({
     );
   }
 
-  async function extract(key: string, body: Record<string, unknown>) {
+  const id = tripId as Id<"trips">;
+
+  /** Queues the AI read, then follows the import until it's ready to review. */
+  async function extract(key: string, start: () => Promise<Id<"imports">>) {
     patch(key, { status: "reading" });
     try {
-      const response = await apiFetch("/api/import/booking", {
-        method: "POST",
-        body: JSON.stringify({ tripId, ...body }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        patch(key, {
-          status: "failed",
-          message:
-            result.error === "unsupported_type"
-              ? t("creator.booking.errors.unsupported")
-              : result.error === "quota_exceeded"
-                ? t("creator.booking.errors.quota")
-                : t("creator.booking.errors.unreadable"),
-        });
-        return;
-      }
-      const items = (result.items as BookingItem[]).map((item) => ({ ...item, include: true }));
+      const importId = await start();
+      const row = await untilRead(id, importId);
+      const items = row.items.map((item) => ({ ...item, include: true }));
       patch(key, {
         status: items.length ? "review" : "failed",
-        importId: result.id,
+        importId,
         items,
-        message: items.length ? undefined : t("creator.booking.errors.noneFound"),
+        message: items.length
+          ? undefined
+          : row.error === "none_found"
+            ? t("creator.booking.errors.noneFound")
+            : t("creator.booking.errors.unreadable"),
       });
-    } catch {
-      patch(key, { status: "failed", message: t("creator.booking.errors.network") });
+    } catch (err) {
+      const detail = (err as { data?: { detail?: string } }).data?.detail;
+      patch(key, {
+        status: "failed",
+        message:
+          detail === "unsupported_type"
+            ? t("creator.booking.errors.unsupported")
+            : detail === "quota_exceeded"
+              ? t("creator.booking.errors.quota")
+              : detail === "too_large"
+                ? t("creator.booking.errors.tooBig")
+                : t("creator.booking.errors.network"),
+      });
     }
   }
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
-    const uid = auth().currentUser?.uid;
-    if (!uid) return;
-    // The storage rule reads the trip from the token's claims
-    await auth().currentUser?.getIdToken(true).catch(() => undefined);
     for (const file of Array.from(files).slice(0, 8)) {
       const key = `${Date.now()}-${file.name}`;
       setImports((current) => [
@@ -122,12 +142,10 @@ export function BookingImporter({
         continue;
       }
       try {
-        const safeName = file.name.replace(/[^\w.\-א-ת]+/g, "_").slice(-80);
-        const storagePath = `trips/${tripId}/imports/${uid}/${Date.now()}-${safeName}`;
-        await uploadToTrip(storagePath, file, {
-          contentType: file.type || "application/octet-stream",
-        });
-        await extract(key, { storagePath, fileName: file.name });
+        const storageId = await uploadToTrip(tripId, file);
+        await extract(key, () =>
+          convex.mutation(api.imports.fromFile, { tripId: id, storageId, fileName: file.name, locale: activeLocale() })
+        );
       } catch {
         patch(key, { status: "failed", message: t("creator.booking.errors.uploadFailed") });
       }
@@ -144,7 +162,7 @@ export function BookingImporter({
     setPasting(false);
     const body = text;
     setText("");
-    await extract(key, { text: body });
+    await extract(key, () => convex.mutation(api.imports.fromText, { tripId: id, text: body, locale: activeLocale() }));
   }
 
   async function apply(entry: PendingImport) {
@@ -157,12 +175,12 @@ export function BookingImporter({
           void include;
           return item;
         });
-      const response = await apiFetch("/api/import/booking/apply", {
-        method: "POST",
-        body: JSON.stringify({ tripId, importId: entry.importId, items }),
+      if (!entry.importId) throw new Error("no_import");
+      const summary = await convex.action(api.imports.apply, {
+        tripId: id,
+        importId: entry.importId as Id<"imports">,
+        items,
       });
-      if (!response.ok) throw new Error();
-      const summary = await response.json();
       patch(entry.key, {
         status: "applied",
         message:
