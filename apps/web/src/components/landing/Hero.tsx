@@ -64,12 +64,15 @@ export function Hero({ onSignedIn }: { onSignedIn: () => void }) {
       {/* Keeps the headline legible where it meets the planet on desktop */}
       <div className="hero-veil pointer-events-none absolute inset-0 -z-10 hidden lg:block" aria-hidden />
 
-      <header className="relative mx-auto flex max-w-6xl items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:px-10 lg:pt-8">
-        <span className="flex items-center gap-2.5 text-cream-50">
+      {/* On desktop the text layers sit above the globe: they let pointer events through
+          (lg:pointer-events-none) and only their real content catches them, so a mouse
+          drag on empty space turns the planet instead of selecting text. */}
+      <header className="relative mx-auto flex max-w-6xl items-center justify-between px-5 pt-[max(1.25rem,env(safe-area-inset-top))] lg:pointer-events-none lg:px-10 lg:pt-8">
+        <span className="flex items-center gap-2.5 text-cream-50 lg:pointer-events-auto">
           <LogoMark size={30} />
           <Wordmark className="text-[15px]" />
         </span>
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 lg:pointer-events-auto">
           <Link
             href="#how"
             className="hidden rounded-full px-3 py-2 text-sm text-cream-50/80 transition hover:text-cream-50 sm:inline-flex"
@@ -80,8 +83,8 @@ export function Hero({ onSignedIn }: { onSignedIn: () => void }) {
         </nav>
       </header>
 
-      <div className="relative mx-auto max-w-6xl px-5 pb-6 pt-10 lg:flex lg:min-h-[calc(100svh-5rem)] lg:items-center lg:px-10 lg:pb-16 lg:pt-0">
-        <div className="max-w-[34rem]">
+      <div className="relative mx-auto max-w-6xl px-5 pb-6 pt-10 lg:pointer-events-none lg:flex lg:min-h-[calc(100svh-5rem)] lg:items-center lg:px-10 lg:pb-16 lg:pt-0">
+        <div className="max-w-[34rem] lg:pointer-events-auto">
           <m.h1
             {...rise(0.15)}
             className="font-serif text-display font-medium tracking-[-0.01em] text-cream-50 lg:text-display-xl"

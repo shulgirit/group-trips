@@ -547,6 +547,12 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
     if (reduced) resume();
   };
   const onPointerDown = (event: PointerEvent) => {
+    // Keep receiving moves even when the pointer leaves the canvas (over text, past the edge)
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // not capturable (synthetic event) — window-level pointerup still releases
+    }
     dragging = { x: event.clientX, y: event.clientY, t: performance.now() };
     velocity = 0;
     lastInteraction = performance.now();
@@ -559,6 +565,10 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
     dragging = null;
     lastInteraction = performance.now();
   };
+  // A drag that starts on the globe must not select the headline text underneath
+  const noSelect = (event: Event) => event.preventDefault();
+  canvas.addEventListener("mousedown", noSelect);
+  canvas.addEventListener("selectstart", noSelect);
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointerup", onPointerUp);
@@ -702,6 +712,8 @@ export async function createGlobe(options: GlobeOptions): Promise<GlobeHandle> {
     destroy() {
       active = false;
       cancelAnimationFrame(raf);
+      canvas.removeEventListener("mousedown", noSelect);
+      canvas.removeEventListener("selectstart", noSelect);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onReducedInteract);
