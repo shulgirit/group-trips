@@ -77,9 +77,11 @@ export default function Guide() {
     if (sessions.length) setSessionId(sessions[0]._id);
   }
 
-  const done = useMemo(() => (rows ?? []).filter((row) => row.status === "done"), [rows]);
+  // A reply that is still being written shows as a normal message as soon as it has text
+  const done = useMemo(() => (rows ?? []).filter((row) => row.status === "done" || (row.status === "pending" && row.role === "assistant" && row.content.length > 0)), [rows]);
   const last = rows?.[rows.length - 1];
   const loading = sending || last?.status === "pending";
+  const writing = last?.role === "assistant" && last.status === "pending" && last.content.length > 0;
   const failedReply = last?.role === "assistant" && last.status === "error" ? last : null;
   const shownError = error || failedReply?.content || "";
   const activeSession = sessions?.find((s) => s._id === sessionId) ?? null;
@@ -240,7 +242,7 @@ export default function Guide() {
 
   const status = (
     <View style={{ gap: 12, marginBottom: 8 }}>
-      {loading && (
+      {loading && !writing && (
         <View style={styles.thinking}>
           <ActivityIndicator size="small" color={colors.brass500} />
           <Text variant="small" color={colors.ink500}>

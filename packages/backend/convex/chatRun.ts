@@ -34,6 +34,44 @@ import type { placeInput } from "./places";
 
 type Context = NonNullable<Awaited<ReturnType<typeof loadContext>>>;
 
+/**
+ * Writes the reply text into the pending message while the model streams: at most one write in
+ * flight, at most every STREAM_EVERY_MS, always the latest text. flush() waits for the last write,
+ * so nothing can land after the final answer.
+ */
+const STREAM_EVERY_MS = 250;
+function replyStreamer(ctx: ActionCtx, replyId: Id<"chatMessages">) {
+  let latest = "";
+  let sent = "";
+  let running = false;
+  let lastAt = 0;
+  async function pump() {
+    if (running) return;
+    running = true;
+    try {
+      while (latest !== sent) {
+        const wait = STREAM_EVERY_MS - (Date.now() - lastAt);
+        if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+        const text = latest;
+        await ctx.runMutation(internal.chat.streamReply, { replyId, content: text }).catch(() => undefined);
+        sent = text;
+        lastAt = Date.now();
+      }
+    } finally {
+      running = false;
+    }
+  }
+  return {
+    push(text: string) {
+      latest = text;
+      void pump();
+    },
+    async flush() {
+      while (running) await new Promise((resolve) => setTimeout(resolve, 20));
+    },
+  };
+}
+
 function loadContext(ctx: ActionCtx, replyId: Id<"chatMessages">) {
   return ctx.runQuery(internal.chat.runContext, { replyId });
 }
@@ -199,9 +237,12 @@ export const run = internalAction({
     const stats: ChatStats = { firstEffort: "low", rounds: 0, llmMs: 0, toolMs: 0, tools: [], promptTokens: 0, completionTokens: 0 };
     let decorateMs = 0;
     let ok = false;
+    // Show the reply as it is written (AI_STREAM=0 turns it off)
+    const streamer = process.env.AI_STREAM === "0" ? null : replyStreamer(ctx, replyId);
     try {
       const answer = await runChat({
         stats,
+        ...(streamer ? { onReply: (text: string) => streamer.push(text) } : {}),
         openai: new OpenAI(),
         system: systemPrompt(trip, locale),
         context: buildContext({
@@ -223,12 +264,14 @@ export const run = internalAction({
         range: { startDate: trip.startDate, endDate: trip.endDate },
         execute: executor(ctx, context, locale, ideas),
       });
+      await streamer?.flush();
       const decorating = Date.now();
       const candidates = await decorateCandidates(answer.candidates, regionOf(trip));
       decorateMs = Date.now() - decorating;
       await ctx.runMutation(internal.chat.finish, { replyId, content: answer.reply, candidates });
       ok = true;
     } catch (error) {
+      await streamer?.flush();
       console.error("[chat] run failed", error);
       await failWith("ai.errors.failed");
     } finally {

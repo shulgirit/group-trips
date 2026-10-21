@@ -13,13 +13,19 @@ const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200
 /** OpenAI + Google stubs: completions are served in order; Places always finds Taormina. */
 function stubNetwork(completions: unknown[]) {
   const queue = [...completions];
-  const calls: string[] = [];
+  const calls: string[] & { openaiBodies?: Record<string, unknown>[] } = [];
+  calls.openaiBodies = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input instanceof Request ? input.url : input);
       calls.push(url);
-      if (url.includes("api.openai.com")) return json(queue.shift());
+      if (url.includes("api.openai.com")) {
+        if (typeof init?.body === "string") calls.openaiBodies!.push(JSON.parse(init.body));
+        const next = queue.shift() as { __sse?: string[] } | undefined;
+        if (next?.__sse) return sseResponse(next.__sse);
+        return json(next);
+      }
       if (url.includes("places:searchText")) {
         return json({ places: [{ location: { latitude: 37.85, longitude: 15.29 }, formattedAddress: "Taormina, Italy" }] });
       }
@@ -28,6 +34,24 @@ function stubNetwork(completions: unknown[]) {
   );
   return calls;
 }
+
+/** A streamed completion: each string is one `data:` event (the SDK reads them like OpenAI's). */
+function sseResponse(events: string[]) {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    start(controller) {
+      for (const event of events) controller.enqueue(encoder.encode(`data: ${event}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+  return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
+}
+const chunk = (delta: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+  JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 0, model: "gpt-5.1", choices: [{ index: 0, delta, finish_reason: null }], ...extra });
+const usageChunk = (prompt: number, completionTokens: number) =>
+  JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 0, model: "gpt-5.1", choices: [], usage: { prompt_tokens: prompt, completion_tokens: completionTokens, total_tokens: prompt + completionTokens } });
+const streamed = (events: string[]) => ({ __sse: events });
 
 const completion = (message: Record<string, unknown>) => ({
   id: "c",
@@ -45,6 +69,7 @@ async function setup() {
 }
 
 beforeEach(() => {
+  process.env.AI_STREAM = "0"; // most tests serve plain JSON completions; the streaming test opts in
   process.env.OPENAI_API_KEY = "test";
   process.env.GOOGLE_MAPS_SERVER_API_KEY = "test";
 });
@@ -98,6 +123,55 @@ describe("chat.send", () => {
       ["user", "done", "Save it again"],
       ["assistant", "done", "It's already saved."],
     ]);
+  });
+
+  it("streams: assembles tool calls and the answer from chunks, logs tokens, ends done", async () => {
+    vi.useFakeTimers();
+    process.env.AI_STREAM = "1";
+    const { t, owner, tripId } = await setup();
+    const args = JSON.stringify({ name: "Teatro Antico", category: "attraction", query: "Teatro Antico Taormina" });
+    const answer = JSON.stringify({ reply: "Added Teatro Antico — enjoy! 🎭", candidates: [] });
+    const pieces = answer.match(/.{1,7}/gs) ?? [];
+    stubNetwork([
+      // round 1: the tool call arrives in fragments
+      streamed([
+        chunk({ role: "assistant", tool_calls: [{ index: 0, id: "call_1", type: "function", function: { name: "add_place", arguments: "" } }] }),
+        chunk({ tool_calls: [{ index: 0, function: { arguments: args.slice(0, 25) } }] }),
+        chunk({ tool_calls: [{ index: 0, function: { arguments: args.slice(25) } }] }),
+        usageChunk(1000, 40),
+      ]),
+      // round 2: the structured answer, a few characters at a time
+      streamed([chunk({ role: "assistant", content: "" }), ...pieces.map((piece) => chunk({ content: piece })), usageChunk(1200, 60)]),
+    ]);
+
+    const { sessionId } = await owner.as.mutation(api.chat.send, { tripId, text: "Save Teatro Antico", locale: "en" });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    const messages = await owner.as.query(api.chat.messages, { tripId, sessionId });
+    expect(messages.map((m) => [m.role, m.status, m.content])).toEqual([
+      ["user", "done", "Save Teatro Antico"],
+      ["assistant", "done", "Added Teatro Antico — enjoy! 🎭"],
+    ]);
+    expect((await owner.as.query(api.places.list, { tripId })).map((p) => p.name)).toEqual(["Teatro Antico"]);
+    const runs = await t.run((ctx) => ctx.db.query("aiRuns").collect());
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ ok: true, rounds: 2, tools: ["add_place"], promptTokens: 2200, completionTokens: 100 });
+  });
+
+  it("a model that keeps searching still gets a final answer (last round is forced to answer)", async () => {
+    vi.useFakeTimers();
+    const { t, owner, tripId } = await setup();
+    const search = (id: string) =>
+      completion({ tool_calls: [{ id, type: "function", function: { name: "search_google_places", arguments: JSON.stringify({ query: "lunch Taormina" }) } }] });
+    const calls = stubNetwork([search("a"), search("b"), search("c"), completion({ content: JSON.stringify({ reply: "Here is the plan.", candidates: [] }) })]);
+    const { sessionId } = await owner.as.mutation(api.chat.send, { tripId, text: "Plan tomorrow", locale: "en" });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const [, reply] = await owner.as.query(api.chat.messages, { tripId, sessionId });
+    expect([reply.status, reply.content]).toEqual(["done", "Here is the plan."]);
+    const bodies = calls.openaiBodies!;
+    expect(bodies).toHaveLength(4);
+    expect(bodies.slice(0, 3).every((body) => body.tool_choice === undefined)).toBe(true);
+    expect(bodies[3].tool_choice).toBe("none");
   });
 
   it("never leaves a reply pending when the model fails", async () => {

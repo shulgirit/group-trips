@@ -85,7 +85,11 @@ export default function AiPage() {
     blob: Blob;
   } | null>(null);
 
-  const done = useMemo(() => (rows ?? []).filter((row) => row.status === "done"), [rows]);
+  // A reply that is still being written shows as a normal message as soon as it has text
+  const done = useMemo(
+    () => (rows ?? []).filter((row) => row.status === "done" || (row.status === "pending" && row.role === "assistant" && row.content.length > 0)),
+    [rows]
+  );
   const messages: (ChatMessage & { id: Id<"chatMessages"> })[] = useMemo(
     () =>
       done.map((row) => ({
@@ -101,6 +105,7 @@ export default function AiPage() {
   );
   const last = rows?.[rows.length - 1];
   const loading = sending || last?.status === "pending";
+  const writing = last?.role === "assistant" && last.status === "pending" && last.content.length > 0;
   const failedReply = last?.role === "assistant" && last.status === "error" ? last : null;
   const shownError = error || failedReply?.content || "";
   const canRetry = Boolean(failedReply);
@@ -602,7 +607,7 @@ export default function AiPage() {
           </div>
         ))}
 
-        {loading && (
+        {loading && !writing && (
           <div className="ms-auto flex w-fit items-center gap-3 rounded-3xl rounded-ee-md border border-chart-200 bg-white py-2 pe-4 ps-2 text-ink-500">
             <Companion size={32} state="thinking" ground="white" avatar={trip.ai.avatar} />
             <span className="inline-flex gap-1 text-sm">

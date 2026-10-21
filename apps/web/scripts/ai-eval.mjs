@@ -42,11 +42,14 @@ for (const scenario of scenarios) {
     const started = Date.now();
     const { sessionId, replyId } = await client.mutation(anyApi.chat.send, { tripId, text: scenario.text, locale: "en" });
     let reply;
+    let firstText = null;
     while (Date.now() - started < 120_000) {
       const messages = await client.query(anyApi.chat.messages, { tripId, sessionId });
       reply = messages.find((m) => m._id === replyId);
+      // streaming: the reply shows words while it is still pending
+      if (firstText === null && reply?.content) firstText = Date.now() - started;
       if (reply && reply.status !== "pending") break;
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 120));
     }
     const ms = Date.now() - started;
     const [events, polls, places] = await Promise.all([
@@ -55,10 +58,11 @@ for (const scenario of scenarios) {
       client.query(anyApi.places.list, { tripId }),
     ]);
     const result = { events: events.length, polls: polls.length, places: places.length, candidates: reply?.candidates?.length ?? 0 };
-    rows.push({ scenario: scenario.name, seconds: +(ms / 1000).toFixed(1), status: reply?.status, ...result, pass: reply?.status === "done" && scenario.expect(result) });
+    rows.push({ scenario: scenario.name, firstText: firstText === null ? null : +(firstText / 1000).toFixed(1), seconds: +(ms / 1000).toFixed(1), status: reply?.status, ...result, pass: reply?.status === "done" && scenario.expect(result) });
     await client.mutation(anyApi.trips.remove, { tripId });
   }
 }
 console.table(rows);
 const secs = rows.map((r) => r.seconds).sort((a, b) => a - b);
-console.log(`pass ${rows.filter((r) => r.pass).length}/${rows.length} | p50 ${secs[Math.floor(secs.length / 2)]}s | max ${secs.at(-1)}s`);
+const firsts = rows.map((r) => r.firstText).filter((x) => x !== null).sort((a, b) => a - b);
+console.log(`pass ${rows.filter((r) => r.pass).length}/${rows.length} | total p50 ${secs[Math.floor(secs.length / 2)]}s max ${secs.at(-1)}s | first words p50 ${firsts[Math.floor(firsts.length / 2)] ?? "-"}s max ${firsts.at(-1) ?? "-"}s`);

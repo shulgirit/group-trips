@@ -4,6 +4,7 @@ import { PLACE_CATEGORIES } from "@together/shared/types";
 import type OpenAI from "openai";
 import { z } from "zod";
 import { geocodePlace } from "./import-place";
+import { extractReply } from "./stream";
 
 /**
  * The trip guide's chat engine, independent of storage: the caller supplies
@@ -409,7 +410,46 @@ export interface ChatTurn {
   imageUrl?: string;
 }
 
+type ChatParams = Omit<OpenAI.Chat.ChatCompletionCreateParamsNonStreaming, "stream">;
+
+/**
+ * Same request as a normal completion, read as a stream: assembles the final message (text and
+ * tool calls) and reports the partial JSON text as it grows.
+ */
+async function streamMessage(
+  openai: OpenAI,
+  params: ChatParams,
+  onText: (json: string) => void
+): Promise<{ message: OpenAI.Chat.ChatCompletionMessage; usage?: OpenAI.CompletionUsage | null }> {
+  const stream = await openai.chat.completions.create({ ...params, stream: true, stream_options: { include_usage: true } });
+  let content = "";
+  let usage: OpenAI.CompletionUsage | null | undefined;
+  const calls: { id: string; name: string; args: string }[] = [];
+  for await (const chunk of stream) {
+    if (chunk.usage) usage = chunk.usage;
+    const delta = chunk.choices[0]?.delta;
+    if (!delta) continue;
+    if (delta.content) {
+      content += delta.content;
+      onText(content);
+    }
+    for (const call of delta.tool_calls ?? []) {
+      const slot = (calls[call.index] ??= { id: "", name: "", args: "" });
+      if (call.id) slot.id = call.id;
+      if (call.function?.name) slot.name += call.function.name;
+      if (call.function?.arguments) slot.args += call.function.arguments;
+    }
+  }
+  const toolCalls = calls.filter(Boolean).map((call) => ({ id: call.id, type: "function" as const, function: { name: call.name, arguments: call.args } }));
+  return {
+    message: { role: "assistant", content: content || null, refusal: null, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) },
+    usage,
+  };
+}
+
 export type ToolExecutor = (name: string, args: unknown) => Promise<Record<string, unknown>>;
+
+const MAX_ROUNDS = 4;
 
 /** What a reply cost: filled by runChat for the admin latency/cost dashboard. */
 export interface ChatStats {
@@ -467,6 +507,8 @@ export async function runChat(options: {
   execute: ToolExecutor;
   /** Optional: receives timings and token counts for this reply. */
   stats?: ChatStats;
+  /** Optional: when set, the model is streamed and the reply text so far is reported as it is written. */
+  onReply?: (text: string) => void;
 }): Promise<AiResponse> {
   const stats: ChatStats = options.stats ?? { firstEffort: "low", rounds: 0, llmMs: 0, toolMs: 0, tools: [], promptTokens: 0, completionTokens: 0 };
   const firstEffort = firstRoundEffort(options.turns);
@@ -492,20 +534,38 @@ export async function runChat(options: {
   ];
   const tools = buildTools(options.range);
 
-  for (let round = 0; round < 4; round++) {
+  for (let round = 0; round < MAX_ROUNDS; round++) {
     const started = Date.now();
-    const completion = await options.openai.chat.completions.create({
+    const params: ChatParams = {
       model: process.env.OPENAI_MODEL ?? "gpt-5.1",
       reasoning_effort: round === 0 ? firstEffort : laterEffort(firstEffort),
       messages: conversation,
       tools,
+      // The last allowed round must answer: summarise what was found/done instead of failing the reply
+      ...(round === MAX_ROUNDS - 1 ? { tool_choice: "none" as const } : {}),
       response_format: { type: "json_schema", json_schema: JSON_SCHEMA },
-    });
+    };
+    let message: OpenAI.Chat.ChatCompletionMessage | undefined;
+    let usage: OpenAI.CompletionUsage | null | undefined;
+    if (options.onReply) {
+      const onReply = options.onReply;
+      let shown = "";
+      ({ message, usage } = await streamMessage(options.openai, params, (json) => {
+        const reply = extractReply(json);
+        if (reply.length > shown.length) {
+          shown = reply;
+          onReply(reply);
+        }
+      }));
+    } else {
+      const completion = await options.openai.chat.completions.create(params);
+      message = completion.choices[0]?.message;
+      usage = completion.usage;
+    }
     stats.rounds = round + 1;
     stats.llmMs += Date.now() - started;
-    stats.promptTokens += completion.usage?.prompt_tokens ?? 0;
-    stats.completionTokens += completion.usage?.completion_tokens ?? 0;
-    const message = completion.choices[0]?.message;
+    stats.promptTokens += usage?.prompt_tokens ?? 0;
+    stats.completionTokens += usage?.completion_tokens ?? 0;
     if (!message) throw new Error("empty_completion");
 
     if (message.tool_calls?.length) {

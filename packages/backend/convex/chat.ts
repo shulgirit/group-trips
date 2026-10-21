@@ -316,6 +316,15 @@ export const logRun = internalMutation({
   },
 });
 
+/** The reply text so far, while the model is still writing. Only touches a reply that is still pending. */
+export const streamReply = internalMutation({
+  args: { replyId: v.id("chatMessages"), content: v.string() },
+  handler: async (ctx, { replyId, content }) => {
+    const reply = await ctx.db.get(replyId);
+    if (reply && reply.status === "pending" && content.length > reply.content.length) await ctx.db.patch(replyId, { content });
+  },
+});
+
 export const failReply = internalMutation({
   args: { replyId: v.id("chatMessages"), content: v.string() },
   handler: async (ctx, { replyId, content }) => {
