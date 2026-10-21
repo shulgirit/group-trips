@@ -6,9 +6,9 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { type Href, router } from "expo-router";
-import { ArrowUp, ChevronRight, Lock, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
+import { ArrowUp, ChevronRight, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { CandidateCard } from "@/components/guide/CandidateCard";
 import { InfoSheet } from "@/components/guide/InfoSheet";
@@ -49,6 +49,7 @@ export default function Guide() {
   const markCandidate = useMutation(api.chat.markCandidate);
   const briefing = useAction(api.placesAi.briefing);
 
+  const [chatsOpen, setChatsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -292,7 +293,7 @@ export default function Guide() {
     <SafeAreaView edges={["top"]} style={styles.root}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.header}>
-          <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={44} />
+          <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={40} />
           <View style={{ flex: 1 }}>
             <Text variant="title" numberOfLines={1}>
               {config.ai.title}
@@ -301,49 +302,59 @@ export default function Guide() {
               {config.ai.kicker}
             </Text>
           </View>
-        </View>
-        <View style={styles.note}>
-          {personal && <Icon icon={Lock} size={13} color={colors.ink500} />}
-          <Text variant="caption" color={colors.ink500} style={{ flex: 1 }}>
-            {personal ? t("ai.privateNote") : t("ai.sharedNote")}
-          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("ai.infoLabel")} onPress={() => Alert.alert(personal ? t("ai.privateNote") : t("ai.sharedNote"))} hitSlop={6} style={styles.headBtn}>
+            <Icon icon={Info} size={18} color={colors.ink700} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("ai.chatsTitle")} onPress={() => setChatsOpen(true)} hitSlop={6} style={styles.headBtn}>
+            <Icon icon={MessagesSquare} size={18} color={colors.ink700} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("ai.newChat")} onPress={newChat} hitSlop={6} style={[styles.headBtn, styles.headBtnPrimary]}>
+            <Icon icon={Plus} size={18} color={colors.chart50} />
+          </Pressable>
         </View>
 
-        {/* Private chats */}
-        {(sessions?.length ?? 0) > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionsRow} contentContainerStyle={styles.sessions}>
-            <Pressable accessibilityRole="button" accessibilityState={{ selected: sessionId === null }} onPress={newChat} style={[styles.session, sessionId === null && styles.sessionActive]}>
-              <Icon icon={Plus} size={14} color={sessionId === null ? colors.chart50 : colors.ink700} />
-              <Text variant="small" color={sessionId === null ? colors.chart50 : colors.ink700}>
-                {t("ai.newChat")}
+        <Modal visible={chatsOpen} transparent animationType="fade" onRequestClose={() => setChatsOpen(false)}>
+          <Pressable style={styles.backdrop} onPress={() => setChatsOpen(false)}>
+            <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]} onPress={() => undefined}>
+              <Text variant="title" style={{ marginBottom: 8 }}>
+                {t("ai.chatsTitle")}
               </Text>
-            </Pressable>
-            {sessions!.map((session) => {
-              const active = session._id === sessionId;
-              return (
-                <Pressable
-                  key={session._id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityHint={t("ai.deleteChat", { title: session.title })}
-                  onPress={() => {
-                    setSessionId(session._id);
-                    setError("");
-                  }}
-                  onLongPress={() => confirmDeleteSession(session)}
-                  style={[styles.session, active && styles.sessionActive]}
-                >
-                  <Text variant="small" numberOfLines={1} color={active ? colors.chart50 : colors.ink700} style={{ maxWidth: 160 }}>
-                    {session.title}
-                  </Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={t("ai.deleteChat", { title: session.title })} onPress={() => confirmDeleteSession(session)} hitSlop={8}>
-                    <Icon icon={X} size={13} color={active ? colors.route300 : colors.ink300} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  newChat();
+                  setChatsOpen(false);
+                }}
+                style={[styles.chatRow, sessionId === null && styles.chatRowActive]}
+              >
+                <Icon icon={Plus} size={16} color={colors.ink700} />
+                <Text style={{ flex: 1 }}>{t("ai.newChat")}</Text>
+              </Pressable>
+              <ScrollView style={{ maxHeight: 360 }}>
+                {(sessions ?? []).map((session) => (
+                  <Pressable
+                    key={session._id}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setSessionId(session._id);
+                      setError("");
+                      setChatsOpen(false);
+                    }}
+                    onLongPress={() => confirmDeleteSession(session)}
+                    style={[styles.chatRow, session._id === sessionId && styles.chatRowActive]}
+                  >
+                    <Text numberOfLines={1} style={{ flex: 1 }}>
+                      {session.title}
+                    </Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel={t("ai.deleteChat", { title: session.title })} onPress={() => confirmDeleteSession(session)} hitSlop={10}>
+                      <Icon icon={X} size={15} color={colors.ink300} />
+                    </Pressable>
                   </Pressable>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+                ))}
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {done.length === 0 && !loading && !shownError ? (
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
@@ -419,11 +430,13 @@ export default function Guide() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.chart50 },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 8 },
-  note: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingTop: 8 },
-  // The chips row must never be squeezed by a tall message (React Native lets a scroll view shrink by default);
-  // only the message list takes what is left.
-  sessionsRow: { flexGrow: 0, flexShrink: 0 },
+  header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8 },
+  headBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: colors.paper, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200 },
+  headBtnPrimary: { backgroundColor: colors.route700, borderColor: colors.route700 },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
+  sheet: { backgroundColor: colors.chart50, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 4 },
+  chatRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, paddingHorizontal: 12, borderRadius: 12 },
+  chatRowActive: { backgroundColor: colors.chart200 },
   list: { flex: 1, minHeight: 0 },
   sessions: { gap: 8, paddingHorizontal: 20, paddingVertical: 12 },
   session: {

@@ -7,6 +7,8 @@ const ai = {
   privateNote: "השיחות שלכם פרטיות — רק מה שתשמרו למקומות או ללוח משותף לקבוצה",
   sharedNote: "מכיר את המקומות, הלו״ז ואת כל החבורה",
   newChat: "שיחה חדשה",
+  chatsTitle: "השיחות שלי",
+  infoLabel: "מידע",
   deleteChat: "מחיקת השיחה {title}",
   signInForHistory: "רוצים היסטוריית שיחות פרטית? התחברו עם Google בהגדרות",
   reviews: {

@@ -7,6 +7,8 @@ const ai: PartialMessages["ai"] = {
   privateNote: "Tus chats son privados. Solo se comparte con el grupo lo que guardes en lugares o en el itinerario",
   sharedNote: "Conoce los lugares, el itinerario y a todo el grupo",
   newChat: "Nuevo chat",
+  chatsTitle: "Mis chats",
+  infoLabel: "Información",
   deleteChat: "Eliminar el chat {title}",
   signInForHistory: "¿Quieres un historial de chats privado? Inicia sesión con Google en Ajustes",
   reviews: {

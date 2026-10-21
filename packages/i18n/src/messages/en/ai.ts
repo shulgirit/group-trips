@@ -7,6 +7,8 @@ const ai: typeof he = {
   privateNote: "Your chats are private — only what you save to places or the schedule is shared with the group",
   sharedNote: "Knows the places, the schedule and the whole group",
   newChat: "New chat",
+  chatsTitle: "My chats",
+  infoLabel: "Info",
   deleteChat: "Delete chat {title}",
   signInForHistory: "Want a private chat history? Sign in with Google in Settings",
   reviews: {

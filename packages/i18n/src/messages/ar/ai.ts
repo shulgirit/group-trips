@@ -7,6 +7,8 @@ const ai: PartialMessages["ai"] = {
   privateNote: "محادثاتكم خاصة. فقط ما تحفظونه في الأماكن أو الجدول تتم مشاركته مع المجموعة",
   sharedNote: "يعرف الأماكن والجدول والمجموعة كلها",
   newChat: "محادثة جديدة",
+  chatsTitle: "محادثاتي",
+  infoLabel: "معلومات",
   deleteChat: "حذف المحادثة {title}",
   signInForHistory: "تريدون سجل محادثات خاصًا؟ سجّلوا الدخول باستخدام Google في الإعدادات",
   reviews: {
