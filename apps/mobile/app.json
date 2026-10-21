@@ -20,14 +20,11 @@
           "en",
           "he",
           "ar",
-          "es",
-          "en",
-          "he",
-          "ar",
           "es"
         ],
         "CFBundleDevelopmentRegion": "en",
-        "ExpoLocalization_supportsRTL": true
+        "ExpoLocalization_supportsRTL": true,
+        "ITSAppUsesNonExemptEncryption": false
       },
       "usesAppleSignIn": true
     },
