@@ -453,7 +453,7 @@ const MAX_ROUNDS = 4;
 
 /** What a reply cost: filled by runChat for the admin latency/cost dashboard. */
 export interface ChatStats {
-  firstEffort: "low" | "medium";
+  firstEffort: "none" | "low" | "medium";
   rounds: number;
   llmMs: number;
   toolMs: number;
@@ -465,7 +465,7 @@ export interface ChatStats {
 /** Tools that only read (safe to run side by side); everything else keeps the model's order. */
 const READ_ONLY_TOOLS = new Set(["search_google_places"]);
 
-const PLANNING_HINT = /תכנן|מסלול|לו"?ז|לוז|יום\s|plan|itinerar|route|schedule|day\s|itinerario|ruta|horario|خطة|مسار|جدول/i;
+const PLANNING_HINT = /תכנן|מסלול|לו"?ז|לוז|יום\s|\bplan\s+(a|an|my|our|the|this|each|every|\d)|itinerar|\broute\b|\bschedule\b|\bday\s|itinerario|ruta|horario|خطة|مسار|جدول/i;
 
 /**
  * Rounds after the first only call tools or write the answer. Measured on the eval
@@ -473,7 +473,7 @@ const PLANNING_HINT = /תכנן|מסלול|לו"?ז|לוז|יום\s|plan|itinera
  * results on simple requests; planning requests (first round medium) keep "low" so events
  * still get linked to saved places. AI_REASONING_TOOLS ("none" | "low" | "medium") overrides.
  */
-function laterEffort(first: "low" | "medium"): "none" | "low" | "medium" {
+function laterEffort(first: "none" | "low" | "medium"): "none" | "low" | "medium" {
   const value = process.env.AI_REASONING_TOOLS;
   if (value === "none" || value === "low" || value === "medium") return value;
   return first === "medium" ? "low" : "none";
@@ -484,12 +484,14 @@ function laterEffort(first: "low" | "medium"): "none" | "low" | "medium" {
  * Everything else answers noticeably faster with low effort. AI_REASONING_FIRST
  * ("low" | "medium") overrides the heuristic.
  */
-export function firstRoundEffort(turns: ChatTurn[]): "low" | "medium" {
+export function firstRoundEffort(turns: ChatTurn[]): "none" | "low" | "medium" {
   const forced = process.env.AI_REASONING_FIRST;
-  if (forced === "low" || forced === "medium") return forced;
+  if (forced === "none" || forced === "low" || forced === "medium") return forced;
   const last = [...turns].reverse().find((turn) => turn.role === "user");
   if (!last) return "low";
-  return last.imageUrl || last.content.length > 320 || PLANNING_HINT.test(last.content) ? "medium" : "low";
+  if (last.imageUrl || last.content.length > 320 || PLANNING_HINT.test(last.content)) return "medium";
+  // Short everyday questions ("plan B if it rains?", "what time is dinner?") need no hidden thinking
+  return last.content.length <= 140 ? "none" : "low";
 }
 
 /**
