@@ -6,6 +6,12 @@ Project: `@shulgirit/together-group-plans` (never `dr-fischer*`). Config: `apps/
 (development / preview / production = the build profile names).
 
 ## Publish
+Use the script — it sets the environment the runtime version depends on (a plain `eas update` produces a different runtime version and the installed app silently ignores it):
+```bash
+bash apps/mobile/scripts/ota.sh testflight "what changed"   # TestFlight build
+bash apps/mobile/scripts/ota.sh production "what changed"   # store build
+```
+Raw commands (for reference):
 ```bash
 cd apps/mobile
 npx eas-cli update --channel preview    --message "fix: schedule title"            # test on a preview build first
