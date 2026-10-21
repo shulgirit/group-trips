@@ -39,7 +39,7 @@
       "distribution": "store",
       "autoIncrement": true,
       "channel": "testflight",
-      "environment": "preview",
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production"
       }

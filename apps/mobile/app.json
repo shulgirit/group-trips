@@ -75,12 +75,7 @@
         }
       ],
       "expo-secure-store",
-      [
-        "expo-localization",
-        {
-          "supportsRTL": true
-        }
-      ],
+      "expo-localization",
       "expo-sharing",
       "@react-native-community/datetimepicker",
       [

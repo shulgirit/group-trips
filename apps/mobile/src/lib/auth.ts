@@ -27,6 +27,38 @@ export async function signInWithApple(): Promise<void> {
   if (result.error) throw new Error(result.error.code ?? "apple_failed");
 }
 
+type GoogleModule = typeof import("@react-native-google-signin/google-signin");
+
+/** The native Google module exists only in a real build (not Expo Go); null otherwise. */
+function googleNative(): GoogleModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("@react-native-google-signin/google-signin") as GoogleModule;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Google: the system sheet inside the app (no browser, no web address) → an ID token that
+ * Better Auth verifies server-side. Falls back to the browser flow when the native module or
+ * the client ids are not available (Expo Go, a build made before they were set).
+ */
+export async function signInWithGoogle(): Promise<void> {
+  const google = googleNative();
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  if (!google || !webClientId || (Platform.OS === "ios" && !iosClientId)) return signInWithBrowser("google");
+  google.GoogleSignin.configure({ webClientId, ...(iosClientId ? { iosClientId } : {}) });
+  if (Platform.OS === "android") await google.GoogleSignin.hasPlayServices();
+  const result = await google.GoogleSignin.signIn();
+  if (result.type !== "success") throw Object.assign(new Error("cancelled"), { code: "ERR_REQUEST_CANCELED" });
+  const token = result.data.idToken;
+  if (!token) throw new Error("google_no_token");
+  const response = await authClient.signIn.social({ provider: "google", idToken: { token } });
+  if (response.error) throw new Error(response.error.code ?? "google_failed");
+}
+
 export async function signInWithBrowser(provider: "google" | "apple"): Promise<void> {
   const result = await authClient.signIn.social({ provider, callbackURL: "/trips" });
   if (result.error) throw new Error(result.error.code ?? "sign_in_failed");

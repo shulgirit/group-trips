@@ -8,7 +8,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Text } from "@/components/ui/Text";
-import { appleNativeAvailable, sendEmailCode, signInWithApple, signInWithBrowser, verifyEmailCode } from "@/lib/auth";
+import { appleNativeAvailable, sendEmailCode, signInWithApple, signInWithBrowser, signInWithGoogle, verifyEmailCode } from "@/lib/auth";
 import { LEGAL_URL } from "@/components/more/links";
 import { useT } from "@/lib/i18n";
 import * as WebBrowser from "expo-web-browser";
@@ -87,7 +87,7 @@ export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
       ) : Platform.OS === "android" ? (
         <Button tone="light" label={t("product.signIn.apple")} busy={busy === "apple"} onPress={() => run("apple", () => signInWithBrowser("apple"))} />
       ) : null}
-      {providers?.google === false ? null : <Button tone="light" label={t("product.signIn.google")} busy={busy === "google"} onPress={() => run("google", () => signInWithBrowser("google"))} />}
+      {providers?.google === false ? null : <Button tone="light" label={t("product.signIn.google")} busy={busy === "google"} onPress={() => run("google", signInWithGoogle)} />}
 
       {step === "buttons" && (
         <>
