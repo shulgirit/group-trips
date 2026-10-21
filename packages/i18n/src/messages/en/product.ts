@@ -100,6 +100,7 @@ const product: typeof he = {
   account: {
     title: "My account",
     deleteTitle: "Delete account",
+    permanent: "Permanent, complete deletion",
     deleteText:
       "Permanently delete your account and all of your data that we hold. It can't be recovered.",
     dialogTitle: "Permanently delete your account?",

@@ -96,6 +96,7 @@ const product: PartialMessages["product"] = {
   account: {
     title: "حسابي",
     deleteTitle: "حذف الحساب",
+    permanent: "حذف كامل ونهائي",
     deleteText:
       "احذفوا حسابكم وكل بياناتكم المحفوظة لدينا نهائيًا. لا يمكن استعادتها.",
     dialogTitle: "حذف حسابكم نهائيًا؟",

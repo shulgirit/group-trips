@@ -100,6 +100,7 @@ const product: PartialMessages["product"] = {
   account: {
     title: "Mi cuenta",
     deleteTitle: "Eliminar cuenta",
+    permanent: "Eliminación completa y permanente",
     deleteText:
       "Elimina de forma permanente tu cuenta y todos los datos tuyos que guardamos. No se puede recuperar.",
     dialogTitle: "¿Eliminar tu cuenta para siempre?",

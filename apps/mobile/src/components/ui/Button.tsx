@@ -1,5 +1,6 @@
 import { colors, radius } from "@together/shared/tokens";
 import type { LucideIcon } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import { Icon } from "./Icon";
 import { Text } from "./Text";
@@ -22,6 +23,7 @@ export function Button({
   onPress,
   tone = "primary",
   icon,
+  leading,
   busy = false,
   disabled = false,
   size = "md",
@@ -31,6 +33,8 @@ export function Button({
   onPress: () => void;
   tone?: Tone;
   icon?: LucideIcon;
+  /** A custom mark (e.g. a brand logo) before the label */
+  leading?: ReactNode;
   busy?: boolean;
   disabled?: boolean;
   size?: "md" | "lg";
@@ -56,6 +60,7 @@ export function Button({
         <ActivityIndicator color={t.fg} />
       ) : (
         <View style={styles.row}>
+          {leading}
           {icon && <Icon icon={icon} size={18} color={t.fg} />}
           <Text variant={size === "lg" ? "headline" : "body"} weight="semibold" color={t.fg}>
             {label}

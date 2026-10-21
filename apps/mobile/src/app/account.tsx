@@ -8,7 +8,6 @@ import { FileText, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "luci
 import { useState } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-native";
 import { SignIn } from "@/components/auth/SignIn";
-import { ConfirmSheet } from "@/components/more/ConfirmSheet";
 import { LanguagePicker } from "@/components/more/LanguagePicker";
 import { LEGAL_URL } from "@/components/more/links";
 import { Group, Row, styles as rowStyles } from "@/components/more/Row";
@@ -18,7 +17,6 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { signOut } from "@/lib/auth";
-import { authClient } from "@/lib/convex";
 import { useT } from "@/lib/i18n";
 
 /** My account: profile, my trips, language, legal, sign out and account deletion (App Store 5.1.1). */
@@ -29,9 +27,7 @@ export default function Account() {
   const setName = useMutation(api.account.setName);
   const [name, setNameValue] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
 
@@ -50,20 +46,6 @@ export default function Account() {
     setBusy(true);
     await signOut().catch(() => undefined);
     router.replace("/welcome");
-  }
-
-  async function deleteAccount() {
-    setError("");
-    try {
-      // Trips pass to another organizer (or are deleted) on the server first
-      const result = await authClient.deleteUser();
-      if (result.error) throw new Error(result.error.code ?? "delete_failed");
-      await authClient.signOut().catch(() => undefined);
-      setConfirming(false);
-      router.replace("/welcome");
-    } catch {
-      setError(t("product.account.deleteFailed"));
-    }
   }
 
   return (
@@ -134,52 +116,19 @@ export default function Account() {
               <Row icon={LogOut} label={busy ? t("settings.logout.busy") : t("settings.logout.title")} description={t("settings.logout.description")} onPress={busy ? undefined : handleSignOut} last />
             </Group>
 
-            <Group title={t("product.admin.dangerTitle")}>
-              <View style={{ padding: 16, gap: 10 }}>
-                <Text weight="medium" color={colors.terra600}>
-                  {t("product.account.deleteTitle")}
-                </Text>
-                <Text variant="small" color={colors.ink500}>
-                  {t("product.account.deleteText")}
-                </Text>
-                <Pressable accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.danger}>
-                  <Text weight="medium" color={colors.terra600}>
-                    {t("product.account.deleteTitle")}
-                  </Text>
-                </Pressable>
-              </View>
-            </Group>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/account-delete")} hitSlop={8} style={{ alignSelf: "center", paddingVertical: 12 }}>
+              <Text variant="small" color={colors.terra600} style={{ textDecorationLine: "underline" }}>
+                {t("product.account.deleteTitle")}
+              </Text>
+            </Pressable>
           </>
         )}
       </Screen>
 
-      <ConfirmSheet
-        open={confirming}
-        title={t("product.account.dialogTitle")}
-        description={t("product.account.dialogText")}
-        items={[
-          t("product.account.items.profile"),
-          t("product.account.items.chats"),
-          t("product.account.items.documents"),
-          t("product.account.items.location"),
-          t("product.account.items.trips"),
-          t("product.account.items.shared"),
-        ]}
-        confirmWord={t("common.confirm.word")}
-        confirmLabel={t("product.account.confirmDelete")}
-        busyLabel={t("product.account.deleting")}
-        error={error}
-        onConfirm={deleteAccount}
-        onClose={() => {
-          setConfirming(false);
-          setError("");
-        }}
-      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
   avatar: { width: 56, height: 56, borderRadius: 28, overflow: "hidden", backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
-  danger: { minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: colors.terra100, alignItems: "center", justifyContent: "center" },
 });
