@@ -76,7 +76,7 @@ export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
 
   return (
     <View style={{ gap: 12 }}>
-      {providers?.apple !== true ? null : appleNative ? (
+      {providers?.apple !== true || (!appleNative && providers.appleWeb !== true) ? null : appleNative ? (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
