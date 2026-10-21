@@ -4,6 +4,9 @@ import type { Locale } from "@together/i18n/config";
 /** The public site that serves /j/<code> (opens the app via universal links, else the stores). */
 export const SITE_URL = (process.env.EXPO_PUBLIC_SITE_URL || "https://togethergroup.app").replace(/\/$/, "");
 
+/** Terms and Privacy always live on the public production domain (dev domains sit behind a login). */
+export const LEGAL_URL = "https://togethergroup.app";
+
 export function inviteUrl(code: string): string {
   return `${SITE_URL}/j/${code}`;
 }

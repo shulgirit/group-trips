@@ -1,9 +1,11 @@
 import { colors } from "@together/shared/tokens";
 import { useConvexAuth } from "convex/react";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { CalendarDays, Link2, Sparkles, UsersRound, type LucideIcon } from "lucide-react-native";
-import { useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SignIn } from "@/components/auth/SignIn";
 import { Logo } from "@/components/brand/Logo";
@@ -12,7 +14,7 @@ import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { inviteCode } from "@/lib/auth";
-import { type TKey, useT } from "@/lib/i18n";
+import { type TKey, useLocale, useT } from "@/lib/i18n";
 
 const CARDS: { key: "together" | "guide" | "organized"; icon: LucideIcon }[] = [
   { key: "together", icon: UsersRound },
@@ -25,16 +27,29 @@ const MUTED = "rgba(241,243,239,0.72)";
 /** First run: three swipeable cards on the night ground, then sign-in. */
 export default function Welcome() {
   const t = useT();
+  const { rtl } = useLocale();
+  const { preview } = useLocalSearchParams<{ preview?: string }>();
   const { isAuthenticated } = useConvexAuth();
-  const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
   const [signingIn, setSigningIn] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState("");
   const [inviteError, setInviteError] = useState("");
-  const list = useRef<FlatList<(typeof CARDS)[number]>>(null);
 
-  if (isAuthenticated) return <Redirect href="/trips" />;
+  // A state-driven pager (no scroll view: scroll offsets and right-to-left layouts disagree on devices).
+  // Swiping toward the "next" side advances: left in LTR, right in RTL.
+  const swipe = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-24, 24])
+    .onEnd((event) => {
+      const forward = rtl ? event.translationX > 40 : event.translationX < -40;
+      const back = rtl ? event.translationX < -40 : event.translationX > 40;
+      if (forward && page < CARDS.length - 1) setPage(page + 1);
+      else if (back && page > 0) setPage(page - 1);
+    });
+
+  // ?preview=1 (dev builds only) shows this screen even when signed in, for visual checks
+  if (isAuthenticated && !(__DEV__ && preview)) return <Redirect href="/trips" />;
 
   function openInvite() {
     const code = inviteCode(invite);
@@ -46,7 +61,7 @@ export default function Welcome() {
   }
 
   function next() {
-    if (page < CARDS.length - 1) list.current?.scrollToIndex({ index: page + 1, animated: true });
+    if (page < CARDS.length - 1) setPage(page + 1);
     else setSigningIn(true);
   }
 
@@ -106,28 +121,19 @@ export default function Welcome() {
         </View>
       ) : (
         <>
-          <FlatList
-            ref={list}
-            data={CARDS}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(card) => card.key}
-            onMomentumScrollEnd={(event) => setPage(Math.round(event.nativeEvent.contentOffset.x / width))}
-            renderItem={({ item }) => (
-              <View style={[styles.card, { width }]}>
-                <View style={styles.node}>
-                  <Icon icon={item.icon} size={40} color={colors.brass300} />
-                </View>
-                <Text variant="displayLg" color={colors.chart50}>
-                  {t(`landing.app.cards.${item.key}.title` as TKey)}
-                </Text>
-                <Text variant="headline" color={MUTED}>
-                  {t(`landing.app.cards.${item.key}.text` as TKey)}
-                </Text>
+          <GestureDetector gesture={swipe}>
+            <Animated.View key={CARDS[page].key} entering={FadeIn.duration(220)} style={styles.card}>
+              <View style={styles.node}>
+                <Icon icon={CARDS[page].icon} size={40} color={colors.brass300} />
               </View>
-            )}
-          />
+              <Text variant="displayLg" color={colors.chart50}>
+                {t(`landing.app.cards.${CARDS[page].key}.title` as TKey)}
+              </Text>
+              <Text variant="headline" color={MUTED}>
+                {t(`landing.app.cards.${CARDS[page].key}.text` as TKey)}
+              </Text>
+            </Animated.View>
+          </GestureDetector>
           <View style={styles.footer}>
             <View style={styles.dots} accessibilityLabel={t("landing.app.stepOf", { n: page + 1, total: CARDS.length })}>
               {CARDS.map((card, index) => (

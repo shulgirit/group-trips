@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Text } from "@/components/ui/Text";
 import { appleNativeAvailable, sendEmailCode, signInWithApple, signInWithBrowser, verifyEmailCode } from "@/lib/auth";
+import { LEGAL_URL } from "@/components/more/links";
 import { useT } from "@/lib/i18n";
+import * as WebBrowser from "expo-web-browser";
 
 /**
  * Apple (native sheet on iOS), Google, and a 6-digit email code. On the dark
@@ -92,6 +94,17 @@ export function SignIn({ onSignedIn }: { onSignedIn?: () => void }) {
           <Button tone="ghost" icon={Mail} label={t("product.signIn.email")} onPress={() => setStep("email")} />
           <Text variant="caption" color="rgba(241,243,239,0.6)" align="center">
             {t("product.signIn.welcomeBack")}
+          </Text>
+          <Text variant="caption" color="rgba(241,243,239,0.6)" align="center">
+            {t("product.welcome.consent.before")}
+            <Text variant="caption" color="rgba(241,243,239,0.85)" style={{ textDecorationLine: "underline" }} onPress={() => WebBrowser.openBrowserAsync(`${LEGAL_URL}/terms`)}>
+              {t("product.welcome.consent.terms")}
+            </Text>
+            {t("product.welcome.consent.between")}
+            <Text variant="caption" color="rgba(241,243,239,0.85)" style={{ textDecorationLine: "underline" }} onPress={() => WebBrowser.openBrowserAsync(`${LEGAL_URL}/privacy`)}>
+              {t("product.welcome.consent.privacy")}
+            </Text>
+            {t("product.welcome.consent.after")}
           </Text>
         </>
       )}

@@ -10,7 +10,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-n
 import { SignIn } from "@/components/auth/SignIn";
 import { ConfirmSheet } from "@/components/more/ConfirmSheet";
 import { LanguagePicker } from "@/components/more/LanguagePicker";
-import { SITE_URL } from "@/components/more/links";
+import { LEGAL_URL } from "@/components/more/links";
 import { Group, Row, styles as rowStyles } from "@/components/more/Row";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -128,8 +128,8 @@ export default function Account() {
             </View>
 
             <Group title={t("product.account.yourData")}>
-              <Row icon={ShieldCheck} label={t("product.account.privacyLink")} onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}/privacy`)} />
-              <Row icon={FileText} label={t("product.account.termsLink")} onPress={() => WebBrowser.openBrowserAsync(`${SITE_URL}/terms`)} />
+              <Row icon={ShieldCheck} label={t("product.account.privacyLink")} onPress={() => WebBrowser.openBrowserAsync(`${LEGAL_URL}/privacy`)} />
+              <Row icon={FileText} label={t("product.account.termsLink")} onPress={() => WebBrowser.openBrowserAsync(`${LEGAL_URL}/terms`)} />
               <Row icon={Mail} label={t("product.account.contactSupport")} description="support@togethergroup.app" onPress={() => Linking.openURL("mailto:support@togethergroup.app")} />
               <Row icon={LogOut} label={busy ? t("settings.logout.busy") : t("settings.logout.title")} description={t("settings.logout.description")} onPress={busy ? undefined : handleSignOut} last />
             </Group>
