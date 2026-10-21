@@ -25,6 +25,13 @@ import { useTrip } from "@/lib/trip";
 /** Native tab bar height above the home indicator (content isn't inset for a fixed composer). */
 const TAB_BAR = 49;
 
+/** The model sometimes still writes Markdown; show it as clean text. */
+const plainText = (text: string) =>
+  text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/^\s*#+\s*/gm, "")
+    .replace(/^(\s*)[-*]\s+/gm, "$1• ");
+
 type Row = NonNullable<ReturnType<typeof useQuery<typeof api.chat.messages>>>[number];
 
 /**
@@ -211,7 +218,7 @@ export default function Guide() {
         <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
           {row.imageUrl ? <Image source={row.imageUrl} style={styles.bubbleImage} contentFit="cover" /> : null}
           <Text color={mine ? colors.chart50 : colors.ink900} selectable>
-            {row.content}
+            {plainText(row.content)}
           </Text>
         </View>
         {row.candidates?.map((raw, index) => {
