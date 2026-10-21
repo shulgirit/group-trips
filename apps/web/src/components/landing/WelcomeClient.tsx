@@ -15,5 +15,5 @@ export function WelcomeClient({ app }: { app: boolean }) {
     if (!loading && personal) router.replace("/trips");
   }, [loading, personal, router]);
 
-  return app ? <AppOnboarding /> : <Landing onSignedIn={() => router.replace("/trips")} />;
+  return app ? <AppOnboarding /> : <Landing />;
 }

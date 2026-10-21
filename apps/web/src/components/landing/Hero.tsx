@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { m } from "motion/react";
-import { SignInPanel } from "@/components/auth/SignInPanel";
+import { StoreBadges } from "./StoreBadges";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { useLocale, useT, type TKey } from "@/i18n";
 import { LanguageMenu } from "./LanguageMenu";
@@ -35,7 +35,7 @@ const rise = (delay: number) => ({
   transition: { duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] as const },
 });
 
-export function Hero({ onSignedIn }: { onSignedIn: () => void }) {
+export function Hero() {
   const t = useT();
   const { dir, locale } = useLocale();
   const scenes = useMemo(() => globeScenes(locale), [locale]);
@@ -97,21 +97,10 @@ export function Hero({ onSignedIn }: { onSignedIn: () => void }) {
           >
             {t("landing.hero.lead")}
           </m.p>
-          <m.div {...rise(0.55)} className="mt-8 max-w-xs">
-            <SignInPanel tone="dark" onSignedIn={onSignedIn} />
+          <m.div {...rise(0.55)} className="mt-8 max-w-sm">
+            <StoreBadges />
             <InviteCodeEntry className="mt-3" />
             <p className="mt-2 text-sm text-cream-50/75">{t("landing.hero.free")}</p>
-            <p className="mt-2 text-xs leading-relaxed text-cream-50/60">
-              {t("product.welcome.consent.before")}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-cream-50">
-                {t("product.welcome.consent.terms")}
-              </Link>
-              {t("product.welcome.consent.between")}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-cream-50">
-                {t("product.welcome.consent.privacy")}
-              </Link>
-              {t("product.welcome.consent.after")}
-            </p>
           </m.div>
         </div>
       </div>

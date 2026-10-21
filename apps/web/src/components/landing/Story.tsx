@@ -23,7 +23,7 @@ import {
 import { Companion } from "@/components/ai/Companion";
 import { Robot } from "./robot/Robot";
 import { InviteCodeEntry } from "@/components/onboarding/InviteCodeEntry";
-import { SignInPanel } from "@/components/auth/SignInPanel";
+import { StoreBadges } from "./StoreBadges";
 import { LogoMark, Wordmark } from "@/components/brand/Logo";
 import { STROKE } from "@/components/ui/Icon";
 import { useLocale, useT, type TKey } from "@/i18n";
@@ -467,7 +467,7 @@ function HowSection() {
 
 /* ── 6. final call + footer (night) ─────────────────────────── */
 
-function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
+function FinalSection() {
   const t = useT();
   return (
     <section className="relative isolate overflow-hidden bg-night-950 px-5 pb-10 pt-20 text-cream-50 lg:px-10 lg:pt-28">
@@ -477,7 +477,7 @@ function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
           <h2 className="font-serif text-display font-medium lg:text-display-lg">{t("landing.final.title")}</h2>
           <p className="mt-5 text-[17px] leading-relaxed text-cream-50/75">{t("landing.final.text")}</p>
           <div className="mx-auto mt-9 max-w-xs">
-            <SignInPanel tone="dark" onSignedIn={onSignedIn} />
+            <StoreBadges className="justify-center" />
             <InviteCodeEntry className="mt-3" />
             <p className="mt-2 text-sm text-cream-50/70">{t("landing.hero.free")}</p>
           </div>
@@ -503,7 +503,7 @@ function FinalSection({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
-export function Story({ onSignedIn }: { onSignedIn: () => void }) {
+export function Story() {
   return (
     <>
       <InviteSection />
@@ -511,7 +511,7 @@ export function Story({ onSignedIn }: { onSignedIn: () => void }) {
       <AiSection />
       <TogetherSection />
       <HowSection />
-      <FinalSection onSignedIn={onSignedIn} />
+      <FinalSection />
     </>
   );
 }
