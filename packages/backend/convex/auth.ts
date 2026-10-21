@@ -16,6 +16,12 @@ import { sendOtpEmail } from "./email";
  */
 const authFunctions: AuthFunctions = internal.auth;
 
+const randomOtp = () => {
+  const bytes = new Uint32Array(1);
+  crypto.getRandomValues(bytes);
+  return String(bytes[0] % 1_000_000).padStart(6, "0");
+};
+
 export const authComponent = createClient<DataModel, typeof authSchema>(components.betterAuth, {
   authFunctions,
   local: { schema: authSchema },
@@ -125,8 +131,16 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       emailOTP({
         otpLength: 6,
         expiresIn: 300,
+        // App Store / Play review: one fixed demo account (REVIEW_EMAIL) signs in with a fixed code (REVIEW_OTP)
+        // because reviewers can't read a mailbox. Both are Convex env vars; unset them to switch it off.
+        generateOTP: ({ email }) => {
+          const reviewEmail = process.env.REVIEW_EMAIL?.toLowerCase();
+          const reviewOtp = process.env.REVIEW_OTP;
+          return reviewEmail && reviewOtp && email.toLowerCase() === reviewEmail ? reviewOtp : randomOtp();
+        },
         sendVerificationOTP: async ({ email, otp }, endpoint) => {
           if (!canMutate(ctx)) return;
+          if (email.toLowerCase() === process.env.REVIEW_EMAIL?.toLowerCase()) return;
           const locale = endpoint?.request?.headers.get("accept-language")?.slice(0, 2);
           await sendOtpEmail(ctx, { email, otp, locale });
         },
