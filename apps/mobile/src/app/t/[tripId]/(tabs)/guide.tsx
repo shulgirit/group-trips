@@ -375,7 +375,7 @@ export default function Guide() {
         )}
 
         {/* Composer */}
-        <View style={[styles.composer, { paddingBottom: keyboard ? 8 : insets.bottom + TAB_BAR + 8 }]}>
+        <View style={[styles.composer, { paddingBottom: keyboard ? 8 : insets.bottom + TAB_BAR - 20 }]}>
           {pendingImage && (
             <View style={styles.attached}>
               <Image source={pendingImage.uri} style={styles.attachedImage} contentFit="cover" accessibilityLabel={t("ai.attachedPhoto")} />
@@ -494,21 +494,21 @@ const styles = StyleSheet.create({
   attachedImage: { width: 52, height: 52, borderRadius: 12 },
   roundButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  attach: { width: 48, height: 48, borderRadius: radius.field, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
+  attach: { width: 44, height: 44, borderRadius: radius.field, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 44,
     maxHeight: 140,
     borderRadius: radius.field,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: colors.chart200,
     backgroundColor: colors.paper,
     paddingHorizontal: 14,
-    paddingTop: 13,
-    paddingBottom: 13,
+    paddingTop: 11,
+    paddingBottom: 11,
     fontSize: 16,
     color: colors.ink900,
     textAlign: "auto",
   },
-  send: { width: 48, height: 48, borderRadius: radius.field, backgroundColor: colors.ink900, alignItems: "center", justifyContent: "center" },
+  send: { width: 44, height: 44, borderRadius: radius.field, backgroundColor: colors.ink900, alignItems: "center", justifyContent: "center" },
 });
