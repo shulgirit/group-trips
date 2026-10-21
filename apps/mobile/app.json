@@ -22,7 +22,6 @@
           "es"
         ],
         "CFBundleDevelopmentRegion": "en",
-        "ExpoLocalization_supportsRTL": true,
         "ITSAppUsesNonExemptEncryption": false
       },
       "usesAppleSignIn": true
@@ -103,7 +102,6 @@
       "reactCompiler": true
     },
     "extra": {
-      "supportsRTL": true,
       "router": {},
       "eas": {
         "projectId": "b7f14588-d89f-4ee4-8e3e-a113ee10d933"

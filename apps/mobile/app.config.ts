@@ -27,6 +27,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     } as ExpoConfig;
   }
 
+  // Expo Go (local dev, no build profile) has no native config to flip, so it reads this flag to render
+  // right-to-left. Real builds must NOT set it: expo-localization would then force the PHONE's language
+  // direction on every launch and override the language chosen inside the app.
+  if (!env) result = { ...result, extra: { ...result.extra, supportsRTL: true } };
+
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   if (iosClientId) {
     const iosUrlScheme = `com.googleusercontent.apps.${iosClientId.replace(".apps.googleusercontent.com", "")}`;
