@@ -311,7 +311,7 @@ export default function Guide() {
 
         {/* Private chats */}
         {(sessions?.length ?? 0) > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.sessions}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionsRow} contentContainerStyle={styles.sessions}>
             <Pressable accessibilityRole="button" accessibilityState={{ selected: sessionId === null }} onPress={newChat} style={[styles.session, sessionId === null && styles.sessionActive]}>
               <Icon icon={Plus} size={14} color={sessionId === null ? colors.chart50 : colors.ink700} />
               <Text variant="small" color={sessionId === null ? colors.chart50 : colors.ink700}>
@@ -346,11 +346,12 @@ export default function Guide() {
         )}
 
         {done.length === 0 && !loading && !shownError ? (
-          <ScrollView contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.list} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
             {sessionId && rows === undefined ? <ActivityIndicator color={colors.ink500} /> : intro}
           </ScrollView>
         ) : (
           <FlatList
+            style={styles.list}
             inverted
             data={listed}
             keyExtractor={(row) => row._id}
@@ -420,6 +421,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.chart50 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 8 },
   note: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 20, paddingTop: 8 },
+  // The chips row must never be squeezed by a tall message (React Native lets a scroll view shrink by default);
+  // only the message list takes what is left.
+  sessionsRow: { flexGrow: 0, flexShrink: 0 },
+  list: { flex: 1, minHeight: 0 },
   sessions: { gap: 8, paddingHorizontal: 20, paddingVertical: 12 },
   session: {
     minHeight: 36,

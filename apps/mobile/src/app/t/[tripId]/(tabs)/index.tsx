@@ -205,8 +205,8 @@ export default function Now() {
                   ) : null}
                 </View>
                 <View style={styles.nextBody}>
-                  <View style={{ alignItems: "center", minWidth: 60 }}>
-                    <Text variant="title" style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr" }}>
+                  <View style={{ alignItems: "center", minWidth: 72 }}>
+                    <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr" }}>
                       {next.startTime}
                     </Text>
                     <Text variant="caption" color={colors.ink500}>
@@ -304,7 +304,7 @@ export default function Now() {
                     onPress={() => go(`/event/${event.id}`)}
                     style={[styles.routeItem, isCurrent ? styles.routeCurrent : isPast ? null : { backgroundColor: "rgba(255,255,255,0.7)" }]}
                   >
-                    <Text style={{ width: 48, fontVariant: ["tabular-nums"], writingDirection: "ltr" }} color={isPast ? colors.ink400 : colors.ink900}>
+                    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ width: 54, fontVariant: ["tabular-nums"], writingDirection: "ltr" }} color={isPast ? colors.ink400 : colors.ink900}>
                       {event.startTime}
                     </Text>
                     {event.emoji ? <Icon icon={glyphIcon(event.emoji)} size={16} color={colors.ink500} /> : null}

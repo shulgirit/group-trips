@@ -158,7 +158,7 @@ export default function Schedule() {
               return (
                 <View key={event.id} style={[styles.row, past && { opacity: 0.6 }]}>
                   <View style={styles.spine}>
-                    <Text variant="headline" style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr" }}>
+                    <Text variant="headline" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr" }}>
                       {event.startTime}
                     </Text>
                     {event.durationMin ? (
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   splitBadge: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, borderWidth: 1, borderColor: colors.brass300, paddingHorizontal: 10, paddingVertical: 4 },
   empty: { padding: 24, gap: 10, alignItems: "center" },
   row: { flexDirection: "row", gap: 12 },
-  spine: { width: 56, alignItems: "center" },
+  spine: { width: 66, alignItems: "center" },
   node: { width: 12, height: 12, borderRadius: 6, marginTop: 8 },
   line: { flex: 1, width: StyleSheet.hairlineWidth * 2, backgroundColor: colors.route300, marginTop: 4 },
   card: { flex: 1, marginBottom: 16, overflow: "hidden" },

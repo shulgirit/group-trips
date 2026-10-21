@@ -9,8 +9,7 @@ cd "$(dirname "$0")/.."
 CHANNEL="${1:?channel: testflight | production}"
 MESSAGE="${2:?message}"
 case "$CHANNEL" in
-  testflight) ENVIRONMENT=preview ;;     # TestFlight builds use the "preview" EAS variables (dev backend) until the cutover
-  production) ENVIRONMENT=production ;;
+  testflight|production) ENVIRONMENT=production ;;   # both build profiles use the "production" EAS variables (prod Convex)
   *) echo "unknown channel $CHANNEL"; exit 1 ;;
 esac
 export EXPO_PUBLIC_APP_ENV=production
