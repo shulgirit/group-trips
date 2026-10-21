@@ -45,6 +45,15 @@ interface GooglePlace {
 }
 
 export async function searchPlaces(query: string, region: string): Promise<PlaceSearchResult[] | null> {
+  // The trip's region sharpens ambiguous names ("Duomo" → the one in Sicily) but hides anything
+  // outside it ("London"), so fall back to the plain query when the biased one finds nothing.
+  const biased = region ? await searchPlacesOnce(query, region) : null;
+  if (biased?.length) return biased;
+  const plain = await searchPlacesOnce(query, "");
+  return plain ?? biased;
+}
+
+async function searchPlacesOnce(query: string, region: string): Promise<PlaceSearchResult[] | null> {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key) return null;
   const search = await fetch("https://places.googleapis.com/v1/places:searchText", {
@@ -55,7 +64,7 @@ export async function searchPlaces(query: string, region: string): Promise<Place
       "X-Goog-FieldMask":
         "places.displayName,places.formattedAddress,places.location,places.types,places.primaryType,places.websiteUri,places.photos,places.rating",
     },
-    body: JSON.stringify({ textQuery: `${query} ${region}`, pageSize: 3 }),
+    body: JSON.stringify({ textQuery: region ? `${query} ${region}` : query, pageSize: 3 }),
   });
   if (!search.ok) return null;
   const data = (await search.json()) as { places?: GooglePlace[] };
