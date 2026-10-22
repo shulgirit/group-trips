@@ -73,7 +73,8 @@ export default function Documents() {
     try {
       const storageId = await uploadToTrip(id, file.uri, file.mimeType);
       await create({ tripId: id, storageId: storageId as Id<"_storage">, name: file.name, visibility: tab });
-    } catch {
+    } catch (error) {
+      console.warn("[documents] upload failed", error);
       setMessage(t("money.docs.errors.upload"));
     } finally {
       setUploading(false);
