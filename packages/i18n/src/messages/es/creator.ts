@@ -101,7 +101,7 @@ const creator: PartialMessages["creator"] = {
     countries: "{count} países",
     departureTime: "Hora de salida",
     nameLabel: "Nombre del viaje",
-    namePlaceholder: "Sicilia 2026",
+    namePlaceholder: "Escapada de verano",
     thinking: "Pensando…",
     suggest: "Sugerencias de la IA",
     iconLabel: "Icono del viaje",

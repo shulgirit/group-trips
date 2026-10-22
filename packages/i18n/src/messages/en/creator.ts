@@ -101,7 +101,7 @@ const creator: typeof he = {
     countries: "{count} countries",
     departureTime: "Leaving at (optional)",
     nameLabel: "Trip name",
-    namePlaceholder: "Sicily 2026",
+    namePlaceholder: "Summer getaway",
     thinking: "Thinking…",
     suggest: "AI suggestions",
     iconLabel: "Trip icon",

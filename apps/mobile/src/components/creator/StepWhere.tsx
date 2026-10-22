@@ -12,7 +12,7 @@ import { CurrencyPicker } from "@/components/more/CurrencyPicker";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChipRow } from "@/components/ui/ChipRow";
-import { DateField } from "@/components/ui/DateField";
+import { DateRangeField } from "@/components/ui/DateRangeField";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
@@ -190,30 +190,14 @@ function StopCard({
           </View>
         )}
         <View style={{ padding: 14, gap: 8 }}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text variant="caption" color={colors.ink500}>
-                {index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
-              </Text>
-              <DateField
-                label={index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
-                value={stop.startDate}
-                min={minDate}
-                onChange={(startDate) => onChange({ startDate, ...(stop.endDate && stop.endDate < startDate ? { endDate: startDate } : {}) })}
-              />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text variant="caption" color={colors.ink500}>
-                {index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
-              </Text>
-              <DateField
-                label={index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
-                value={stop.endDate}
-                min={stop.startDate || minDate}
-                onChange={(endDate) => onChange({ endDate })}
-              />
-            </View>
-          </View>
+          <DateRangeField
+            start={stop.startDate}
+            end={stop.endDate}
+            min={minDate}
+            startLabel={index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
+            endLabel={index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
+            onChange={(startDate, endDate) => onChange({ startDate, endDate })}
+          />
           <View style={styles.stopFoot}>
             <Text variant="small" color={colors.ink500} style={{ flex: 1 }}>
               {stopNights !== null ? (stopNights === 0 ? t("creator.where.oneDay") : t("creator.where.nights", { count: stopNights })) : ""}

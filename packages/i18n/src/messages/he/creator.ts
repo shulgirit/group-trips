@@ -99,7 +99,7 @@ const creator = {
     countries: "{count} ארצות",
     departureTime: "שעת יציאה (לא חובה)",
     nameLabel: "שם הטיול",
-    namePlaceholder: "סיציליה 2026",
+    namePlaceholder: "סוף שבוע בצפון",
     thinking: "חושב…",
     suggest: "הצעות AI",
     iconLabel: "סמל הטיול",
