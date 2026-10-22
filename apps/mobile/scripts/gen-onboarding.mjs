@@ -20,11 +20,15 @@ const PAGES = {
     "Six friends and two kids laughing together around a long table on a terrace overlooking a Mediterranean bay at sunset, seen from behind and the side, faces soft and natural, warm lights strung overhead. " + STYLE,
   guide:
     "An abstract luminous scene: a dark navy night sky gradient with a soft glowing gold orb of light at the center-top and delicate floating constellation lines, subtle paper map texture, a feeling of an intelligent friendly guide, room in the middle for a character to sit. " + STYLE,
+  signin:
+    "View through an airplane window at dawn: warm golden sunrise light over a sea of soft clouds, a distant coastline, the window frame softly blurred in the foreground, a sense of a journey about to begin. " + STYLE,
   plan:
     "Close-up of a table at night with a vintage travel map and a glowing phone showing a blurred route, passports, a coffee, a brass compass, warm lamp light, a hand pointing at the map; gold route line glowing across the map. " + STYLE,
 };
 
+const only = arg("--only", "");
 for (const [name, prompt] of Object.entries(PAGES)) {
+  if (only && only !== name) continue;
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },

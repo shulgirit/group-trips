@@ -3,13 +3,13 @@ import { useConvexAuth } from "convex/react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { Link2 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SignIn } from "@/components/auth/SignIn";
 import { Logo } from "@/components/brand/Logo";
-import { OnboardingCopy, OnboardingPage, type OnboardingKey } from "@/components/onboarding/OnboardingPage";
+import { OnboardingCopy, OnboardingPage, SignInBackdrop, type OnboardingKey } from "@/components/onboarding/OnboardingPage";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
@@ -65,6 +65,11 @@ export default function Welcome() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {signingIn && (
+        <Animated.View entering={FadeIn.duration(450)} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <SignInBackdrop />
+        </Animated.View>
+      )}
       {!signingIn && (
         <Animated.View key={`art-${CARDS[page].key}`} entering={FadeIn.duration(350)} style={StyleSheet.absoluteFill} pointerEvents="none">
           <OnboardingPage page={CARDS[page].key} />
@@ -82,7 +87,9 @@ export default function Welcome() {
       </View>
 
       {signingIn ? (
-        <View style={styles.signIn}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.signIn} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
+        <Animated.View entering={FadeInDown.delay(150).duration(520)} style={styles.sheet}>
           <View style={{ gap: 10 }}>
             <Text variant="display" color={colors.chart50}>
               {t("landing.app.signInTitle")}
@@ -121,7 +128,10 @@ export default function Welcome() {
               </Text>
             </Pressable>
           )}
-        </View>
+        </Animated.View>
+        </ScrollView>
+        </KeyboardAvoidingView>
+
       ) : (
         <>
           <GestureDetector gesture={swipe}>
@@ -156,6 +166,7 @@ const styles = StyleSheet.create({
   dots: { flexDirection: "row", gap: 8, justifyContent: "center" },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(241,243,239,0.3)" },
   dotActive: { width: 24, backgroundColor: colors.brass500 },
-  signIn: { flex: 1, justifyContent: "center", paddingHorizontal: 24, gap: 28 },
+  signIn: { flexGrow: 1, justifyContent: "flex-end", paddingHorizontal: 20, paddingBottom: 12 },
+  sheet: { gap: 24, padding: 22, borderRadius: 28, backgroundColor: "rgba(11,19,34,0.66)", borderColor: "rgba(255,255,255,0.14)", borderWidth: StyleSheet.hairlineWidth * 2 },
   inviteRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center", padding: 8 },
 });

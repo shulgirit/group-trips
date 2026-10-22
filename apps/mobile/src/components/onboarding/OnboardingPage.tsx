@@ -124,6 +124,27 @@ export function OnboardingPage({ page }: { page: OnboardingKey }) {
   );
 }
 
+/** The sign-in backdrop: the same artwork treatment, a quieter gradient. */
+export function SignInBackdrop() {
+  const zoom = useSharedValue(1.1);
+  useEffect(() => {
+    zoom.value = withTiming(1, { duration: 8000, easing: Easing.out(Easing.cubic) });
+  }, [zoom]);
+  const push = useAnimatedStyle(() => ({ transform: [{ scale: zoom.value }] }));
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Animated.View style={[StyleSheet.absoluteFill, push]}>
+        <Image source={require("../../../assets/onboarding/signin.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
+      </Animated.View>
+      <LinearGradient
+        colors={["rgba(7,12,22,0.5)", "rgba(7,12,22,0)", "rgba(7,12,22,0.7)", colors.night950]}
+        locations={[0, 0.25, 0.55, 0.78]}
+        style={StyleSheet.absoluteFill}
+      />
+    </View>
+  );
+}
+
 /** Headline + line under it, sitting on the dark floor of the artwork. */
 export function OnboardingCopy({ page }: { page: OnboardingKey }) {
   const t = useT();
