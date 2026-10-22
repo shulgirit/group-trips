@@ -10,7 +10,7 @@ const creator = {
   },
   wizard: {
     progress: "שלב {n} מתוך {total}",
-    addDeparture: "הוספת שעת המראה",
+    addDeparture: "הוספת שעת יציאה",
     addGroupName: "הוספת שם לחבורה",
     inviteTitle: "שולחים את הקישור",
   },
@@ -74,8 +74,8 @@ const creator = {
     people: "הוסיפו לפחות משתתף אחד",
   },
   where: {
-    title: "לאן טסים?",
-    text: "יעד אחד או מסלול של כמה ארצות — כל השאר נבנה מזה",
+    title: "לאן נוסעים?",
+    text: "יעד אחד, טיול בארץ או מסלול של כמה ארצות — כל השאר נבנה מזה",
     searchLabel: "חיפוש יעד",
     loadFailed: "לא הצלחנו לטעון את היעד — נסו שוב",
     loading: "טוענים את היעד…",

@@ -97,7 +97,7 @@ export default function NewExpense() {
       <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-end" }}>
         <View style={{ flex: 1 }}>
           <Labeled label={t("money.add.amount")}>
-            <Field value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" large style={{ writingDirection: "ltr" }} />
+            <Field value={amount} onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ""))} keyboardType="decimal-pad" placeholder="0" large style={{ writingDirection: "ltr", textAlign: "left" }} />
           </Labeled>
         </View>
         <Labeled label={t("money.add.currency")}>

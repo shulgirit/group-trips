@@ -77,7 +77,7 @@ const creator: typeof he = {
   },
   where: {
     title: "Where are you going?",
-    text: "One destination or a multi-country route — everything else builds on this",
+    text: "One destination, a trip at home or a multi-country route — everything else builds on this",
     searchLabel: "Search destinations",
     loadFailed: "Couldn't load the destination — please try again",
     loading: "Loading destination…",

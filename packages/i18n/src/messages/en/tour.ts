@@ -20,7 +20,7 @@ const tour: typeof he = {
     home: {
       kicker: "Home screen",
       title: "Now: what's happening, what's next",
-      a: "Before the trip: a countdown to the flight",
+      a: "Before the trip: a countdown to departure",
       b: "During the trip: the next activity, with the time, who's coming, and a button that opens Waze",
       c: "Below it: the whole day's schedule, marking where we are now",
     },
