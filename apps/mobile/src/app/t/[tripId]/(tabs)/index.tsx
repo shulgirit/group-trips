@@ -24,6 +24,7 @@ import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { useEvents, useFamilies, usePlaces, useTrip } from "@/lib/trip";
 
 const DEFAULT_DURATION_MIN = 90;
+const FACE_TINT = ["#b08a55", "#4f7f7a", "#9c5a43", "#6b7fa8", "#8a8f52"];
 
 const startOf = (event: TripEvent) => new Date(`${event.day}T${event.startTime}:00`);
 const endOf = (event: TripEvent) => new Date(startOf(event).getTime() + (event.durationMin ?? DEFAULT_DURATION_MIN) * 60_000);
@@ -110,10 +111,13 @@ export default function Now() {
         <View style={styles.heroText}>
           {duringTrip ? (
             <>
-              <Text variant="small" color="rgba(241,243,239,0.8)">
-                {dayNumber ? t("trip.home.dayOf", { day: dayNumber, total: tripDays(config).length }) : dates}
-              </Text>
-              <Text variant="display" color={colors.chart50}>
+              <View style={styles.dayChip}>
+                <Icon icon={CalendarDays} size={14} color={colors.brass300} />
+                <Text variant="caption" weight="medium" color={colors.chart50}>
+                  {dayNumber ? t("trip.home.dayOf", { day: dayNumber, total: tripDays(config).length }) : dates}
+                </Text>
+              </View>
+              <Text variant="displayLg" color={colors.chart50}>
                 {t(greetingKey(now))}
               </Text>
               <Text variant="body" color="rgba(241,243,239,0.85)">
@@ -137,14 +141,14 @@ export default function Now() {
             <Pressable accessibilityRole="button" onPress={() => go("/families")} style={styles.travelers}>
               <View style={styles.faces}>
                 {travelers.slice(0, 5).map((person, index) => (
-                  <View key={person.id} style={[styles.face, index > 0 && { marginStart: -8 }]}>
-                    <Text variant="caption" weight="medium" color={colors.night950}>
+                  <View key={person.id} style={[styles.face, { backgroundColor: FACE_TINT[index % FACE_TINT.length] }, index > 0 && { marginStart: -10 }]}>
+                    <Text variant="caption" weight="semibold" color="#fff">
                       {person.name.slice(0, 1)}
                     </Text>
                   </View>
                 ))}
               </View>
-              <Text variant="small" color="rgba(241,243,239,0.85)">
+              <Text variant="small" color="rgba(241,243,239,0.9)">
                 {t("trip.home.group", { count: travelers.length })}
               </Text>
             </Pressable>
@@ -154,7 +158,7 @@ export default function Now() {
 
       <View style={styles.body}>
         {/* The core tools, one tap away */}
-        <View style={styles.quick}>
+        <View style={styles.quickCard}>
           {quick.map((item) => (
             <Pressable key={item.path} accessibilityRole="button" onPress={() => go(item.path)} style={styles.quickItem}>
               <View style={styles.quickIcon}>
@@ -192,10 +196,11 @@ export default function Now() {
           ) : next ? (
             <Card style={{ overflow: "hidden" }}>
               <Pressable accessibilityRole="button" onPress={() => go(`/event/${next.id}`)}>
-                <View style={{ height: 170, backgroundColor: colors.night900 }}>
+                <View style={{ height: 230, backgroundColor: colors.night900 }}>
                   {nextPlace?.imageUrl || (!nextPlace && config.heroImage) ? (
-                    <Image source={nextPlace?.imageUrl || config.heroImage} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                    <Image source={nextPlace?.imageUrl || config.heroImage} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} />
                   ) : null}
+                  <LinearGradient colors={["rgba(7,12,22,0.25)", "rgba(7,12,22,0)", "rgba(7,12,22,0.86)"]} style={StyleSheet.absoluteFill} />
                   {timeUntil && minutes > 0 ? (
                     <View style={styles.until}>
                       <Text variant="caption" weight="medium" color={colors.brass100}>
@@ -203,21 +208,21 @@ export default function Now() {
                       </Text>
                     </View>
                   ) : null}
-                </View>
-                <View style={styles.nextBody}>
-                  <View style={{ alignItems: "center", minWidth: 72 }}>
-                    <Text variant="title" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr" }}>
-                      {next.startTime}
-                    </Text>
-                    <Text variant="caption" color={colors.ink500}>
+                  <View style={styles.coverText}>
+                    <Text variant="caption" color="rgba(241,243,239,0.85)">
                       {next.day === today ? t("common.today") : formatDayLabel(next.day, locale)}
                     </Text>
+                    <Text variant="displayLg" color={colors.chart50} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontVariant: ["tabular-nums"], writingDirection: "ltr", alignSelf: "flex-start" }}>
+                      {next.startTime}
+                    </Text>
                   </View>
+                </View>
+                <View style={styles.nextBody}>
                   <View style={styles.nextText}>
                     <Text variant="headline" weight="medium">
                       {next.title}
                     </Text>
-                    {nextPlace && (
+                    {nextPlace && nextPlace.name.trim().toLowerCase() !== next.title.trim().toLowerCase() && (
                       <Text variant="small" color={colors.ink500} numberOfLines={1}>
                         {nextPlace.name}
                       </Text>
@@ -346,7 +351,7 @@ export default function Now() {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 380, backgroundColor: colors.night900, justifyContent: "flex-end" },
+  hero: { height: 430, backgroundColor: colors.night900, justifyContent: "flex-end" },
   myTrips: {
     position: "absolute",
     end: 16,
@@ -358,27 +363,27 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(7,12,22,0.45)",
   },
-  heroText: { paddingHorizontal: 24, paddingBottom: 24, gap: 6 },
-  travelers: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14 },
+  heroText: { paddingHorizontal: 24, paddingBottom: 64, gap: 8 },
+  dayChip: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.18)" },
+  travelers: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, alignSelf: "flex-start", paddingEnd: 14, paddingStart: 4, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(11,19,34,0.5)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.14)" },
   faces: { flexDirection: "row" },
   face: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.chart50,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: "rgba(7,12,22,0.6)",
+    borderColor: colors.night950,
     alignItems: "center",
     justifyContent: "center",
   },
-  body: { paddingHorizontal: 20, paddingTop: 16, gap: 28 },
-  quick: { flexDirection: "row", justifyContent: "space-between" },
+  body: { paddingHorizontal: 20, marginTop: -44, gap: 28 },
+  quickCard: { flexDirection: "row", justifyContent: "space-between", backgroundColor: colors.paper, borderRadius: 26, paddingVertical: 14, paddingHorizontal: 8, shadowColor: colors.ink900, shadowOpacity: 0.12, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 6 },
   quickItem: { flex: 1, alignItems: "center", gap: 6, paddingVertical: 6 },
   quickIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.paper,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.chart50,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: colors.chart200,
     alignItems: "center",
@@ -386,9 +391,10 @@ const styles = StyleSheet.create({
   },
   nowBanner: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: colors.night950, borderRadius: radius.card, padding: 16 },
   pulse: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.brass500 },
+  coverText: { position: "absolute", start: 18, end: 18, bottom: 14, gap: 0 },
   until: { position: "absolute", top: 14, start: 14, backgroundColor: "rgba(7,12,22,0.75)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   nextBody: { flexDirection: "row", gap: 14, padding: 18, paddingBottom: 4 },
-  nextText: { flex: 1, gap: 4, borderStartWidth: StyleSheet.hairlineWidth * 2, borderStartColor: colors.chart200, paddingStart: 14 },
+  nextText: { flex: 1, gap: 4 },
   inline: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   actions: { flexDirection: "row", gap: 8, padding: 18 },
   mapsButton: {
