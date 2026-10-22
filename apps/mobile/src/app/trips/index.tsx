@@ -70,11 +70,13 @@ export default function Trips() {
           {!me?.guest && (
             <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={styles.newTrip}>
               <View style={styles.plus}>
-                <Icon icon={Plus} size={20} color={colors.chart50} />
+                <Icon icon={Plus} size={20} color={colors.night950} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text weight="semibold">{t("product.trips.newTrip.title")}</Text>
-                <Text variant="small" color={colors.ink500}>
+                <Text weight="semibold" color={colors.chart50}>
+                  {t("product.trips.newTrip.title")}
+                </Text>
+                <Text variant="small" color="rgba(241,243,239,0.7)">
                   {t("product.trips.newTrip.text")}
                 </Text>
               </View>
@@ -139,11 +141,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: radius.card,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: colors.chart300,
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: colors.night950,
   },
-  plus: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.ink900, alignItems: "center", justifyContent: "center" },
+  plus: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center" },
 });

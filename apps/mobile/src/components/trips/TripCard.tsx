@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
+import { CalendarDays, MapPin } from "lucide-react-native";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { glyphIcon } from "@/lib/glyphs";
@@ -49,7 +50,7 @@ export function TripCard({ trip, large = false }: { trip: TripRow; large?: boole
       accessibilityRole="button"
       accessibilityLabel={`${trip.name}, ${badge}`}
       onPress={() => router.push(trip.status === "draft" ? `/new?trip=${trip.id}` : `/t/${trip.id}`)}
-      style={({ pressed }) => [styles.card, { height: large ? 260 : 180 }, live && styles.live, pressed && { opacity: 0.92 }]}
+      style={({ pressed }) => [styles.card, { height: large ? 340 : 190 }, live && styles.live, pressed && { opacity: 0.92 }]}
     >
       {trip.coverImage ? (
         <Image source={trip.coverImage} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
@@ -58,28 +59,45 @@ export function TripCard({ trip, large = false }: { trip: TripRow; large?: boole
           <Icon icon={glyphIcon(trip.emoji)} size={44} color="rgba(241,243,239,0.5)" />
         </View>
       )}
-      <LinearGradient colors={["transparent", "rgba(7,12,22,0.85)"]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.badge, live ? { backgroundColor: colors.route500 } : null]}>
-        <Text variant="caption" weight="medium" color={live ? colors.chart50 : colors.ink900}>
+      <LinearGradient colors={["rgba(7,12,22,0.28)", "rgba(7,12,22,0)", "rgba(7,12,22,0.9)"]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+      <View style={[styles.badge, live ? { backgroundColor: colors.route500, borderColor: colors.route500 } : null]}>
+        {live ? <View style={styles.liveDot} /> : null}
+        <Text variant="caption" weight="semibold" color={colors.chart50}>
           {badge}
         </Text>
       </View>
       <View style={styles.footer}>
-        <Text variant="small" color="rgba(241,243,239,0.8)">
-          {trip.stops.join(" · ")} · {formatShortDate(trip.startDate)}–{formatShortDate(trip.endDate)}
-        </Text>
-        <Text variant={large ? "display" : "title"} color={colors.chart50} numberOfLines={1}>
+        <Text variant={large ? "displayLg" : "title"} color={colors.chart50} numberOfLines={large ? 2 : 1}>
           {trip.name}
         </Text>
+        <View style={styles.meta}>
+          <View style={styles.metaItem}>
+            <Icon icon={CalendarDays} size={13} color="rgba(241,243,239,0.8)" />
+            <Text variant="small" color="rgba(241,243,239,0.85)">
+              {formatShortDate(trip.startDate)}–{formatShortDate(trip.endDate)}
+            </Text>
+          </View>
+          {trip.stops.length > 0 ? (
+            <View style={[styles.metaItem, { flexShrink: 1 }]}>
+              <Icon icon={MapPin} size={13} color="rgba(241,243,239,0.8)" />
+              <Text variant="small" color="rgba(241,243,239,0.85)" numberOfLines={1}>
+                {trip.stops.join(" · ")}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius.sheet, overflow: "hidden", backgroundColor: colors.night900 },
+  card: { borderRadius: 28, overflow: "hidden", backgroundColor: colors.night900, shadowColor: colors.ink900, shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
   live: { borderWidth: 2, borderColor: colors.route500 },
   empty: { alignItems: "center", justifyContent: "center", backgroundColor: colors.night900 },
-  badge: { position: "absolute", top: 14, start: 14, backgroundColor: "rgba(241,243,239,0.92)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
-  footer: { position: "absolute", start: 18, end: 18, bottom: 16, gap: 4 },
+  badge: { position: "absolute", top: 14, start: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.2)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.chart50 },
+  meta: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  footer: { position: "absolute", start: 20, end: 20, bottom: 18, gap: 8 },
 });
