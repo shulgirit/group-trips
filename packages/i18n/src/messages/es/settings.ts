@@ -32,6 +32,8 @@ const settings: PartialMessages["settings"] = {
     days: { one: "1 día", two: "2 días", other: "{count} días" },
     homeBase: "Dónde nos alojamos",
     currency: "Monedas",
+    currencyHint: "Elige qué monedas aparecen al añadir gastos (hasta {max})",
+    currencySave: "Guardar",
   },
   app: {
     title: "La app",

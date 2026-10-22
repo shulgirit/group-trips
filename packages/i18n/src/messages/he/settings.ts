@@ -31,6 +31,8 @@ const settings = {
     days: { one: "יום אחד", two: "יומיים", other: "{count} ימים" },
     homeBase: "מקום הלינה",
     currency: "מטבעות",
+    currencyHint: "הגדירו אילו מטבעות יופיעו בהוצאות (עד {max})",
+    currencySave: "שמירה",
   },
   app: {
     title: "האפליקציה",

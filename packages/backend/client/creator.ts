@@ -48,6 +48,8 @@ export interface CreatorState {
   stops: CreatorStop[];
   /** "HH:mm" local departure time on the first day, optional */
   departureTime: string;
+  /** Currencies offered for expenses; empty = the stops' plus ILS */
+  currencies: string[];
   groupKind: GroupKind;
   groupName: string;
   families: CreatorFamily[];
@@ -103,6 +105,7 @@ export function initialState(displayName: string | null): CreatorState {
     emoji: "plane",
     stops: [{ id: shortId("s"), place: null, startDate: "", endDate: "" }],
     departureTime: "",
+    currencies: [],
     groupKind: "families",
     groupName: "",
     families: [
@@ -197,6 +200,7 @@ export function toTripInput(
         endDate: stop.endDate,
       })),
     departureAt,
+    ...(state.currencies.length ? { currencies: state.currencies } : {}),
     departureNote: departureAt
       ? tActive("creator.defaults.departureNote", {
           date: shortDate(tripStart(state)),

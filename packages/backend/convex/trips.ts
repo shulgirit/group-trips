@@ -41,6 +41,7 @@ function tripFields(input: TripInput) {
     coverImage: first.coverImage,
     departureAt: input.departureAt ?? null,
     departureNote: input.departureNote ?? "",
+    ...(input.currencies?.length ? { currencies: input.currencies } : {}),
     homeBase: input.homeBase,
     groupKind: input.groupKind,
     groupName: input.groupName.trim(),
@@ -193,6 +194,17 @@ export const update = tripMutation({
       await createDefaultInvites(ctx, ctx.tripId, ctx.user._id, input.families, familyIds);
     }
     return { status };
+  },
+});
+
+/** The currencies offered when adding an expense (organizer only). */
+export const setCurrencies = tripMutation({
+  args: { currencies: v.array(v.string()) },
+  handler: async (ctx, { currencies }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = [...new Set(currencies.map((code) => code.trim().toUpperCase()))].filter((code) => /^[A-Z]{3}$/.test(code));
+    if (clean.length < 1 || clean.length > 8) fail("invalid", "currencies");
+    await ctx.db.patch(ctx.tripId, { currencies: clean, updatedAt: Date.now() });
   },
 });
 

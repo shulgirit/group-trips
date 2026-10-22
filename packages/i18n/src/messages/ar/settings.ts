@@ -32,6 +32,8 @@ const settings: PartialMessages["settings"] = {
     days: { one: "يوم واحد", two: "يومان", other: "{count} أيام" },
     homeBase: "مكان إقامتنا",
     currency: "العملات",
+    currencyHint: "اختاروا العملات التي تظهر عند إضافة المصاريف (حتى {max})",
+    currencySave: "حفظ",
   },
   app: {
     title: "التطبيق",

@@ -1,12 +1,14 @@
 import { api } from "@together/backend/api";
 import { type CreatorDestination, type CreatorState, type CreatorStop, primaryPlace, shortId, tripEnd, tripStart } from "@together/backend/creator";
+import { tripCurrencies } from "@together/shared/currency";
 import { colors, radius } from "@together/shared/tokens";
 import { useAction } from "convex/react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowDown, ArrowUp, Clock, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
+import { ArrowDown, ArrowUp, Clock, Coins, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { CurrencyPicker } from "@/components/more/CurrencyPicker";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChipRow } from "@/components/ui/ChipRow";
@@ -314,6 +316,7 @@ export function StepWhere({ state, update }: { state: CreatorState; update: (pat
 
   const tripNights = nights(start, end);
   const countries = new Set(stops.map((s) => s.place?.country).filter(Boolean));
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const showDeparture = departureOpen || Boolean(state.departureTime);
 
   return (
@@ -372,6 +375,19 @@ export function StepWhere({ state, update }: { state: CreatorState; update: (pat
               </Text>
             </Pressable>
           )}
+          <Pressable accessibilityRole="button" onPress={() => setCurrencyOpen(true)} style={styles.inline} hitSlop={6}>
+            <Icon icon={Coins} size={16} color={colors.route700} />
+            <Text variant="small" weight="medium" color={colors.route700}>
+              {`${t("settings.trip.currency")}: ${tripCurrencies({ legacy: false, stops: stops.flatMap((s) => (s.place ? [{ currency: s.place.currency }] : [])), currencies: state.currencies }).join(" · ")}`}
+            </Text>
+          </Pressable>
+          <CurrencyPicker
+            key={String(currencyOpen)}
+            open={currencyOpen}
+            initial={tripCurrencies({ legacy: false, stops: stops.flatMap((s) => (s.place ? [{ currency: s.place.currency }] : [])), currencies: state.currencies })}
+            onClose={() => setCurrencyOpen(false)}
+            onSave={async (codes) => update({ currencies: codes })}
+          />
         </View>
       </View>
 

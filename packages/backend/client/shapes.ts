@@ -87,6 +87,7 @@ export function toTripDoc(trip: Doc<"trips">, avatarUrl: string | null): TripDoc
     endDate: trip.endDate,
     timezone: trip.timezone,
     currency: trip.currency,
+    ...(trip.currencies?.length ? { currencies: trip.currencies } : {}),
     coverImage: trip.coverImage,
     departureAt: trip.departureAt ?? null,
     departureNote: trip.departureNote,

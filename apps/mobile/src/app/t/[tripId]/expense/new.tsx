@@ -34,7 +34,7 @@ export default function NewExpense() {
   const [payer, setPayer] = useState<string>(me.familyId ?? "");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<Currency>(config.currency);
+  const [currency, setCurrency] = useState<Currency>(currencies.includes(config.currency) ? config.currency : (currencies[0] ?? config.currency));
   const [date, setDate] = useState(today);
   const [split, setSplit] = useState<SplitState>(DEFAULT_SPLIT);
   const [saving, setSaving] = useState(false);
@@ -94,12 +94,10 @@ export default function NewExpense() {
       <Labeled label={t("money.add.what")}>
         <Field value={description} onChangeText={setDescription} placeholder={t("money.add.whatPlaceholder")} />
       </Labeled>
-      <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-end" }}>
-        <View style={{ flex: 1 }}>
-          <Labeled label={t("money.add.amount")}>
-            <Field value={amount} onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ""))} keyboardType="decimal-pad" placeholder="0" large style={{ writingDirection: "ltr", textAlign: "left" }} />
-          </Labeled>
-        </View>
+      <Labeled label={t("money.add.amount")}>
+        <Field value={amount} onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ""))} keyboardType="decimal-pad" placeholder="0" large style={{ writingDirection: "ltr", textAlign: "left" }} />
+      </Labeled>
+      {currencies.length > 1 && (
         <Labeled label={t("money.add.currency")}>
           <View style={styles.currencies}>
             {currencies.map((code) => (
@@ -111,14 +109,14 @@ export default function NewExpense() {
                 onPress={() => setCurrency(code)}
                 style={[styles.currency, currency === code && styles.currencyOn]}
               >
-                <Text variant="headline" color={currency === code ? colors.ink900 : colors.ink500}>
-                  {currencySymbol(code)}
+                <Text weight="semibold" color={currency === code ? colors.ink900 : colors.ink500} style={{ writingDirection: "ltr" }}>
+                  {currencySymbol(code) === code ? code : `${currencySymbol(code)} ${code}`}
                 </Text>
               </Pressable>
             ))}
           </View>
         </Labeled>
-      </View>
+      )}
       <Labeled label={t("money.add.date")}>
         <ChipRow scroll>
           {dates.map((d) => (
@@ -138,7 +136,7 @@ export default function NewExpense() {
 }
 
 const styles = StyleSheet.create({
-  currencies: { flexDirection: "row", gap: 4, padding: 4, borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200, backgroundColor: colors.chart50 },
-  currency: { minWidth: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 10 },
-  currencyOn: { backgroundColor: colors.paper },
+  currencies: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  currency: { minHeight: 42, paddingHorizontal: 14, alignItems: "center", justifyContent: "center", borderRadius: 14, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200, backgroundColor: colors.chart50 },
+  currencyOn: { backgroundColor: colors.paper, borderColor: colors.ink900 },
 });

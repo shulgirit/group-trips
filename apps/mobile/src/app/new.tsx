@@ -93,6 +93,7 @@ async function loadTrip(convex: ConvexReactClient, ref: string): Promise<Creator
       endDate: stop.endDate,
     })),
     departureTime: data.departureAt?.slice(11, 16) ?? "",
+    currencies: trip.currencies ?? [],
     groupKind: data.groupKind,
     groupName: data.groupName,
     families: familyRows.map((f) => ({

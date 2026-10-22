@@ -32,6 +32,8 @@ const settings: typeof he = {
     days: { one: "1 day", two: "2 days", other: "{count} days" },
     homeBase: "Where we stay",
     currency: "Currencies",
+    currencyHint: "Choose which currencies appear when adding expenses (up to {max})",
+    currencySave: "Save",
   },
   app: {
     title: "The app",

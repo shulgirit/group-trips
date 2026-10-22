@@ -10,7 +10,6 @@ import { BedDouble, CalendarDays, Check, Coins, Pencil, Trash2 } from "lucide-re
 import { useState } from "react";
 import { ActivityIndicator, Linking, Pressable, Switch, View } from "react-native";
 import { ConfirmSheet } from "@/components/more/ConfirmSheet";
-import { LanguagePicker } from "@/components/more/LanguagePicker";
 import { Group, Row, styles as rowStyles } from "@/components/more/Row";
 import { GuideAvatar } from "@/components/trips/GuideAvatar";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +19,8 @@ import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { CurrencyPicker } from "@/components/more/CurrencyPicker";
+import { tripCurrencies } from "@together/shared/currency";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { useFamilies, useTrip } from "@/lib/trip";
 
@@ -168,7 +169,9 @@ export default function Settings() {
   const [error, setError] = useState("");
   const isOwner = me.role === "owner";
 
-  const currencies = [...new Set([...config.stops.map((s) => s.currency), config.currency, "ILS", "USD"])].filter(Boolean);
+  const currencies = tripCurrencies(config);
+  const setCurrencies = useMutation(api.trips.setCurrencies);
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const dayCount = tripDays(config).length;
 
   async function run(action: "leave" | "purge", failKey: TKey) {
@@ -184,13 +187,15 @@ export default function Settings() {
 
   return (
     <>
+      <CurrencyPicker key={String(currencyOpen)} open={currencyOpen} initial={currencies} onClose={() => setCurrencyOpen(false)} onSave={async (codes) => {
+          await setCurrencies({ tripId: id, currencies: codes });
+        }} />
       <Stack.Screen options={{ title: t("settings.title") }} />
       <Screen edges={[]}>
         <Group title={t("settings.sections.you")}>
           <Row icon={Pencil} label={t("product.account.title")} description={t("settings.sections.youHint")} onPress={() => router.push("/account")} last />
         </Group>
         <WhoAmI />
-        <LanguagePicker />
 
         <Group title={t("settings.sections.trip")}>
           <Row
@@ -206,7 +211,7 @@ export default function Settings() {
               onPress={() => Linking.openURL(googleMapsUrl(config.homeBase!, config.searchRegionHint))}
             />
           )}
-          <Row icon={Coins} label={t("settings.trip.currency")} description={currencyNames(currencies, locale)} last={!isAdmin} />
+          <Row icon={Coins} label={t("settings.trip.currency")} description={currencyNames(currencies, locale)} onPress={isAdmin ? () => setCurrencyOpen(true) : undefined} last={!isAdmin} />
           {isAdmin && (
             <Row
               icon={Trash2}

@@ -104,6 +104,8 @@ export interface TripConfig {
   timezone: string;
   /** ISO 4217 — the current stop's local currency */
   currency: string;
+  /** The currencies the organizer chose for expenses (absent = the stops' + ₪) */
+  currencies?: string[];
   /** Itinerary, in order (single entry for one-destination trips) */
   stops: TripStopConfig[];
   mapCenter: { lat: number; lng: number };

@@ -65,6 +65,19 @@ describe("trip access", () => {
   });
 });
 
+describe("trip currencies", () => {
+  it("only organizers choose them, valid codes only, 1-8", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    expect(await code(member.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ILS"] }))).toBe("forbidden");
+    expect(await code(owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: [] }))).toBe("currencies");
+    expect(await code(owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ILS", "USD", "EUR", "GBP", "AED", "JPY", "MXN", "THB", "CHF"] }))).toBe("currencies");
+    await owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ils", "AED", "ILS"] });
+    const { trip } = await owner.as.query(api.trips.get, { tripId });
+    expect(trip.currencies).toEqual(["ILS", "AED"]);
+  });
+});
+
 describe("invites", () => {
   it("counts uses once per person and stops at maxUses", async () => {
     const { t, owner, tripId } = await tripWithOwner();

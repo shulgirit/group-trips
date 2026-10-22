@@ -49,6 +49,8 @@ export default defineSchema({
     endDate: v.string(),
     timezone: v.string(),
     currency: v.string(),
+    /** Currencies offered for expenses; absent = the stops' + ILS */
+    currencies: v.optional(v.array(v.string())),
     coverImage: v.union(v.string(), v.null()),
     coverTriedAt: v.optional(v.number()),
     departureAt: v.optional(v.union(v.string(), v.null())),
