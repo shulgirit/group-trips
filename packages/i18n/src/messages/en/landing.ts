@@ -140,6 +140,7 @@ const landing: typeof he = {
     inviteGo: "Join",
     inviteInvalid: "That doesn't look like a Together invite link",
     stepOf: "{n} of {total}",
+    demo: { invite: "Invite link", ask: "Plan a rainy day for us", reply: "Done. Museum at 11:00, lunch at 13:30.", owes: "Jamie owes Alex" },
   },
   footer: {
     legacy: "Traveling with Sicily 2026 or Sardinia?",
