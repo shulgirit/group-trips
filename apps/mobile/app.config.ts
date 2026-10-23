@@ -23,7 +23,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       name: `${config.name} (dev)`,
       scheme: "together-dev",
       ios: { ...swap(config.ios), bundleIdentifier: `${config.ios?.bundleIdentifier}.dev` },
-      android: { ...swap(config.android), package: `${config.android?.package}.dev` },
+      // The Firebase file only knows the production package, so dev builds go without push on Android
+      android: { ...swap({ ...config.android, googleServicesFile: undefined }), package: `${config.android?.package}.dev` },
     } as ExpoConfig;
   }
 
