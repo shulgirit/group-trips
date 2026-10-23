@@ -34,6 +34,8 @@ const settings: PartialMessages["settings"] = {
     currency: "العملات",
     currencyHint: "اختاروا العملات التي تظهر عند إضافة المصاريف (حتى {max})",
     currencySave: "حفظ",
+    mainCurrency: "العملة الرئيسية",
+    mainCurrencyHint: "تُحوَّل المصاريف بالعملات الأخرى إلى هذه العملة في التسوية الموحّدة",
   },
   app: {
     title: "التطبيق",

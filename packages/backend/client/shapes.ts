@@ -88,6 +88,8 @@ export function toTripDoc(trip: Doc<"trips">, avatarUrl: string | null): TripDoc
     timezone: trip.timezone,
     currency: trip.currency,
     ...(trip.currencies?.length ? { currencies: trip.currencies } : {}),
+    ...(trip.mainCurrency ? { mainCurrency: trip.mainCurrency } : {}),
+    ...(trip.rateOverrides && Object.keys(trip.rateOverrides).length ? { rateOverrides: trip.rateOverrides } : {}),
     coverImage: trip.coverImage,
     departureAt: trip.departureAt ?? null,
     departureNote: trip.departureNote,

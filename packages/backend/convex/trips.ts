@@ -208,6 +208,35 @@ export const setCurrencies = tripMutation({
   },
 });
 
+/** The currency the combined settle-up is shown in (organizer only). */
+export const setMainCurrency = tripMutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = code.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(clean)) fail("invalid", "currency");
+    // Rates edited against the old main currency no longer mean anything
+    await ctx.db.patch(ctx.tripId, { mainCurrency: clean, rateOverrides: {}, updatedAt: Date.now() });
+  },
+});
+
+/** Edit one currency's rate (units of the main currency per 1 unit), or pass null to go back to the market rate. */
+export const setRateOverride = tripMutation({
+  args: { code: v.string(), rate: v.union(v.number(), v.null()) },
+  handler: async (ctx, { code, rate }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = code.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(clean)) fail("invalid", "currency");
+    const next = { ...(ctx.trip.rateOverrides ?? {}) };
+    if (rate === null) delete next[clean];
+    else {
+      if (!Number.isFinite(rate) || rate <= 0 || rate > 1e7) fail("invalid", "rate");
+      next[clean] = rate;
+    }
+    await ctx.db.patch(ctx.tripId, { rateOverrides: next, updatedAt: Date.now() });
+  },
+});
+
 /** Free text the AI knows about the group — every member may edit it. */
 export const setAboutUs = tripMutation({
   args: { aboutUs: v.string() },

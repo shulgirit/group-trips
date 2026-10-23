@@ -34,6 +34,8 @@ const settings: PartialMessages["settings"] = {
     currency: "Monedas",
     currencyHint: "Elige qué monedas aparecen al añadir gastos (hasta {max})",
     currencySave: "Guardar",
+    mainCurrency: "Moneda principal",
+    mainCurrencyHint: "Los gastos en otras monedas se convierten a esta en la liquidación conjunta",
   },
   app: {
     title: "La app",

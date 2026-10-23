@@ -11,6 +11,7 @@ import { type Href, router } from "expo-router";
 import { ArrowRight, Check, Plus, Trash2, Users, Wallet } from "lucide-react-native";
 import { Fragment, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
+import { CombinedSummary } from "@/components/expenses/CombinedSummary";
 import { EditSplitSheet } from "@/components/expenses/EditSplitSheet";
 import { formatAmount } from "@/components/expenses/format";
 import { shortFamilyName } from "@/components/expenses/SplitEditor";
@@ -231,6 +232,9 @@ export default function Expenses() {
               </View>
             ))}
           </View>
+
+          {/* Everything converted into the trip's main currency, with live and editable rates */}
+          <CombinedSummary expenses={expenses} families={families} />
 
           {/* Repayments, never mixed into the expense rows */}
           {settlements.length > 0 && (

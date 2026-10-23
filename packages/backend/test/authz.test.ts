@@ -76,6 +76,32 @@ describe("trip currencies", () => {
     const { trip } = await owner.as.query(api.trips.get, { tripId });
     expect(trip.currencies).toEqual(["ILS", "AED"]);
   });
+
+  it("main currency and edited rates are organizer-only, validated, and reset with null", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    expect(await code(member.as.mutation(api.trips.setMainCurrency, { tripId, code: "USD" }))).toBe("forbidden");
+    expect(await code(member.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 4 }))).toBe("forbidden");
+    expect(await code(owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "dollars" }))).toBe("currency");
+    expect(await code(owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 0 }))).toBe("rate");
+    expect(await code(owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: Number.NaN }))).toBe("rate");
+
+    await owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "ils" });
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 3.9 });
+    let { trip } = await member.as.query(api.trips.get, { tripId });
+    expect(trip.mainCurrency).toBe("ILS");
+    expect(trip.rateOverrides).toEqual({ EUR: 3.9 });
+
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: null });
+    ({ trip } = await member.as.query(api.trips.get, { tripId }));
+    expect(trip.rateOverrides).toEqual({});
+
+    // Changing the main currency drops rates that were relative to the old one
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "GBP", rate: 4.6 });
+    await owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "USD" });
+    ({ trip } = await member.as.query(api.trips.get, { tripId }));
+    expect(trip.rateOverrides).toEqual({});
+  });
 });
 
 describe("invites", () => {

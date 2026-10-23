@@ -33,11 +33,18 @@ export function CurrencyPicker({
   initial,
   onClose,
   onSave,
+  single = false,
+  title,
+  hint,
 }: {
   open: boolean;
   initial: string[];
   onClose: () => void;
   onSave: (codes: string[]) => Promise<void>;
+  /** Choose exactly one (the main currency) instead of up to 8 */
+  single?: boolean;
+  title?: string;
+  hint?: string;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -48,7 +55,7 @@ export function CurrencyPicker({
 
   function toggle(code: string) {
     setError("");
-    setSelected((current) => (current.includes(code) ? current.filter((c) => c !== code) : current.length >= MAX ? current : [...current, code]));
+    setSelected((current) => (single ? [code] : current.includes(code) ? current.filter((c) => c !== code) : current.length >= MAX ? current : [...current, code]));
   }
 
   async function save() {
@@ -68,9 +75,9 @@ export function CurrencyPicker({
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.root} edges={["bottom"]}>
         <View style={styles.head}>
-          <Text variant="title">{t("settings.trip.currency")}</Text>
+          <Text variant="title">{title ?? t("settings.trip.currency")}</Text>
           <Text variant="small" color={colors.ink500}>
-            {t("settings.trip.currencyHint", { max: MAX })}
+            {hint ?? t("settings.trip.currencyHint", { max: MAX })}
           </Text>
         </View>
         <ScrollView contentContainerStyle={styles.grid}>

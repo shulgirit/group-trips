@@ -106,6 +106,10 @@ export interface TripConfig {
   currency: string;
   /** The currencies the organizer chose for expenses (absent = the stops' + ₪) */
   currencies?: string[];
+  /** The currency the combined settle-up is shown in (absent = see `mainCurrencyOf`) */
+  mainCurrency?: string;
+  /** Manually edited rates: units of the main currency per 1 unit of the key */
+  rateOverrides?: Record<string, number>;
   /** Itinerary, in order (single entry for one-destination trips) */
   stops: TripStopConfig[];
   mapCenter: { lat: number; lng: number };

@@ -33,6 +33,8 @@ const settings = {
     currency: "מטבעות",
     currencyHint: "הגדירו אילו מטבעות יופיעו בהוצאות (עד {max})",
     currencySave: "שמירה",
+    mainCurrency: "מטבע ראשי",
+    mainCurrencyHint: "הוצאות במטבעות אחרים מומרות אליו בסיכום המשותף",
   },
   app: {
     title: "האפליקציה",

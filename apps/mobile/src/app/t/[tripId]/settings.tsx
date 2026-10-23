@@ -20,7 +20,8 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { CurrencyPicker } from "@/components/more/CurrencyPicker";
-import { tripCurrencies } from "@together/shared/currency";
+import { currencySymbol, tripCurrencies } from "@together/shared/currency";
+import { mainCurrencyOf } from "@together/shared/currency-convert";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { useFamilies, useTrip } from "@/lib/trip";
 
@@ -172,6 +173,9 @@ export default function Settings() {
   const currencies = tripCurrencies(config);
   const setCurrencies = useMutation(api.trips.setCurrencies);
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const mainCurrency = mainCurrencyOf(config);
+  const setMainCurrency = useMutation(api.trips.setMainCurrency);
+  const [mainOpen, setMainOpen] = useState(false);
   const dayCount = tripDays(config).length;
 
   async function run(action: "leave" | "purge", failKey: TKey) {
@@ -190,6 +194,18 @@ export default function Settings() {
       <CurrencyPicker key={String(currencyOpen)} open={currencyOpen} initial={currencies} onClose={() => setCurrencyOpen(false)} onSave={async (codes) => {
           await setCurrencies({ tripId: id, currencies: codes });
         }} />
+      <CurrencyPicker
+        key={`main-${mainOpen}`}
+        open={mainOpen}
+        single
+        title={t("settings.trip.mainCurrency")}
+        hint={t("settings.trip.mainCurrencyHint")}
+        initial={[mainCurrency]}
+        onClose={() => setMainOpen(false)}
+        onSave={async (codes) => {
+          await setMainCurrency({ tripId: id, code: codes[0] });
+        }}
+      />
       <Stack.Screen options={{ title: t("settings.title") }} />
       <Screen edges={[]}>
         <Group title={t("settings.sections.you")}>
@@ -211,7 +227,14 @@ export default function Settings() {
               onPress={() => Linking.openURL(googleMapsUrl(config.homeBase!, config.searchRegionHint))}
             />
           )}
-          <Row icon={Coins} label={t("settings.trip.currency")} description={currencyNames(currencies, locale)} onPress={isAdmin ? () => setCurrencyOpen(true) : undefined} last={!isAdmin} />
+          <Row icon={Coins} label={t("settings.trip.currency")} description={currencyNames(currencies, locale)} onPress={isAdmin ? () => setCurrencyOpen(true) : undefined} />
+          <Row
+            icon={Coins}
+            label={t("settings.trip.mainCurrency")}
+            description={`${currencySymbol(mainCurrency) === mainCurrency ? "" : `${currencySymbol(mainCurrency)} `}${mainCurrency}`}
+            onPress={isAdmin ? () => setMainOpen(true) : undefined}
+            last={!isAdmin}
+          />
           {isAdmin && (
             <Row
               icon={Trash2}
