@@ -17,6 +17,7 @@ import {
   Euro,
   Globe,
   Heart,
+  Flag,
   Hourglass,
   Lightbulb,
   Map as MapIcon,
@@ -41,6 +42,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { categoryIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
+import { useReport } from "@/lib/report";
 import { useEvents, usePlace, useTrip } from "@/lib/trip";
 
 const toDraft = (place: Place): PlaceDraft => ({
@@ -70,6 +72,7 @@ export default function PlaceDetail() {
   const update = useMutation(api.places.update);
   const remove = useMutation(api.places.remove);
   const enrich = useAction(api.placesAi.enrich);
+  const report = useReport();
 
   const [editing, setEditing] = useState<PlaceDraft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -172,6 +175,7 @@ export default function PlaceDetail() {
     ...(place.bookingUrl ? [{ key: "tickets", icon: Ticket, label: t("trip.place.actions.tickets"), onPress: () => void Linking.openURL(place.bookingUrl!) }] : []),
     { key: "enrich", icon: Sparkles, label: t("trip.place.actions.enrich"), onPress: runEnrich },
     { key: "edit", icon: PenLine, label: t("trip.place.actions.edit"), onPress: () => setEditing(toDraft(place)) },
+    { key: "report", icon: Flag, label: t("common.report.action"), onPress: () => report("place", String(placeKey), `${place.name} ${place.summary ?? ""}`) },
     ...(canDeletePlaces ? [{ key: "remove", icon: Trash2, label: t("trip.place.actions.remove"), onPress: confirmRemove, danger: true }] : []),
   ];
 

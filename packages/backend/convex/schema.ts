@@ -369,6 +369,22 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_token", ["token"]),
 
+  /** Content / member reports from inside the app (App Store 1.2); reviewed by the owner */
+  reports: defineTable({
+    tripId: v.id("trips"),
+    reporterId: v.id("users"),
+    kind: v.union(v.literal("ai_reply"), v.literal("place"), v.literal("member"), v.literal("other")),
+    /** The reported thing's id (message, place or membership) */
+    targetId: v.string(),
+    /** A short copy of what was reported, so it can be judged even if deleted later */
+    excerpt: v.string(),
+    reason: v.string(),
+    status: v.union(v.literal("open"), v.literal("reviewed")),
+    createdAt: v.number(),
+  })
+    .index("by_trip", ["tripId", "createdAt"])
+    .index("by_status", ["status", "createdAt"]),
+
   /** Exchange-rate cache (EUR base), refreshed by a cron */
   rates: defineTable({
     base: v.string(),

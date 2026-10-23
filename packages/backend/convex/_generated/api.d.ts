@@ -45,6 +45,8 @@ import type * as purge from "../purge.js";
 import type * as push from "../push.js";
 import type * as pushSend from "../pushSend.js";
 import type * as rates from "../rates.js";
+import type * as reports from "../reports.js";
+import type * as reportsData from "../reportsData.js";
 import type * as trips from "../trips.js";
 
 import type {
@@ -91,6 +93,8 @@ declare const fullApi: ApiFromModules<{
   push: typeof push;
   pushSend: typeof pushSend;
   rates: typeof rates;
+  reports: typeof reports;
+  reportsData: typeof reportsData;
   trips: typeof trips;
 }>;
 

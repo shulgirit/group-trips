@@ -7,6 +7,15 @@ const common: PartialMessages["common"] = {
   saving: "Guardando…",
   cancel: "Cancelar",
   close: "Cerrar",
+  report: {
+    action: "Denunciar",
+    title: "¿Denunciar este contenido?",
+    offensive: "Ofensivo o inseguro",
+    wrong: "Incorrecto o engañoso",
+    spam: "Spam",
+    thanks: "Gracias, lo recibimos. Lo revisaremos en 24 horas.",
+    failed: "No se pudo enviar la denuncia, inténtalo de nuevo",
+  },
   confirm: {
     irreversible: "Esta acción no se puede deshacer",
     typeToConfirm: "Para confirmar, escribe {word}",

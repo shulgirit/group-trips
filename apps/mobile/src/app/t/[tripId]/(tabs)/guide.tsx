@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { type Href, router } from "expo-router";
-import { ArrowUp, ChevronRight, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
+import { ArrowUp, ChevronRight, Flag, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
 import { fontFor } from "@/lib/fonts";
 import { useLocale, useT } from "@/lib/i18n";
+import { useReport } from "@/lib/report";
 import { useTrip } from "@/lib/trip";
 
 /** Native tab bar height above the home indicator (content isn't inset for a fixed composer). */
@@ -47,6 +48,7 @@ export default function Guide() {
   const personal = !me.guest;
   const avatar = doc.ai.avatar?.kind === "bot" ? `bot:${doc.ai.avatar.id}` : avatarUrl;
 
+  const report = useReport();
   const sessions = useQuery(api.chat.sessions, { tripId });
   const [sessionId, setSessionId] = useState<Id<"chatSessions"> | null>(null);
   const rows = useQuery(api.chat.messages, sessionId ? { tripId, sessionId } : "skip");
@@ -214,6 +216,9 @@ export default function Guide() {
             <Text variant="caption" color={colors.ink500}>
               {config.ai.title}
             </Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("common.report.action")} onPress={() => report("ai_reply", String(row._id), row.content)} hitSlop={10}>
+              <Icon icon={Flag} size={13} color={colors.ink400} />
+            </Pressable>
           </View>
         )}
         <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>

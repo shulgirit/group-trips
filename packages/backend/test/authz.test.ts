@@ -65,6 +65,22 @@ describe("trip access", () => {
   });
 });
 
+describe("reports", () => {
+  it("members can report; outsiders cannot; the daily limit holds", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    const stranger = await userClient(t);
+    expect(await code(stranger.as.mutation(api.reports.submit, { tripId, kind: "place", targetId: "p1", excerpt: "x" }))).toBe("not_member");
+    const first = await member.as.mutation(api.reports.submit, { tripId, kind: "ai_reply", targetId: "m1", excerpt: "bad answer", reason: "offensive" });
+    expect(first.id).toBeTruthy();
+    const stored = await t.run(async (ctx) => ctx.db.query("reports").collect());
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ kind: "ai_reply", status: "open", reason: "offensive" });
+    for (let i = 0; i < 20; i++) await owner.as.mutation(api.reports.submit, { tripId, kind: "other", targetId: `t${i}`, excerpt: "e" });
+    expect(await code(owner.as.mutation(api.reports.submit, { tripId, kind: "other", targetId: "t99", excerpt: "e" }))).toBe("too_many_reports");
+  });
+});
+
 describe("settle everything", () => {
   it("records repayments that bring every currency to zero", async () => {
     const { t, owner, tripId } = await tripWithOwner();

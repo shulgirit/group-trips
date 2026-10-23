@@ -6,6 +6,15 @@ const common = {
   saving: "שומרים…",
   cancel: "ביטול",
   close: "סגירה",
+  report: {
+    action: "דיווח",
+    title: "לדווח על התוכן הזה?",
+    offensive: "פוגעני או לא בטוח",
+    wrong: "שגוי או מטעה",
+    spam: "ספאם",
+    thanks: "תודה, קיבלנו. נבדוק בתוך 24 שעות.",
+    failed: "לא הצלחנו לשלוח את הדיווח, נסו שוב",
+  },
   confirm: {
     irreversible: "פעולה בלתי הפיכה",
     typeToConfirm: "כדי לאשר, הקלידו {word}",
