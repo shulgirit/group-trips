@@ -65,6 +65,26 @@ describe("trip access", () => {
   });
 });
 
+describe("settle everything", () => {
+  it("records repayments that bring every currency to zero", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    const [a, b] = (await owner.as.query(api.families.list, { tripId })).map((f) => f._id);
+    const day = "2026-10-23";
+    await owner.as.mutation(api.expenses.add, { tripId, payerFamilyId: a, description: "Hotel", amount: 200, currency: "GBP", date: day, participantFamilyIds: null });
+    await owner.as.mutation(api.expenses.add, { tripId, payerFamilyId: b, description: "Taxi", amount: 90, currency: "ILS", date: day, participantFamilyIds: null });
+
+    const result = await member.as.mutation(api.expenses.settleAll, { tripId, date: day });
+    expect(result.recorded).toBe(2);
+    const rows = await owner.as.query(api.expenses.list, { tripId });
+    expect(rows.filter((r) => r.kind === "settlement")).toHaveLength(2);
+
+    // Nothing left to settle: a second call records nothing
+    const again = await owner.as.mutation(api.expenses.settleAll, { tripId, date: day });
+    expect(again.recorded).toBe(0);
+  });
+});
+
 describe("trip currencies", () => {
   it("only organizers choose them, valid codes only, 1-8", async () => {
     const { t, owner, tripId } = await tripWithOwner();

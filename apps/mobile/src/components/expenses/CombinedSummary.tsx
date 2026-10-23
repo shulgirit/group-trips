@@ -2,12 +2,13 @@ import { api } from "@together/backend/api";
 import { currencySymbol } from "@together/shared/currency";
 import { formatRate, isUsableRate, mainCurrencyOf, rateSource, rateToMain } from "@together/shared/currency-convert";
 import { calcCombinedBalances, calcSettlement } from "@together/shared/settlement";
+import { todayIso } from "@together/shared/trip";
 import { colors } from "@together/shared/tokens";
 import type { Expense, Family } from "@together/shared/types";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowRight, Check, RotateCcw } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { formatAmount } from "@/components/expenses/format";
 import { shortFamilyName } from "@/components/expenses/SplitEditor";
 import { Icon } from "@/components/ui/Icon";
@@ -39,6 +40,8 @@ export function CombinedSummary({ expenses, families }: { expenses: Expense[]; f
   const [refreshFailed, setRefreshFailed] = useState(false);
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  const [settling, setSettling] = useState(false);
+  const settleAll = useMutation(api.expenses.settleAll);
 
   const main = mainCurrencyOf(config);
   const overrides = config.rateOverrides;
@@ -74,6 +77,26 @@ export function CombinedSummary({ expenses, families }: { expenses: Expense[]; f
     if (Math.abs(value - rates[code]) < 1e-9) return;
     setError("");
     await setOverride({ tripId, code, rate: value }).catch(() => setError(t("common.errors.saveFailed")));
+  }
+
+  function confirmSettleAll() {
+    Alert.alert(t("money.main.markAllTitle"), t("money.main.markAllText"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("money.main.markAll"),
+        onPress: async () => {
+          setSettling(true);
+          setError("");
+          try {
+            await settleAll({ tripId, date: todayIso() });
+          } catch {
+            setError(t("money.main.failed"));
+          } finally {
+            setSettling(false);
+          }
+        },
+      },
+    ]);
   }
 
   async function reset(code: string) {
@@ -158,7 +181,7 @@ export function CombinedSummary({ expenses, families }: { expenses: Expense[]; f
 
       {combined ? (
         <View style={{ gap: 14 }}>
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 6, display: combined.balances.some((balance) => Math.abs(balance.balance) >= 0.5) ? "flex" : "none" }}>
             <Text variant="caption" color={colors.brass300}>
               {t("money.main.balances")}
             </Text>
@@ -202,6 +225,12 @@ export function CombinedSummary({ expenses, families }: { expenses: Expense[]; f
                   </Text>
                 </View>
               ))}
+              <Pressable accessibilityRole="button" disabled={settling} onPress={confirmSettleAll} style={[styles.markAll, settling && { opacity: 0.6 }]}>
+                <Icon icon={Check} size={16} color={colors.night950} />
+                <Text weight="medium" color={colors.night950}>
+                  {settling ? t("money.main.marking") : t("money.main.markAll")}
+                </Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -231,6 +260,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     writingDirection: "ltr",
   },
+  markAll: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 46, marginTop: 6, borderRadius: 14, backgroundColor: colors.chart50 },
   save: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.brass300, alignItems: "center", justifyContent: "center" },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.1)" },
   badgeEdited: { backgroundColor: colors.brass300 },

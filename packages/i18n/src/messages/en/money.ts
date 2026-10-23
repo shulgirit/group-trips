@@ -83,6 +83,11 @@ const money: typeof he = {
     enterRate: "Enter a rate to calculate the total in {currency}",
     balances: "Combined balances",
     transfers: "Final transfers",
+    markAll: "Mark everything as paid",
+    markAllTitle: "Mark everything as paid?",
+    markAllText: "This records the repayments in every currency and clears all open debts. Only do it once the money has really been transferred.",
+    marking: "Recording…",
+    failed: "Couldn't record the repayments, please try again",
   },
   docs: {
     title: "Bookings & documents",

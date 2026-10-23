@@ -83,6 +83,11 @@ const money: PartialMessages["money"] = {
     enterRate: "Introduce un tipo para calcular el total en {currency}",
     balances: "Saldos conjuntos",
     transfers: "Transferencias finales",
+    markAll: "Marcar todo como pagado",
+    markAllTitle: "¿Marcar todo como pagado?",
+    markAllText: "Esto registra los pagos en todas las monedas y borra todas las deudas abiertas. Hazlo solo cuando el dinero se haya transferido de verdad.",
+    marking: "Registrando…",
+    failed: "No se pudieron registrar los pagos, inténtalo de nuevo",
   },
   docs: {
     title: "Reservas y documentos",
