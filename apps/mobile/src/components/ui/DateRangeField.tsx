@@ -1,7 +1,7 @@
 import { colors } from "@together/shared/tokens";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Modal, Pressable, StyleSheet, View, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
@@ -118,7 +118,7 @@ export function DateRangeField({
       </View>
 
       <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
-        <SafeAreaView style={styles.sheet} edges={["bottom"]}>
+        <SafeAreaView style={styles.sheet} edges={Platform.OS === "android" ? ["top", "bottom"] : ["bottom"]}>
           <View style={styles.summary}>
             <View style={{ flex: 1 }}>
               <Text variant="caption" color={colors.ink500}>

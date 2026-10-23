@@ -2,7 +2,7 @@ import { POPULAR_CURRENCIES, currencySymbol } from "@together/shared/currency";
 import { colors } from "@together/shared/tokens";
 import { Check } from "lucide-react-native";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, View, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -73,7 +73,7 @@ export function CurrencyPicker({
 
   return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={styles.root} edges={["bottom"]}>
+      <SafeAreaView style={styles.root} edges={Platform.OS === "android" ? ["top", "bottom"] : ["bottom"]}>
         <View style={styles.head}>
           <Text variant="title">{title ?? t("settings.trip.currency")}</Text>
           <Text variant="small" color={colors.ink500}>
