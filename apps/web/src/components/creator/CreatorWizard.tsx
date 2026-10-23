@@ -110,6 +110,7 @@ async function loadTripState(tripRef: string): Promise<CreatorState | null> {
       endDate: stop.endDate,
     })),
     departureTime,
+    currencies: data.currencies ?? [],
     groupKind: data.groupKind,
     groupName: data.groupName,
     families: familyRows.map((f) => ({
