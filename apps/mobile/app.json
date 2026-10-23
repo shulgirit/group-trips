@@ -27,6 +27,7 @@
       "usesAppleSignIn": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0f1b2d",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
