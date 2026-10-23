@@ -216,8 +216,11 @@ export default function Guide() {
             <Text variant="caption" color={colors.ink500}>
               {config.ai.title}
             </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={t("common.report.action")} onPress={() => report("ai_reply", String(row._id), row.content)} hitSlop={10}>
-              <Icon icon={Flag} size={13} color={colors.ink400} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("common.report.action")} onPress={() => report("ai_reply", String(row._id), row.content)} hitSlop={10} style={styles.reportBtn}>
+              <Icon icon={Flag} size={13} color={colors.ink500} />
+              <Text variant="caption" weight="medium" color={colors.ink500}>
+                {t("common.report.action")}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -472,6 +475,7 @@ const styles = StyleSheet.create({
   },
   sessionActive: { backgroundColor: colors.route700, borderColor: colors.route700 },
   listContent: { paddingHorizontal: 20, paddingVertical: 12, gap: 4 },
+  reportBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingStart: 8 },
   speaker: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end" },
   bubble: { maxWidth: "88%", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, gap: 8, shadowColor: colors.ink900, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   mine: { alignSelf: "flex-start", backgroundColor: colors.route700, borderBottomStartRadius: 6 },
