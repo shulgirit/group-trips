@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { type Href, router } from "expo-router";
-import { ArrowUp, ChevronRight, Flag, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
+import { ArrowUp, ChevronDown, ChevronRight, Flag, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -393,7 +393,7 @@ export default function Guide() {
             ListHeaderComponent={status}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode={Platform.OS === "ios" ? "on-drag" : "interactive"}
           />
         )}
 
@@ -422,6 +422,11 @@ export default function Guide() {
               multiline
               style={[styles.input, { fontFamily: fontFor(locale, "regular") }]}
             />
+            {keyboard ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={() => Keyboard.dismiss()} style={styles.attach}>
+                <Icon icon={ChevronDown} size={20} color={colors.ink700} />
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("ai.send")}

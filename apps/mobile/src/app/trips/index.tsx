@@ -3,6 +3,8 @@ import { tripPhase } from "@together/shared/trip-doc";
 import { todayIso } from "@together/shared/trip";
 import { colors, radius } from "@together/shared/tokens";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, router } from "expo-router";
 import { Plus, UserRound } from "lucide-react-native";
 import { useState } from "react";
@@ -69,17 +71,19 @@ export default function Trips() {
       ) : (
         <>
           {!me?.guest && (
-            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={styles.newTrip}>
-              <View style={styles.plus}>
-                <Icon icon={Plus} size={20} color={colors.night950} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text weight="semibold" color={colors.chart50}>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={({ pressed }) => [styles.newTrip, pressed && { opacity: 0.92 }]}>
+              <Image source={require("../../../assets/onboarding/plan.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <LinearGradient colors={["rgba(7,12,22,0.25)", "rgba(7,12,22,0.88)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              <View style={styles.newTripText}>
+                <Text variant="title" color={colors.chart50}>
                   {t("product.trips.newTrip.title")}
                 </Text>
-                <Text variant="small" color="rgba(241,243,239,0.7)">
+                <Text variant="small" color="rgba(241,243,239,0.85)" numberOfLines={2}>
                   {t("product.trips.newTrip.text")}
                 </Text>
+              </View>
+              <View style={styles.plus}>
+                <Icon icon={Plus} size={22} color={colors.night950} />
               </View>
             </Pressable>
           )}
@@ -138,13 +142,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.chart200 },
   first: { backgroundColor: colors.night950, borderColor: colors.night900, padding: 24, gap: 14 },
-  newTrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 14,
-    borderRadius: 22,
-    backgroundColor: colors.night950,
-  },
-  plus: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center" },
+  newTrip: { minHeight: 112, borderRadius: 28, overflow: "hidden", flexDirection: "row", alignItems: "center", gap: 14, padding: 20, backgroundColor: colors.night950, shadowColor: colors.ink900, shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  newTripText: { flex: 1, gap: 4 },
+  plus: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center", shadowColor: colors.brass500, shadowOpacity: 0.6, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
 });

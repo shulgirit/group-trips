@@ -49,7 +49,7 @@ export default function TripTabs() {
   const order = ["index", "guide", "schedule", "places", "more"];
   const ordered = (reverse ? [...order].reverse() : order).map((name) => tabs[name]);
   return (
-    <NativeTabs tintColor={colors.ink900} iconColor={{ default: colors.ink400, selected: colors.ink900 }} backgroundColor={colors.chart50} minimizeBehavior="onScrollDown">
+    <NativeTabs tintColor={colors.ink900} iconColor={{ default: colors.ink400, selected: colors.ink900 }} backgroundColor={colors.chart50}>
       {ordered}
     </NativeTabs>
   );
