@@ -314,7 +314,7 @@ export default function Guide() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.root}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.header}>
           <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={40} />
           <View style={{ flex: 1 }}>

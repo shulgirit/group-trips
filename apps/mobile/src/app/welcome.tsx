@@ -3,7 +3,7 @@ import { useConvexAuth } from "convex/react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { Link2 } from "lucide-react-native";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -87,7 +87,7 @@ export default function Welcome() {
       </View>
 
       {signingIn ? (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.signIn} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
         <Animated.View entering={FadeInDown.delay(150).duration(520)} style={styles.sheet}>
           <View style={{ gap: 10 }}>

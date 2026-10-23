@@ -1,7 +1,7 @@
 import { colors, radius } from "@together/shared/tokens";
 import { Dot } from "lucide-react-native";
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -64,7 +64,7 @@ export function ConfirmSheet({
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={busy ? undefined : onClose} accessibilityLabel={t("common.close")} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.wrap} pointerEvents="box-none">
+      <KeyboardAvoidingView behavior="padding" style={styles.wrap} pointerEvents="box-none">
         <SafeAreaView edges={["bottom"]} style={styles.sheet}>
           <ScrollView contentContainerStyle={{ gap: 14, padding: 22 }} keyboardShouldPersistTaps="handled">
             <Text variant="title">{title}</Text>

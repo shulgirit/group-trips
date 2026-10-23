@@ -24,7 +24,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { type Href, Redirect, router, Stack, useLocalSearchParams } from "expo-router";
 import { ArrowRight, BedDouble, CalendarDays, CarFront, Check, ChevronLeft, Plane, Share2, Ticket, Users, type LucideIcon } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BookingImporter } from "@/components/creator/BookingImporter";
 import { StepAi } from "@/components/creator/StepAi";
@@ -256,7 +256,7 @@ export default function NewTrip() {
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* Progress: the steps as a route */}
         <View style={styles.top}>
           <View style={styles.topRow}>
