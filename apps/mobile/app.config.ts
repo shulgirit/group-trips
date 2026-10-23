@@ -33,6 +33,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   // direction on every launch and override the language chosen inside the app.
   if (!env) result = { ...result, extra: { ...result.extra, supportsRTL: true } };
 
+  // Android maps need a Google Maps SDK key (public by design; restricted to the app in Google Cloud)
+  const mapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY;
+  if (mapsKey) {
+    result = { ...result, android: { ...result.android, config: { ...result.android?.config, googleMaps: { apiKey: mapsKey } } } };
+  }
+
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   if (iosClientId) {
     const iosUrlScheme = `com.googleusercontent.apps.${iosClientId.replace(".apps.googleusercontent.com", "")}`;

@@ -21,6 +21,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
+import { MAPS_AVAILABLE } from "@/lib/maps";
 import { useEvents, useFamilies, usePlaces, useTrip } from "@/lib/trip";
 
 const DEFAULT_DURATION_MIN = 90;
@@ -90,7 +91,7 @@ export default function Now() {
 
   const quick: { path: string; label: TKey; icon: LucideIcon }[] = [
     { path: "/schedule", label: "trip.home.quick.schedule", icon: CalendarDays },
-    { path: "/places?view=map", label: "trip.home.quick.map", icon: MapIcon },
+    ...(MAPS_AVAILABLE ? [{ path: "/places?view=map", label: "trip.home.quick.map" as TKey, icon: MapIcon }] : []),
     { path: "/documents", label: "trip.home.quick.tickets", icon: Ticket },
     { path: "/expenses", label: "trip.home.quick.expenses", icon: Wallet },
     isAdmin ? { path: "/invites", label: "trip.home.quick.invite", icon: UserPlus } : { path: "/polls", label: "trip.home.quick.polls", icon: Vote },
