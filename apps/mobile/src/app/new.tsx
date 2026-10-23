@@ -40,6 +40,7 @@ import { ChipRow } from "@/components/ui/ChipRow";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
+import { useSafeQuery } from "@/lib/safe-query";
 import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 
@@ -127,8 +128,8 @@ export default function NewTrip() {
   const { locale, rtl } = useLocale();
   const convex = useConvex();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
-  const myTrips = useQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const myTrips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
   const params = useLocalSearchParams<{ trip?: string }>();
   const [state, setState] = useState<CreatorState | null>(null);
   const [step, setStep] = useState(0);

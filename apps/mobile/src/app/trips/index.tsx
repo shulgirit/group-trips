@@ -15,14 +15,15 @@ import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
 
 /** My trips: the live/next trip large, then the rest; past trips at the end. */
 export default function Trips() {
   const t = useT();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
-  const trips = useQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const trips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
 

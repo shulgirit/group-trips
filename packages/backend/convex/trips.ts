@@ -6,7 +6,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, query } from "./_generated/server";
 import { fail, getUser, isAdmin } from "./lib/authz";
-import { accountMutation, tripMutation, tripQuery, userQuery } from "./lib/functions";
+import { accountMutation, tripMutation, tripQuery } from "./lib/functions";
 import { activeTripCount, FREE_LIMITS } from "./lib/limits";
 import { tripInput } from "./lib/validators";
 
@@ -315,12 +315,17 @@ export const resolve = query({
 });
 
 /** "My trips": every trip the caller belongs to, with their role. */
-export const mine = userQuery({
+export const mine = query({
   args: {},
   handler: async (ctx) => {
+    // Right after a brand-new sign-up the session is valid a moment before the app profile row exists:
+    // that is "no trips yet", not an error (an error here used to close the app).
+    const user = await getUser(ctx);
+    if (!user) return [];
+    const ctxUser = user;
     const memberships = await ctx.db
       .query("memberships")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+      .withIndex("by_user", (q) => q.eq("userId", ctxUser._id))
       .collect();
     const rows = await Promise.all(
       memberships.map(async (membership) => {
@@ -337,7 +342,7 @@ export const mine = userQuery({
           coverImage: trip.coverImage,
           status: trip.status,
           role: membership.role,
-          isOwner: trip.ownerId === ctx.user._id,
+          isOwner: trip.ownerId === ctxUser._id,
         };
       })
     );

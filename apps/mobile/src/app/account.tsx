@@ -17,13 +17,14 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { signOut } from "@/lib/auth";
+import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
 
 /** My account: profile, my trips, language, legal, sign out and account deletion (App Store 5.1.1). */
 export default function Account() {
   const t = useT();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
   const setName = useMutation(api.account.setName);
   const [name, setNameValue] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);

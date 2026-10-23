@@ -65,6 +65,15 @@ describe("trip access", () => {
   });
 });
 
+describe("sign-up race", () => {
+  it("the trip list is empty (not an error) before the profile row exists", async () => {
+    const t = makeTest();
+    const identity = t.withIdentity({ subject: "brand-new-auth-id", issuer: "https://example.test" });
+    expect(await identity.query(api.trips.mine, {})).toEqual([]);
+    expect(await t.query(api.trips.mine, {})).toEqual([]);
+  });
+});
+
 describe("reports", () => {
   it("members can report; outsiders cannot; the daily limit holds", async () => {
     const { t, owner, tripId } = await tripWithOwner();
