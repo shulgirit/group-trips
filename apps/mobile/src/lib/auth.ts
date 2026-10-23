@@ -1,3 +1,4 @@
+import { activeLocale } from "@together/i18n/active";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { Platform } from "react-native";
@@ -65,7 +66,11 @@ export async function signInWithBrowser(provider: "google" | "apple"): Promise<v
 }
 
 export async function sendEmailCode(email: string): Promise<void> {
-  const result = await authClient.emailOtp.sendVerificationOtp({ email: email.trim(), type: "sign-in" });
+  // The email follows the language chosen in the app, not the phone's (the server reads accept-language)
+  const result = await authClient.emailOtp.sendVerificationOtp(
+    { email: email.trim(), type: "sign-in" },
+    { headers: { "accept-language": activeLocale() } }
+  );
   if (result.error) throw new Error(result.error.code ?? "send_failed");
 }
 
