@@ -329,7 +329,7 @@ const creator: PartialMessages["creator"] = {
     limit: "استخدمت خطط الذكاء الاصطناعي لهذا الشهر.",
     running: "هناك خطة قيد الإنشاء بالفعل.",
     bannerTitle: "خطة مبدئية",
-    bannerText: "التواريخ تقريبية: {notes}",
+    bannerText: "التواريخ تقريبية. أكدها عندما تتضح خططك.",
     confirm: "تأكيد التواريخ",
     publish: "نشر ودعوة",
     confirmTitle: "اختر التواريخ الفعلية",

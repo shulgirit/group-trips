@@ -329,7 +329,7 @@ const creator: PartialMessages["creator"] = {
     limit: "Ya usaste los planes de IA de este mes.",
     running: "Ya se está creando un plan.",
     bannerTitle: "Plan provisional",
-    bannerText: "Las fechas son aproximadas: {notes}",
+    bannerText: "Las fechas son aproximadas. Confírmalas cuando tengas todo listo.",
     confirm: "Confirmar fechas",
     publish: "Publicar e invitar",
     confirmTitle: "Elige las fechas reales",

@@ -329,7 +329,7 @@ const creator: typeof he = {
     limit: "You've used this month's AI plans.",
     running: "A plan is already being built.",
     bannerTitle: "Tentative plan",
-    bannerText: "Dates are approximate: {notes}",
+    bannerText: "Dates are approximate. Confirm them once your plans are set.",
     confirm: "Confirm dates",
     publish: "Publish and invite",
     confirmTitle: "Pick your real dates",

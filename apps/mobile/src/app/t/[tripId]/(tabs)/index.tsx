@@ -158,9 +158,6 @@ export default function Now() {
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-        <TentativeBanner />
-      </View>
       <View style={styles.body}>
         {/* The core tools, one tap away */}
         <View style={styles.quickCard}>
@@ -176,6 +173,7 @@ export default function Now() {
           ))}
         </View>
 
+        <TentativeBanner />
         <KidsNudge />
         <NotifyNudge />
 

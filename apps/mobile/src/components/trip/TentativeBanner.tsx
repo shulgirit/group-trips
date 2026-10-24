@@ -23,7 +23,6 @@ export function TentativeBanner() {
   const [start, setStart] = useState(doc.startDate);
   if (!doc.tentative) return null;
 
-  const notes = (doc.planNotes ?? "").split("\n")[0].slice(0, 160);
   const confirm = async () => {
     await confirmDates({ tripId: id, startDate: start }).catch(() => undefined);
     setOpen(false);
@@ -42,9 +41,9 @@ export function TentativeBanner() {
           {t("creator.planner.bannerTitle")}
         </Text>
       </View>
-      {doc.datesApproximate && notes ? (
+      {doc.datesApproximate ? (
         <Text variant="small" color={colors.ink700}>
-          {t("creator.planner.bannerText", { notes })}
+          {t("creator.planner.bannerText")}
         </Text>
       ) : null}
       {isAdmin && (
@@ -63,7 +62,7 @@ export function TentativeBanner() {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, gap: 10, borderColor: colors.brass500, borderRadius: radius.card },
+  card: { padding: 16, gap: 10, marginTop: 12, borderColor: colors.brass500, borderRadius: radius.card },
   head: { flexDirection: "row", alignItems: "center", gap: 8 },
   actions: { flexDirection: "row", gap: 10 },
 });

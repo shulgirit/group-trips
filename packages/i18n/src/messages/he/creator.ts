@@ -324,7 +324,7 @@ const creator = {
     limit: "ניצלתם את תכנוני ה־AI של החודש.",
     running: "תכנון כבר נבנה כרגע.",
     bannerTitle: "תכנון זמני",
-    bannerText: "התאריכים משוערים: {notes}",
+    bannerText: "התאריכים משוערים. אשרו אותם כשהתוכניות סגורות.",
     confirm: "אישור תאריכים",
     publish: "פרסום והזמנה",
     confirmTitle: "בחרו תאריכים אמיתיים",

@@ -40,7 +40,7 @@ export const OutlineSchema = z.object({
   endDate: z.string(),
   datesReason: text(300),
   group: z.object({
-    kind: z.enum(GROUP_KINDS),
+    kind: z.enum(GROUP_KINDS).catch("other"),
     adults: z.number().int().transform((n) => Math.min(40, Math.max(1, n))),
     kidAges: z.array(z.number().int()).transform((ages) => ages.slice(0, 20).map((a) => Math.min(17, Math.max(0, a)))),
     name: text(40),
@@ -159,7 +159,7 @@ export const DayItemSchema = z.object({
   /** "HH:MM" local start */
   time: z.string().regex(/^\d{1,2}:\d{2}$/),
   title: text(100, 1),
-  kind: z.enum(ITEM_KINDS),
+  kind: z.enum(ITEM_KINDS).catch("activity"),
   /** What to type into Google Maps to find it, with the city */
   query: z.string().min(2).max(140),
   durationMin: z.number().int().transform((n) => Math.min(600, Math.max(15, n))),

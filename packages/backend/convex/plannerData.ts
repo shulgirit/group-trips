@@ -70,7 +70,8 @@ export const build = internalMutation({
       cursor = endDate;
       return {
         id: `s-${randomId(6)}`,
-        label: String(resolved.label || stop.label).slice(0, 80),
+        // The model names stops in the traveller's language; Places returns Hebrew names
+        label: String(stop.label || resolved.label).slice(0, 80),
         ...(resolved.placeId ? { placeId: resolved.placeId } : {}),
         lat: resolved.lat,
         lng: resolved.lng,
