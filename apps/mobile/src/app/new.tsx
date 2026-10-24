@@ -196,6 +196,12 @@ export default function NewTrip() {
     });
   });
 
+  /** An intentional exit (after saving or discarding): the back-guard must not ask again. */
+  function exitToTrips() {
+    leaving.current = true;
+    router.replace("/trips");
+  }
+
   function leave() {
     leaving.current = true;
     if (router.canGoBack()) router.back();
@@ -216,9 +222,9 @@ export default function NewTrip() {
           if (problem && !state.tripId) {
             // Destination and dates aren't complete yet: it stays on this phone and is offered again next time
             writeDraft(state);
-            return router.replace("/trips");
+            return exitToTrips();
           }
-          if (await save("draft")) router.replace("/trips");
+          if (await save("draft")) exitToTrips();
         },
       },
       {
@@ -233,7 +239,7 @@ export default function NewTrip() {
               onPress: async () => {
                 writeDraft(null);
                 if (state.tripId) await convex.mutation(api.trips.remove, { tripId: state.tripId as Id<"trips"> }).catch(() => undefined);
-                router.replace("/trips");
+                exitToTrips();
               },
             },
           ]),
