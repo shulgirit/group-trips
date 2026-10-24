@@ -65,6 +65,44 @@ describe("trip access", () => {
   });
 });
 
+describe("trip drafts", () => {
+  it("saves wizard progress, hides it from others, and does not use up the free limit", async () => {
+    const t = makeTest();
+    const owner = await userClient(t, { name: "Omer" });
+    const draftId = await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 2 }) });
+    let mine = await owner.as.query(api.trips.mine, {});
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ status: "draft", draftStep: 2 });
+
+    // Progress moves forward on later saves
+    await owner.as.mutation(api.trips.update, { tripId: draftId, input: tripInput({ status: "draft", draftStep: 3 }) });
+    mine = await owner.as.query(api.trips.mine, {});
+    expect(mine[0]).toMatchObject({ draftStep: 3 });
+
+    // Someone else never sees it
+    const other = await userClient(t, { name: "Noa" });
+    expect(await other.as.query(api.trips.mine, {})).toEqual([]);
+
+    // Five abandoned drafts do not block creating live trips
+    for (let i = 0; i < 5; i++) await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 1, name: `Draft ${i}` }) });
+    for (let i = 0; i < 5; i++) await owner.as.mutation(api.trips.create, { input: tripInput({ name: `Live ${i}` }) });
+    expect(await code(owner.as.mutation(api.trips.create, { input: tripInput({ name: "One too many" }) }))).toBe("trip_limit");
+
+    // Launching a draft goes through the same limit, and clears the progress marker once live
+    expect(await code(owner.as.mutation(api.trips.update, { tripId: draftId, input: tripInput({ status: "active" }) }))).toBe("trip_limit");
+  });
+
+  it("a draft that goes live drops its progress marker", async () => {
+    const t = makeTest();
+    const owner = await userClient(t, { name: "Omer" });
+    const id = await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 3 }) });
+    await owner.as.mutation(api.trips.update, { tripId: id, input: tripInput({ status: "active" }) });
+    const { trip } = await owner.as.query(api.trips.get, { tripId: id });
+    expect(trip.status).toBe("active");
+    expect(trip.draftStep).toBeUndefined();
+  });
+});
+
 describe("sign-up race", () => {
   it("the trip list is empty (not an error) before the profile row exists", async () => {
     const t = makeTest();

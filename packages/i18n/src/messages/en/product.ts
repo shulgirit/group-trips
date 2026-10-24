@@ -82,7 +82,9 @@ const product: typeof he = {
     },
   },
   card: {
-    draft: "Draft — continue",
+    draft: "Draft",
+    draftContinue: "Step {n} of {total} · Continue setting up",
+    draftLocal: "Continue planning your trip",
     live: "On the trip now",
     tomorrow: "Tomorrow",
     inDays: "In {count} days",

@@ -21,6 +21,8 @@ export interface TripRow {
   endDate: string;
   coverImage: string | null;
   status: "draft" | "active" | "archived";
+  /** Draft only: furthest wizard step reached (0-4) */
+  draftStep?: number;
 }
 
 function daysUntil(dateIso: string, today: string) {
@@ -70,6 +72,16 @@ export function TripCard({ trip, large = false }: { trip: TripRow; large?: boole
         <Text variant={large ? "displayLg" : "title"} color={colors.chart50} numberOfLines={large ? 2 : 1}>
           {trip.name}
         </Text>
+        {trip.status === "draft" ? (
+          <View style={{ gap: 6 }}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.round((((trip.draftStep ?? 2) + 1) / 5) * 100)}%` }]} />
+            </View>
+            <Text variant="small" weight="medium" color={colors.brass300}>
+              {t("product.card.draftContinue", { n: Math.min((trip.draftStep ?? 2) + 1, 5), total: 5 })}
+            </Text>
+          </View>
+        ) : null}
         <View style={styles.meta}>
           <View style={styles.metaItem}>
             <Icon icon={CalendarDays} size={13} color="rgba(241,243,239,0.8)" />
@@ -96,6 +108,8 @@ const styles = StyleSheet.create({
   live: { borderWidth: 2, borderColor: colors.route500 },
   empty: { alignItems: "center", justifyContent: "center", backgroundColor: colors.night900 },
   badge: { position: "absolute", top: 14, start: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.2)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.brass500 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.chart50 },
   meta: { flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 5 },

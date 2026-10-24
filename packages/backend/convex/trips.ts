@@ -42,6 +42,7 @@ function tripFields(input: TripInput) {
     departureAt: input.departureAt ?? null,
     departureNote: input.departureNote ?? "",
     ...(input.currencies?.length ? { currencies: input.currencies } : {}),
+    ...(input.draftStep !== undefined ? { draftStep: input.draftStep } : {}),
     homeBase: input.homeBase,
     groupKind: input.groupKind,
     groupName: input.groupName.trim(),
@@ -182,7 +183,9 @@ export const update = tripMutation({
     validateInput(input);
     const wasDraft = ctx.trip.status === "draft";
     const status = wasDraft ? input.status : ctx.trip.status;
-    await ctx.db.patch(ctx.tripId, { ...tripFields(input), status, updatedAt: Date.now() });
+    // A draft going live must fit the free limit like any new trip (drafts themselves don't count)
+    if (wasDraft && status === "active" && (await activeTripCount(ctx, ctx.user._id)) >= FREE_LIMITS.activeTripsPerUser) fail("limit", "trip_limit");
+    await ctx.db.patch(ctx.tripId, { ...tripFields(input), status, ...(status === "active" ? { draftStep: undefined } : {}), updatedAt: Date.now() });
     const familyIds = await writeFamilies(ctx, ctx.tripId, input.families, { allowDelete: wasDraft });
     if (input.me) {
       await ctx.db.patch(ctx.member._id, {
@@ -341,6 +344,7 @@ export const mine = query({
           endDate: trip.endDate,
           coverImage: trip.coverImage,
           status: trip.status,
+          ...(trip.status === "draft" && trip.draftStep !== undefined ? { draftStep: trip.draftStep } : {}),
           role: membership.role,
           isOwner: trip.ownerId === ctxUser._id,
         };

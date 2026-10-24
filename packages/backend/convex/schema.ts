@@ -51,6 +51,8 @@ export default defineSchema({
     currency: v.string(),
     /** Currencies offered for expenses; absent = the stops' + ILS */
     currencies: v.optional(v.array(v.string())),
+    /** Wizard progress of a draft: the furthest step reached (0-4); cleared when the trip goes live */
+    draftStep: v.optional(v.number()),
     /** The currency the combined settle-up is shown in; absent = ILS when offered, else the first currency */
     mainCurrency: v.optional(v.string()),
     /** Manually edited rates: units of the main currency per 1 unit of the key (absent key = live market rate) */

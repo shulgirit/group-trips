@@ -111,6 +111,7 @@ async function loadTripState(tripRef: string): Promise<CreatorState | null> {
     })),
     departureTime,
     currencies: data.currencies ?? [],
+    draftStep: 2,
     groupKind: data.groupKind,
     groupName: data.groupName,
     families: familyRows.map((f) => ({

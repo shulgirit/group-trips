@@ -76,6 +76,7 @@ export const TripInputSchema = z
     departureAt: z.string().max(40).nullable().optional(),
     departureNote: z.string().max(120).optional(),
     currencies: z.array(z.string().regex(/^[A-Z]{3}$/)).max(8).optional(),
+    draftStep: z.number().int().min(0).max(4).optional(),
     homeBase: HomeBaseSchema.nullable(),
     groupKind: z.enum(["families", "friends", "couple", "other"]),
     groupName: z.string().trim().max(40),

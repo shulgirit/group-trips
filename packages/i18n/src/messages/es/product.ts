@@ -82,7 +82,9 @@ const product: PartialMessages["product"] = {
     },
   },
   card: {
-    draft: "Borrador. Continuar",
+    draft: "Borrador",
+    draftContinue: "Paso {n} de {total} · Continuar la configuración",
+    draftLocal: "Continúa planificando tu viaje",
     live: "De viaje ahora",
     tomorrow: "Mañana",
     inDays: "En {count} días",

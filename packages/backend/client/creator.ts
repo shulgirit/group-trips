@@ -50,6 +50,8 @@ export interface CreatorState {
   departureTime: string;
   /** Currencies offered for expenses; empty = the stops' plus ILS */
   currencies: string[];
+  /** Furthest wizard step reached (0-4); saved with a draft so it resumes where it stopped */
+  draftStep: number;
   groupKind: GroupKind;
   groupName: string;
   families: CreatorFamily[];
@@ -106,6 +108,7 @@ export function initialState(displayName: string | null): CreatorState {
     stops: [{ id: shortId("s"), place: null, startDate: "", endDate: "" }],
     departureTime: "",
     currencies: [],
+    draftStep: 0,
     groupKind: "families",
     groupName: "",
     families: [
@@ -201,6 +204,7 @@ export function toTripInput(
       })),
     departureAt,
     ...(state.currencies.length ? { currencies: state.currencies } : {}),
+    ...(status === "draft" ? { draftStep: Math.max(0, Math.min(4, state.draftStep)) } : {}),
     departureNote: departureAt
       ? tActive("creator.defaults.departureNote", {
           date: shortDate(tripStart(state)),

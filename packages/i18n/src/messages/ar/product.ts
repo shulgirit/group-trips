@@ -78,7 +78,9 @@ const product: PartialMessages["product"] = {
     },
   },
   card: {
-    draft: "مسودة، تابعوا",
+    draft: "مسودة",
+    draftContinue: "الخطوة {n} من {total} · تابعوا الإعداد",
+    draftLocal: "تابعوا تخطيط رحلتكم",
     live: "في الرحلة الآن",
     tomorrow: "غدًا",
     inDays: "بعد {count} أيام",

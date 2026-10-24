@@ -81,7 +81,9 @@ const product = {
     },
   },
   card: {
-    draft: "טיוטה — להמשיך",
+    draft: "טיוטה",
+    draftContinue: "שלב {n} מתוך {total} · להמשיך את ההגדרה",
+    draftLocal: "להמשיך לתכנן את הטיול",
     live: "עכשיו בטיול",
     tomorrow: "מחר!",
     inDays: "בעוד {count} ימים",

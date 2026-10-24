@@ -75,6 +75,16 @@ const creator: typeof he = {
     name: "Give the trip a name",
     people: "Add at least one traveler",
   },
+  close: {
+    title: "Leave without finishing?",
+    text: "Save it as a draft and pick up exactly where you left off, from any device.",
+    save: "Save and finish later",
+    discard: "Delete this draft",
+    keep: "Keep editing",
+    discardTitle: "Delete this draft?",
+    discardText: "Everything you entered for this trip will be removed.",
+    discardConfirm: "Delete",
+  },
   where: {
     title: "Where are you going?",
     text: "One destination, a trip at home or a multi-country route — everything else builds on this",

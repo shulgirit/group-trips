@@ -75,6 +75,16 @@ const creator: PartialMessages["creator"] = {
     name: "Ponle un nombre al viaje",
     people: "Añade al menos un viajero",
   },
+  close: {
+    title: "¿Salir sin terminar?",
+    text: "Guárdalo como borrador y continúa justo donde lo dejaste, desde cualquier dispositivo.",
+    save: "Guardar y terminar después",
+    discard: "Eliminar este borrador",
+    keep: "Seguir editando",
+    discardTitle: "¿Eliminar este borrador?",
+    discardText: "Se borrará todo lo que introdujiste para este viaje.",
+    discardConfirm: "Eliminar",
+  },
   where: {
     title: "¿Adónde vais?",
     text: "Un destino o una ruta por varios países: todo lo demás se construye a partir de aquí",

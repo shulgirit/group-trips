@@ -1,9 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@together/backend/api";
 import {
   basicsValid,
   type CreatorState,
-  DRAFT_KEY,
   groupValid,
   initialState,
   peopleCounts,
@@ -24,7 +22,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { type Href, Redirect, router, Stack, useLocalSearchParams } from "expo-router";
 import { ArrowRight, BedDouble, CalendarDays, CarFront, Check, ChevronLeft, Plane, Share2, Ticket, Users, type LucideIcon } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BookingImporter } from "@/components/creator/BookingImporter";
 import { StepAi } from "@/components/creator/StepAi";
@@ -40,6 +38,7 @@ import { ChipRow } from "@/components/ui/ChipRow";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
+import { readDraft, writeDraft } from "@/lib/creator-draft";
 import { useSafeQuery } from "@/lib/safe-query";
 import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
@@ -51,19 +50,6 @@ const STEPS = [
   { key: "ai", label: "creator.steps.ai" },
   { key: "launch", label: "creator.steps.launch" },
 ] as const satisfies readonly { key: string; label: TKey }[];
-
-async function readDraft(): Promise<CreatorState | null> {
-  try {
-    const raw = await AsyncStorage.getItem(DRAFT_KEY);
-    return raw ? (JSON.parse(raw) as CreatorState) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeDraft(state: CreatorState | null) {
-  (state ? AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(state)) : AsyncStorage.removeItem(DRAFT_KEY)).catch(() => undefined);
-}
 
 /** Loads an existing trip (draft resume / organizer edit) into wizard state. */
 async function loadTrip(convex: ConvexReactClient, ref: string): Promise<CreatorState | null> {
@@ -95,6 +81,7 @@ async function loadTrip(convex: ConvexReactClient, ref: string): Promise<Creator
     })),
     departureTime: data.departureAt?.slice(11, 16) ?? "",
     currencies: trip.currencies ?? [],
+    draftStep: trip.draftStep ?? 2,
     groupKind: data.groupKind,
     groupName: data.groupName,
     families: familyRows.map((f) => ({
@@ -152,7 +139,7 @@ export default function NewTrip() {
           if (!loaded) return setError(t("creator.errors.notFound"));
           setState(loaded);
           // Drafts resume where details are still missing
-          setStep(loaded.status === "draft" ? 2 : 0);
+          setStep(loaded.status === "draft" ? Math.min(Math.max(loaded.draftStep, 0), STEPS.length - 1) : 0);
         })
         .catch(() => setError(t("creator.errors.noPermission")));
     } else {
@@ -170,12 +157,13 @@ export default function NewTrip() {
     });
   }, []);
 
-  async function save(status: "draft" | "active"): Promise<string | null> {
+  async function save(status: "draft" | "active", reachedStep?: number): Promise<string | null> {
     if (!state) return null;
     setSaving(true);
     setError("");
     try {
-      const input = toTripInput(state, status);
+      const draftStep = Math.max(state.draftStep ?? 0, reachedStep ?? step);
+      const input = toTripInput({ ...state, draftStep }, status);
       let tripId: string;
       if (state.tripId) {
         await convex.mutation(api.trips.update, { tripId: state.tripId as Id<"trips">, input });
@@ -186,7 +174,7 @@ export default function NewTrip() {
         loadedFor.current = tripId;
         setState((current) => (current ? { ...current, tripId } : current));
       }
-      if (status === "active") setState((current) => (current ? { ...current, status: "active" } : current));
+      setState((current) => (current ? { ...current, draftStep, ...(status === "active" ? { status: "active" as const } : {}) } : current));
       return tripId;
     } catch (err) {
       const reason = errorReason(err);
@@ -197,16 +185,59 @@ export default function NewTrip() {
     }
   }
 
+  function leave() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/trips");
+  }
+
+  /** Close: nothing started → just leave; a live trip → leave; an unfinished trip → ask what to do with it. */
+  function closeWizard() {
+    if (!state) return leave();
+    const started = Boolean(state.tripId || primaryPlace(state));
+    if (state.status === "active" || !started) return leave();
+    Alert.alert(t("creator.close.title"), t("creator.close.text"), [
+      {
+        text: t("creator.close.save"),
+        onPress: async () => {
+          const problem = step === 0 ? basicsValid(state) : null;
+          if (problem && !state.tripId) {
+            // Destination and dates aren't complete yet: it stays on this phone and is offered again next time
+            writeDraft(state);
+            return router.replace("/trips");
+          }
+          if (await save("draft")) router.replace("/trips");
+        },
+      },
+      {
+        text: t("creator.close.discard"),
+        style: "destructive",
+        onPress: () =>
+          Alert.alert(t("creator.close.discardTitle"), t("creator.close.discardText"), [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("creator.close.discardConfirm"),
+              style: "destructive",
+              onPress: async () => {
+                writeDraft(null);
+                if (state.tripId) await convex.mutation(api.trips.remove, { tripId: state.tripId as Id<"trips"> }).catch(() => undefined);
+                router.replace("/trips");
+              },
+            },
+          ]),
+      },
+      { text: t("creator.close.keep"), style: "cancel" },
+    ]);
+  }
+
   async function next() {
     if (!state) return;
     const problem = step === 0 ? basicsValid(state) : step === 1 ? groupValid(state) : null;
     if (problem) return setError(problem);
     setError("");
-    // From step 2 on there is a server trip (draft) to attach bookings to
-    if (step >= 1 || state.tripId) {
-      if (!(await save(state.status === "active" ? "active" : "draft"))) return;
-    }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    // The trip is saved as a draft as soon as the first step is valid (bookings attach to it, and it can be resumed)
+    const target = Math.min(step + 1, STEPS.length - 1);
+    if (!(await save(state.status === "active" ? "active" : "draft", target))) return;
+    setStep(target);
     scroll.current?.scrollTo({ y: 0, animated: true });
   }
 
@@ -260,7 +291,7 @@ export default function NewTrip() {
         {/* Progress: the steps as a route */}
         <View style={styles.top}>
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/trips"))} hitSlop={10}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={closeWizard} hitSlop={10}>
               <Text variant="small" weight="medium" color={colors.route700}>
                 {t("common.close")}
               </Text>

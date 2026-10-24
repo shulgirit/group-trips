@@ -6,10 +6,12 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, router } from "expo-router";
-import { Plus, UserRound } from "lucide-react-native";
-import { useState } from "react";
+import { ArrowRight, Plus, UserRound } from "lucide-react-native";
+import { primaryPlace, type CreatorState } from "@together/backend/creator";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Logo } from "@/components/brand/Logo";
+import { readDraft } from "@/lib/creator-draft";
 import { TripCard } from "@/components/trips/TripCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,11 +29,20 @@ export default function Trips() {
   const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
   const trips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
 
+  // A trip started on this phone that hasn't reached the server yet (steps 1-2 not completed)
+  const [localDraft, setLocalDraft] = useState<CreatorState | null>(null);
+  useEffect(() => {
+    readDraft().then((draft) => setLocalDraft(draft && !draft.tripId && primaryPlace(draft) ? draft : null));
+  }, []);
+
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
 
   const today = todayIso();
   const sorted = [...(trips ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const current = sorted.filter((trip) => trip.status === "draft" || tripPhase(trip, today) !== "past");
+  const current = sorted
+    .filter((trip) => trip.status === "draft" || tripPhase(trip, today) !== "past")
+    // Unfinished trips first: they are waiting for the person to come back
+    .sort((a, b) => Number(b.status === "draft") - Number(a.status === "draft"));
   const past = sorted.filter((trip) => trip.status !== "draft" && tripPhase(trip, today) === "past").reverse();
   const firstName = (me?.name ?? "").split(" ")[0];
 
@@ -85,6 +96,19 @@ export default function Trips() {
               <View style={styles.plus}>
                 <Icon icon={Plus} size={22} color={colors.night950} />
               </View>
+            </Pressable>
+          )}
+          {localDraft && (
+            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={styles.localDraft}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text weight="semibold" color={colors.brass600}>
+                  {t("product.card.draftLocal")}
+                </Text>
+                <Text variant="small" color={colors.ink700} numberOfLines={1}>
+                  {primaryPlace(localDraft)?.label}
+                </Text>
+              </View>
+              <Icon icon={ArrowRight} size={18} color={colors.brass600} flip />
             </Pressable>
           )}
           {current.length > 0 && (
@@ -143,6 +167,7 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.chart200 },
   first: { backgroundColor: colors.night950, borderColor: colors.night900, padding: 24, gap: 14 },
   newTrip: { minHeight: 112, borderRadius: 28, overflow: "hidden", flexDirection: "row", alignItems: "center", gap: 14, padding: 20, backgroundColor: colors.night950, shadowColor: colors.ink900, shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  localDraft: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 20, backgroundColor: colors.brass100, borderWidth: 1, borderColor: colors.brass300 },
   newTripText: { flex: 1, gap: 4 },
   plus: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center", shadowColor: colors.brass500, shadowOpacity: 0.6, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
 });

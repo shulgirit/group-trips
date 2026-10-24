@@ -51,7 +51,8 @@ export async function activeTripCount(ctx: QueryCtx, userId: Id<"users">): Promi
     .query("trips")
     .withIndex("by_owner", (q) => q.eq("ownerId", userId))
     .collect();
-  return owned.filter((trip) => trip.status !== "archived" && trip.endDate >= today).length;
+  // Drafts are unfinished and invisible to others: they never use up the limit
+  return owned.filter((trip) => trip.status === "active" && trip.endDate >= today).length;
 }
 
 export async function memberCount(ctx: QueryCtx, tripId: Id<"trips">): Promise<number> {
