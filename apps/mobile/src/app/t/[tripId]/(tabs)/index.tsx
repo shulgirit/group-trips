@@ -6,9 +6,12 @@ import { stopForDay } from "@together/shared/trip-doc";
 import type { TripEvent } from "@together/shared/types";
 import { colors, radius } from "@together/shared/tokens";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { type Href, router } from "expo-router";
-import { CalendarDays, Check, ChevronRight, Compass, LayoutGrid, Map as MapIcon, Ticket, UserPlus, Users, Vote, Wallet, type LucideIcon } from "lucide-react-native";
+import { CalendarDays, Check, ChevronRight, Compass, LayoutGrid, Map as MapIcon, Pencil, Ticket, UserPlus, Users, Vote, Wallet, type LucideIcon } from "lucide-react-native";
+import { useMutation } from "convex/react";
+import { api } from "@together/backend/api";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +25,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
+import { uploadImage } from "@/lib/upload";
 import { MAPS_AVAILABLE } from "@/lib/maps";
 import { useEvents, useFamilies, usePlaces, useTrip } from "@/lib/trip";
 
@@ -50,6 +54,24 @@ export default function Now() {
   const families = useFamilies();
   const base = `/t/${id}`;
   const go = (path: string) => router.push(`${base}${path}` as Href);
+  const setCover = useMutation(api.trips.setCover);
+  const [coverBusy, setCoverBusy] = useState(false);
+
+  /** The cover is a default found for the destination; organizers can swap it for any photo from the gallery. */
+  async function changeCover() {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 5] });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setCoverBusy(true);
+    try {
+      const url = await uploadImage(asset.uri, asset.mimeType ?? "image/jpeg");
+      await setCover({ tripId: id, imageUrl: url });
+    } catch {
+      // keep the current photo; the organizer can try again
+    } finally {
+      setCoverBusy(false);
+    }
+  }
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -110,6 +132,11 @@ export default function Now() {
             {t("settings.more.myTrips")}
           </Text>
         </Pressable>
+        {isAdmin && (
+          <Pressable accessibilityRole="button" accessibilityLabel={t("trip.eventForm.photoChange")} onPress={changeCover} disabled={coverBusy} hitSlop={8} style={[styles.coverPencil, { top: insets.top + 10 }]}>
+            {coverBusy ? <ActivityIndicator size="small" color={colors.chart50} /> : <Icon icon={Pencil} size={16} color={colors.chart50} />}
+          </Pressable>
+        )}
         <View style={[styles.heroText, { paddingTop: insets.top + 56 }]} pointerEvents="box-none">
           {duringTrip ? (
             <>
@@ -369,6 +396,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 10,
   },
+  coverPencil: { position: "absolute", start: 16, zIndex: 10, elevation: 10, width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(7,12,22,0.45)", alignItems: "center", justifyContent: "center" },
   heroText: { paddingHorizontal: 24, paddingBottom: 64, gap: 8 },
   dayChip: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.18)" },
   travelers: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, alignSelf: "flex-start", paddingEnd: 14, paddingStart: 4, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(11,19,34,0.5)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.14)" },

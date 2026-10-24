@@ -187,3 +187,16 @@ describe("bookings reshape a tentative plan", () => {
     expect((await t.run((ctx) => ctx.db.get(tripId)))!.endDate).toBe("2027-04-22");
   });
 });
+
+describe("trip cover", () => {
+  it("an organizer can replace the cover photo; others and non-https urls are refused", async () => {
+    const { t, owner, tripId } = await plan();
+    await owner.as.mutation(api.trips.setCover, { tripId, imageUrl: "https://example.com/cover.jpg" });
+    const trip = (await t.run((ctx) => ctx.db.get(tripId)))!;
+    expect(trip.coverImage).toBe("https://example.com/cover.jpg");
+    expect(trip.stops[0].coverImage).toBe("https://example.com/cover.jpg");
+    await expect(owner.as.mutation(api.trips.setCover, { tripId, imageUrl: "http://example.com/x.jpg" })).rejects.toThrow();
+    const stranger = await userClient(t);
+    await expect(stranger.as.mutation(api.trips.setCover, { tripId, imageUrl: "https://example.com/y.jpg" })).rejects.toThrow();
+  });
+});

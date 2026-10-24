@@ -212,6 +212,17 @@ export const update = tripMutation({
   },
 });
 
+/** Replaces the trip's cover photo (the first stop's photo is what the app shows). Organizer only. */
+export const setCover = tripMutation({
+  args: { imageUrl: v.string() },
+  handler: async (ctx, { imageUrl }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!/^https:\/\//.test(imageUrl) || imageUrl.length > 2000) fail("invalid", "image");
+    const stops = ctx.trip.stops.map((stop, i) => (i === 0 ? { ...stop, coverImage: imageUrl } : stop));
+    await ctx.db.patch(ctx.tripId, { coverImage: imageUrl, stops, updatedAt: Date.now() });
+  },
+});
+
 /** The currencies offered when adding an expense (organizer only). */
 export const setCurrencies = tripMutation({
   args: { currencies: v.array(v.string()) },
