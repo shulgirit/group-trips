@@ -238,3 +238,22 @@ describe("changing the dates of a plan", () => {
     expect(await t.run((ctx) => ctx.db.get(tripId))).toMatchObject({ startDate: "2027-05-01", endDate: "2027-05-07", datesApproximate: false });
   });
 });
+
+describe("set_stay (we are staying at X)", () => {
+  it("replaces the suggested hotel for those nights, adds check-in/out and the home base", async () => {
+    const { t, tripId } = await plan();
+    const result = await t.mutation(internal.chatTools.setStay, { tripId, name: "Hotel Metropole", area: "Hanoi", lat: 21.02, lng: 105.85, checkIn: "2027-04-21", checkOut: "2027-04-23", locale: "en", authorName: "Guide" });
+    expect(result.replaced).toBe(1);
+    const after = await t.run(async (ctx) => ({
+      trip: (await ctx.db.get(tripId))!,
+      stays: (await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect()).filter((p) => p.category === "accommodation"),
+      events: await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect(),
+    }));
+    expect(after.stays).toHaveLength(1);
+    expect(after.stays[0]).toMatchObject({ name: "Hotel Metropole", stayFrom: "2027-04-21", stayTo: "2027-04-23", source: "manual" });
+    expect(after.events.find((e) => e.title === "Check in")).toBeUndefined();
+    expect(after.events.filter((e) => e.title.includes("Hotel Metropole")).map((e) => e.day).sort()).toEqual(["2027-04-21", "2027-04-23"]);
+    expect(after.trip.homeBase?.name).toBe("Hotel Metropole");
+    await expect(t.mutation(internal.chatTools.setStay, { tripId, name: "X", lat: null, lng: null, checkIn: "2027-04-23", checkOut: "2027-04-21", locale: "en", authorName: "Guide" })).rejects.toThrow();
+  });
+});

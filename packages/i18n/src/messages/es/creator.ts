@@ -313,6 +313,11 @@ const creator: PartialMessages["creator"] = {
     },
   },
   planner: {
+    noteLabel: "¿Algo que la IA deba saber? (opcional)",
+    notePlaceholder: "p. ej. No encontramos habitación en los hoteles sugeridos, así que nos alojamos en el Hotel Memmo Alfama. Añade también una visita al Oceanario el día 2.",
+    resultTitle: "Lo que cambió la IA",
+    openGuide: "Abrir en el chat de la guía",
+    done: "Listo",
     editBlocked: "Tus reservas están en estas fechas y no pueden moverse. Mantén la fecha de inicio y acorta solo después de tu última reserva, o elimina antes la reserva.",
     editDates: "Editar fechas",
     editTitle: "Cambiar las fechas",

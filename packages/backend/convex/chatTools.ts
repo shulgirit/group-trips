@@ -1,3 +1,5 @@
+import { isLocale } from "@together/i18n/config";
+import { translate } from "@together/i18n/translate";
 import { shiftIso } from "@together/shared/holidays";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -310,5 +312,71 @@ export const findPoll = internalQuery({
     const polls = await ctx.db.query("polls").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect();
     const poll = polls.find((p) => p.question.toLowerCase() === needle) ?? polls.find((p) => p.question.toLowerCase().includes(needle) || needle.includes(p.question.toLowerCase()));
     return poll ? { id: poll._id as string, question: poll.question, closed: poll.closed, options: poll.options.map((o) => ({ id: o.id, label: o.label })) } : null;
+  },
+});
+
+const nights = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+
+/**
+ * "We're staying at X from A to B": saves the stay with its nights, replaces any suggested hotel for those nights (and its
+ * suggested check-in/out items), adds the check-in and check-out, and sets the home base when there is none.
+ */
+export const setStay = internalMutation({
+  args: {
+    tripId: v.id("trips"),
+    name: v.string(),
+    area: v.optional(v.string()),
+    address: v.optional(v.string()),
+    lat: v.union(v.number(), v.null()),
+    lng: v.union(v.number(), v.null()),
+    photoUrl: v.optional(v.string()),
+    checkIn: v.string(),
+    checkOut: v.string(),
+    locale: v.string(),
+    authorName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const trip = await loadTrip(ctx, args.tripId);
+    if (args.checkOut <= args.checkIn || !inRange(trip, args.checkIn)) fail("invalid", "stay_dates");
+    const lang = isLocale(args.locale) ? args.locale : "en";
+    const author = { name: args.authorName, aiName: trip.ai.name };
+    const stay = await insertPlace(
+      ctx,
+      args.tripId,
+      {
+        name: args.name.slice(0, 120),
+        category: "accommodation",
+        ...(args.area ? { area: args.area } : {}),
+        ...(args.address ? { address: args.address } : {}),
+        lat: args.lat,
+        lng: args.lng,
+        ...(args.photoUrl ? { imageUrl: args.photoUrl } : {}),
+      },
+      author
+    );
+    await ctx.db.patch(stay.id, { stayFrom: args.checkIn, stayTo: args.checkOut, source: "manual" });
+
+    // Suggested hotels for these nights give way
+    let replaced = 0;
+    for (const old of await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", args.tripId)).collect()) {
+      if (old._id === stay.id || old.source !== "ai_plan" || old.category !== "accommodation" || !old.stayFrom || !old.stayTo) continue;
+      if (Math.min(nights(args.checkIn, old.stayTo), nights(old.stayFrom, args.checkOut)) <= 0) continue;
+      for (const event of await ctx.db.query("events").withIndex("by_place", (q) => q.eq("placeId", old._id)).collect()) {
+        if (event.source === "ai_plan" && (event.emoji === "hotel" || event.emoji === "luggage")) await dropEvent(ctx, event);
+        else await ctx.db.patch(event._id, { placeId: stay.id });
+      }
+      await ctx.db.delete(old._id);
+      replaced++;
+    }
+    for (const [day, time, key, emoji] of [
+      [args.checkIn, "15:00", "server.booking.checkIn", "hotel"],
+      [args.checkOut, "11:00", "server.booking.checkOut", "luggage"],
+    ] as const) {
+      if (!inRange(trip, day)) continue;
+      const id = await insertEvent(ctx, trip, { title: `${translate(lang, key)} · ${args.name}`.slice(0, 120), emoji, placeId: stay.id, day, startTime: time, durationMin: null, participants: { type: "all" }, notes: "" }, author, { notify: false });
+      await ctx.db.patch(id, { source: "manual" });
+    }
+    if (!trip.homeBase) await ctx.db.patch(args.tripId, { homeBase: { name: args.name, address: args.address ?? "", lat: args.lat, lng: args.lng } });
+    return { placeId: stay.id, replaced };
   },
 });

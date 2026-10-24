@@ -313,6 +313,11 @@ const creator: typeof he = {
     },
   },
   planner: {
+    noteLabel: "Anything the AI should know? (optional)",
+    notePlaceholder: "e.g. We couldn't find a room in the suggested hotels, so we're staying at Hotel Memmo Alfama. Please also add a visit to the Oceanário on day 2.",
+    resultTitle: "What the AI changed",
+    openGuide: "Open in the guide chat",
+    done: "Done",
     editBlocked: "Your bookings sit on these dates, so they can't move. Keep the start date and shorten only after your last booking, or remove the booking first.",
     editDates: "Edit dates",
     editTitle: "Change the dates",

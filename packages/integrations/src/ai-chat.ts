@@ -269,6 +269,12 @@ function EDIT_TOOLS(range: { startDate: string; endDate: string }): OpenAI.Chat.
       ["placeName"]
     ),
     fn("delete_place", "Delete a saved place (its schedule items stay but lose the link). Only when asked.", { placeName: { type: "string" } }, ["placeName"]),
+    fn(
+      "set_stay",
+      "Record where the group is staying for some nights: saves the hotel/apartment as a place with its dates, replaces any suggested hotel for those nights, and adds the check-in and check-out items. Use when they say they are staying somewhere or want to switch the hotel.",
+      { name: { type: "string", description: "The hotel/apartment name" }, query: { type: "string", description: "Search text to find it on the map, e.g. 'Hotel Memmo Alfama Lisbon'" }, checkIn: DAY("Check-in day"), checkOut: DAY("Check-out day") },
+      ["name", "checkIn", "checkOut"]
+    ),
     fn("set_home_base", "Make a saved place the trip's home base (where the group sleeps).", { placeName: { type: "string" } }, ["placeName"]),
     fn("vote_poll", "Cast the speaker's own vote in a poll.", { question: { type: "string", description: "The poll (words from its question)" }, option: { type: "string", description: "The option to vote for" } }, ["question", "option"]),
     fn("close_poll", "Close (or reopen) a poll.", { question: { type: "string" }, closed: { type: "boolean", description: "Default true" } }, ["question"]),
@@ -348,6 +354,7 @@ export const ToolArgs = {
   }),
   delete_place: z.object({ placeName: z.string().min(1) }),
   set_home_base: z.object({ placeName: z.string().min(1) }),
+  set_stay: z.object({ name: z.string().min(1).max(120), query: z.string().max(200).optional(), checkIn: z.string().regex(ISO), checkOut: z.string().regex(ISO) }),
   vote_poll: z.object({ question: z.string().min(1), option: z.string().min(1) }),
   close_poll: z.object({ question: z.string().min(1), closed: z.boolean().optional() }),
   delete_poll: z.object({ question: z.string().min(1) }),

@@ -385,6 +385,31 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
         return { ok: true, summary: `Deleted "${target.name}"` };
       }
 
+      case "set_stay": {
+        const args = ToolArgs.set_stay.parse(raw);
+        if (isKid) return denied("kids can't change where the group stays");
+        if (args.checkOut <= args.checkIn) return { ok: false, error: "Check-out must be after check-in" };
+        if (args.checkIn < trip.startDate || args.checkIn > trip.endDate) return { ok: false, error: `Check-in ${args.checkIn} is outside the trip dates` };
+        const stop = stopForDay(trip.stops, args.checkIn);
+        const stopRow = trip.stops.find((s) => s.label === stop.label);
+        const geo = await geocodePlace(args.query?.trim() || args.name, stopRow ? `${stopRow.label} ${stopRow.country ?? ""}` : regionOf(trip)).catch(() => null);
+        const result = await ctx.runMutation(internal.chatTools.setStay, {
+          tripId,
+          name: args.name,
+          area: stop.label,
+          ...(geo?.address ? { address: geo.address } : {}),
+          lat: geo?.lat ?? null,
+          lng: geo?.lng ?? null,
+          ...(geo?.photoUrl ? { photoUrl: geo.photoUrl } : {}),
+          checkIn: args.checkIn,
+          checkOut: args.checkOut,
+          locale: contentLocale(locale),
+          authorName: speaker ? `${speaker} (${trip.ai.name})` : trip.ai.name,
+        });
+        places.push({ id: result.placeId, name: args.name, category: "accommodation" });
+        return { ok: true, summary: `Saved the stay "${args.name}" ${args.checkIn} to ${args.checkOut}${geo ? " with its location" : " (not found on the map)"}${result.replaced ? `; replaced ${result.replaced} suggested hotel(s)` : ""}` };
+      }
+
       case "set_home_base": {
         const args = ToolArgs.set_home_base.parse(raw);
         if (!isOrganizer) return denied("only organizers can set the home base");

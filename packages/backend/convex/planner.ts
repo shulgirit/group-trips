@@ -4,9 +4,9 @@ import { geocodePlace } from "@together/integrations/import-place";
 import { chooseDaysToRemove, generatePlan, type Outline, planDays } from "@together/integrations/planner";
 import { daysBetween, resolveDatePhrase, shiftIso } from "@together/shared/holidays";
 import { ConvexError, v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { action, internalAction } from "./_generated/server";
+import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { fail } from "./lib/authz";
 import { accountMutation, userQuery } from "./lib/functions";
 
@@ -153,8 +153,24 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
  * gaps), a longer one gets the extra days planned. A new start date moves everything. Organizers only.
  */
 export const adjustDates = action({
-  args: { tripId: v.id("trips"), startDate: v.string(), endDate: v.string() },
-  handler: async (ctx, { tripId, startDate, endDate }): Promise<{ days: number; removed: number; added: number }> => {
+  args: { tripId: v.id("trips"), startDate: v.string(), endDate: v.string(), note: v.optional(v.string()), locale: v.optional(v.string()) },
+  handler: async (ctx, { tripId, startDate, endDate, note, locale }): Promise<{ days: number; removed: number; added: number; sessionId: Id<"chatSessions"> | null; replyId: Id<"chatMessages"> | null }> => {
+    const result = await reshapeDates(ctx, tripId, startDate, endDate);
+    const text = (note ?? "").trim().slice(0, 1200);
+    if (!text) return { ...result, sessionId: null, replyId: null };
+    // The organizer's own words go to the guide, which applies them with its tools and explains what changed
+    const changes = [result.removed ? `${result.removed} day(s) were dropped` : "", result.added ? `${result.added} day(s) were added` : ""].filter(Boolean).join(", ");
+    const sent = await ctx.runMutation(api.chat.send, {
+      tripId,
+      locale,
+      text: `Plan update. The dates are now ${startDate} to ${endDate} (${result.days} days, already applied${changes ? `; ${changes}` : ""}). The organizer says: "${text}". Apply what they say to the plan with your tools (a hotel they are staying at with set_stay, extra attractions or places with add_place and create_event, anything else they ask), keep the schedule consistent, then explain briefly what you changed.`,
+    });
+    return { ...result, ...sent };
+  },
+});
+
+async function reshapeDates(ctx: ActionCtx, tripId: Id<"trips">, startDate: string, endDate: string): Promise<{ days: number; removed: number; added: number }> {
+  {
     if (!ISO.test(startDate) || !ISO.test(endDate)) fail("invalid", "dates");
     const days = daysBetween(startDate, endDate);
     if (days < 1 || days > 30) fail("invalid", "dates");
@@ -223,5 +239,5 @@ export const adjustDates = action({
       });
     }
     return { days, removed: 0, added: days - before };
-  },
-});
+  }
+}
