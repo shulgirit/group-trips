@@ -34,8 +34,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   if (!env) result = { ...result, extra: { ...result.extra, supportsRTL: true } };
 
   // Android maps need a Google Maps SDK key (public by design; restricted to the app in Google Cloud)
+  // Only for Android: EAS sets EAS_BUILD_PLATFORM during builds, and the Android update script sets it too. Without
+  // this gate the key would also change the iPhone app's update-compatibility id (its runtime version) and iPhone
+  // updates would silently stop reaching builds that are already installed.
   const mapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY;
-  if (mapsKey) {
+  if (mapsKey && process.env.EAS_BUILD_PLATFORM === "android") {
     result = { ...result, android: { ...result.android, config: { ...result.android?.config, googleMaps: { apiKey: mapsKey } } } };
   }
 
