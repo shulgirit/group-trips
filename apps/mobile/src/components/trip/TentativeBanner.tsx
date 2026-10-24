@@ -1,17 +1,19 @@
 import { api } from "@together/backend/api";
 import { colors, radius } from "@together/shared/tokens";
-import { useMutation } from "convex/react";
-import { CalendarCheck, Send, Sparkles } from "lucide-react-native";
+import { daysBetween } from "@together/shared/holidays";
+import { useAction, useMutation } from "convex/react";
+import { CalendarRange, Send, Sparkles } from "lucide-react-native";
 import { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { DateField } from "@/components/ui/DateField";
+import { DateRangeField } from "@/components/ui/DateRangeField";
 import { Icon } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { type Href, router } from "expo-router";
 import { Pressable } from "react-native";
+import { errorReason } from "@/lib/convert";
 import { useT } from "@/lib/i18n";
 import { useTrip } from "@/lib/trip";
 
@@ -19,15 +21,33 @@ import { useTrip } from "@/lib/trip";
 export function TentativeBanner() {
   const t = useT();
   const { id, doc, isAdmin } = useTrip();
-  const confirmDates = useMutation(api.trips.confirmDates);
+  const adjustDates = useAction(api.planner.adjustDates);
   const publish = useMutation(api.trips.publish);
   const [open, setOpen] = useState(false);
-  const [start, setStart] = useState(doc.startDate);
+  const [range, setRange] = useState({ start: doc.startDate, end: doc.endDate });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<"failed" | "blocked" | null>(null);
   if (!doc.tentative) return null;
 
-  const confirm = async () => {
-    await confirmDates({ tripId: id, startDate: start }).catch(() => undefined);
-    setOpen(false);
+  const current = daysBetween(doc.startDate, doc.endDate);
+  const chosen = range.start && range.end ? daysBetween(range.start, range.end) : current;
+  const openSheet = () => {
+    setRange({ start: doc.startDate, end: doc.endDate });
+    setError(null);
+    setOpen(true);
+  };
+  /** The AI reshapes the plan to the chosen dates: drops days when shorter, plans extra days when longer. */
+  const apply = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await adjustDates({ tripId: id, startDate: range.start, endDate: range.end });
+      setOpen(false);
+    } catch (err) {
+      setError(errorReason(err) === "bookings_in_the_way" ? "blocked" : "failed");
+    } finally {
+      setBusy(false);
+    }
   };
   const askPublish = () =>
     Alert.alert(t("creator.planner.publishTitle"), t("creator.planner.publishText"), [
@@ -55,14 +75,36 @@ export function TentativeBanner() {
       </Pressable>
       {isAdmin && (
         <View style={styles.actions}>
-          {doc.datesApproximate && <Button tone="outline" icon={CalendarCheck} label={t("creator.planner.confirm")} onPress={() => setOpen(true)} style={{ flex: 1 }} />}
+          <Button tone="outline" icon={CalendarRange} label={t("creator.planner.editDates")} onPress={openSheet} style={{ flex: 1 }} />
           <Button tone="brass" icon={Send} label={t("creator.planner.publish")} onPress={askPublish} style={{ flex: 1 }} />
         </View>
       )}
-      <Sheet open={open} onClose={() => setOpen(false)} title={t("creator.planner.confirmTitle")}>
-        <Text color={colors.ink500}>{t("creator.planner.confirmText")}</Text>
-        <DateField value={start} onChange={setStart} label={t("creator.planner.confirmTitle")} min={new Date().toISOString().slice(0, 10)} />
-        <Button label={t("creator.planner.confirm")} onPress={confirm} />
+      <Sheet open={open} onClose={() => (busy ? undefined : setOpen(false))} title={t("creator.planner.editTitle")}>
+        <Text color={colors.ink500}>{t("creator.planner.editHint")}</Text>
+        <DateRangeField
+          start={range.start}
+          end={range.end}
+          min={new Date().toISOString().slice(0, 10)}
+          startLabel={t("creator.where.depart")}
+          endLabel={t("creator.where.return")}
+          onChange={(start, end) => setRange({ start, end })}
+        />
+        <Text weight="semibold" color={chosen === current ? colors.ink500 : colors.brass600}>
+          {chosen === current ? t("creator.planner.editSame", { count: chosen }) : chosen < current ? t("creator.planner.editShorter", { from: current, to: chosen }) : t("creator.planner.editLonger", { from: current, to: chosen })}
+        </Text>
+        {error && (
+          <Text variant="small" color={colors.terra600}>
+            {error === "blocked" ? t("creator.planner.editBlocked") : t("creator.planner.editFailed")}
+          </Text>
+        )}
+        {busy ? (
+          <View style={styles.working}>
+            <ActivityIndicator color={colors.ink900} />
+            <Text color={colors.ink500}>{t("creator.planner.editWorking")}</Text>
+          </View>
+        ) : (
+          <Button label={t("creator.planner.editApply")} onPress={apply} disabled={!range.start || !range.end} />
+        )}
       </Sheet>
     </Card>
   );
@@ -72,4 +114,5 @@ const styles = StyleSheet.create({
   card: { padding: 16, gap: 10, marginTop: 12, borderColor: colors.brass500, borderRadius: radius.card },
   head: { flexDirection: "row", alignItems: "center", gap: 8 },
   actions: { flexDirection: "row", gap: 10 },
+  working: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
 });

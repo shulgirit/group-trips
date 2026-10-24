@@ -1,13 +1,15 @@
 import { isLocale } from "@together/i18n/config";
 import { translate } from "@together/i18n/translate";
-import { shiftIso } from "@together/shared/holidays";
+import { daysBetween, shiftIso } from "@together/shared/holidays";
+import { stopForDay } from "@together/shared/trip-doc";
 import { randomId } from "@together/shared/trip-doc";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { insertEvent } from "./events";
+import { fail, isAdmin, requireMember } from "./lib/authz";
+import { insertEvent, scheduleReminder } from "./events";
 import { insertPlace } from "./places";
-import { createTripFor } from "./trips";
+import { createTripFor, shiftTripDates } from "./trips";
 
 /** Database side of the AI planner (the action in planner.ts does the model and Google calls). */
 
@@ -186,3 +188,95 @@ export const build = internalMutation({
   },
 });
 
+
+
+// ── changing the dates of a plan ─────────────────────────────────────
+
+/** Organizer check plus what the AI needs to reshape the plan: one line of titles per day. */
+export const adjustAccess = internalQuery({
+  args: { tripId: v.id("trips") },
+  handler: async (ctx, { tripId }) => {
+    const access = await requireMember(ctx, tripId);
+    if (!isAdmin(access.member)) fail("forbidden");
+    const trip = access.trip;
+    const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect();
+    const families = await ctx.db.query("families").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect();
+    const length = daysBetween(trip.startDate, trip.endDate);
+    const days = Array.from({ length }, (_, i) => {
+      const date = shiftIso(trip.startDate, i);
+      return { n: i + 1, booked: events.some((e) => e.day === date && e.source === "booking"), stop: stopForDay(trip.stops, date).label, titles: events.filter((e) => e.day === date).sort((a, b) => a.startTime.localeCompare(b.startTime)).map((e) => e.title) };
+    });
+    return { trip, days, adults: Math.max(1, families.reduce((n, f) => n + f.members.length, 0)), locale: access.user.locale ?? "en" };
+  },
+});
+
+export const moveStart = internalMutation({
+  args: { tripId: v.id("trips"), startDate: v.string() },
+  handler: async (ctx, { tripId, startDate }) => {
+    await shiftTripDates(ctx, tripId, startDate);
+    await ctx.db.patch(tripId, { datesApproximate: false, updatedAt: Date.now() });
+  },
+});
+
+export const extendEnd = internalMutation({
+  args: { tripId: v.id("trips"), endDate: v.string() },
+  handler: async (ctx, { tripId, endDate }) => {
+    const trip = await ctx.db.get(tripId);
+    if (!trip || endDate <= trip.endDate) fail("invalid", "end_date");
+    const stops = trip.stops.map((stop, i) => (i === trip.stops.length - 1 ? { ...stop, endDate } : stop));
+    await ctx.db.patch(tripId, { endDate, stops, updatedAt: Date.now() });
+  },
+});
+
+/**
+ * Removes whole days from a plan and closes the gaps: later days (events, stays, stops) move earlier. Suggestions on
+ * removed days are deleted; booked items stay and slide to the next kept day.
+ */
+export const trimDays = internalMutation({
+  args: { tripId: v.id("trips"), removeDays: v.array(v.number()) },
+  handler: async (ctx, { tripId, removeDays }) => {
+    const trip = await ctx.db.get(tripId);
+    if (!trip) fail("not_found");
+    const start = trip.startDate;
+    const length = daysBetween(start, trip.endDate);
+    const removed = new Set(removeDays.filter((n) => n >= 1 && n <= length));
+    const kept = length - removed.size;
+    if (kept < 1) fail("invalid", "days");
+    // The new 0-based position of a day number: how many kept days come before it
+    const position = (n: number) => {
+      let count = 0;
+      for (let i = 1; i < n; i++) if (!removed.has(i)) count++;
+      return Math.min(count, kept - 1);
+    };
+    const dateOf = (iso: string) => shiftIso(start, position(daysBetween(start, iso)));
+
+    const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect();
+    const moved: Id<"events">[] = [];
+    for (const event of events) {
+      const n = daysBetween(start, event.day);
+      if (n < 1 || n > length) continue;
+      if (removed.has(n) && event.source !== "booking") {
+        if (event.reminderJobId) await ctx.scheduler.cancel(event.reminderJobId);
+        await ctx.db.delete(event._id);
+        continue;
+      }
+      await ctx.db.patch(event._id, { day: dateOf(event.day) });
+      moved.push(event._id);
+    }
+    for (const place of await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect()) {
+      if (!place.stayFrom && !place.stayTo) continue;
+      await ctx.db.patch(place._id, {
+        ...(place.stayFrom ? { stayFrom: dateOf(place.stayFrom) } : {}),
+        ...(place.stayTo ? { stayTo: dateOf(place.stayTo) } : {}),
+      });
+    }
+    const last = trip.stops.length - 1;
+    const mapped = trip.stops.map((stop, i) => ({ ...stop, startDate: dateOf(stop.startDate), endDate: i === last ? shiftIso(start, kept - 1) : dateOf(stop.endDate) }));
+    // A stop whose days were all removed disappears (the last stop always stays)
+    const stops = mapped.filter((stop, i) => i === last || stop.startDate < stop.endDate);
+    await ctx.db.patch(tripId, { endDate: shiftIso(start, kept - 1), stops: stops.length ? stops : [mapped[last]], updatedAt: Date.now() });
+    const fresh = (await ctx.db.get(tripId))!;
+    for (const id of moved) await scheduleReminder(ctx, fresh, id);
+    return { removed: removed.size, kept };
+  },
+});

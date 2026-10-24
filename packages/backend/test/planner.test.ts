@@ -200,3 +200,41 @@ describe("trip cover", () => {
     await expect(stranger.as.mutation(api.trips.setCover, { tripId, imageUrl: "https://example.com/y.jpg" })).rejects.toThrow();
   });
 });
+
+describe("changing the dates of a plan", () => {
+  it("trimDays closes the gaps: later events, stays and stops move earlier, removed suggestions go", async () => {
+    const { t, tripId } = await plan();
+    // Days: 21 (Hanoi items), 22 (empty), 23 (Tam Coc), 24, 25. Drop day 2.
+    const result = await t.mutation(internal.plannerData.trimDays, { tripId, removeDays: [2] });
+    expect(result).toEqual({ removed: 1, kept: 4 });
+    const after = await t.run(async (ctx) => ({
+      trip: (await ctx.db.get(tripId))!,
+      events: await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect(),
+      stay: (await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect()).find((p) => p.stayFrom),
+    }));
+    expect(after.trip).toMatchObject({ startDate: "2027-04-21", endDate: "2027-04-24" });
+    expect(after.trip.stops.map((s) => [s.label, s.startDate, s.endDate])).toEqual([["Hanoi", "2027-04-21", "2027-04-22"], ["Ninh Binh", "2027-04-22", "2027-04-24"]]);
+    expect(after.events.find((e) => e.title === "Tam Coc boat")!.day).toBe("2027-04-22");
+    expect(after.stay).toMatchObject({ stayFrom: "2027-04-21", stayTo: "2027-04-22" });
+  });
+
+  it("removing a day with items deletes its suggestions but keeps booked items on the next kept day", async () => {
+    const { t, tripId } = await plan();
+    const booked = await t.run((ctx) => ctx.db.insert("events", { tripId, title: "Flight", day: "2027-04-21", startTime: "20:00", placeId: null, durationMin: 60, participants: { type: "all" }, notes: "", source: "booking", createdAt: Date.now() }));
+    await t.mutation(internal.plannerData.trimDays, { tripId, removeDays: [1] });
+    const events = await t.run((ctx) => ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect());
+    expect(events.filter((e) => e.source === "ai_plan").map((e) => e.title)).toEqual(["Tam Coc boat"]);
+    expect(events.find((e) => e._id === booked)!.day).toBe("2027-04-21");
+    expect((await t.run((ctx) => ctx.db.get(tripId)))!.endDate).toBe("2027-04-24");
+  });
+
+  it("extendEnd lengthens the last stop; moveStart shifts everything and confirms the dates", async () => {
+    const { t, tripId } = await plan();
+    await t.mutation(internal.plannerData.extendEnd, { tripId, endDate: "2027-04-27" });
+    const trip = (await t.run((ctx) => ctx.db.get(tripId)))!;
+    expect(trip.endDate).toBe("2027-04-27");
+    expect(trip.stops.at(-1)!.endDate).toBe("2027-04-27");
+    await t.mutation(internal.plannerData.moveStart, { tripId, startDate: "2027-05-01" });
+    expect(await t.run((ctx) => ctx.db.get(tripId))).toMatchObject({ startDate: "2027-05-01", endDate: "2027-05-07", datesApproximate: false });
+  });
+});

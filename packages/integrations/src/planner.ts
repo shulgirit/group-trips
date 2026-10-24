@@ -281,3 +281,36 @@ export async function generatePlan(req: PlanRequest, onProgress?: (phase: "outli
   const days = parts.flat().sort((a, b) => a.dayNumber - b.dayNumber);
   return { outline, days };
 }
+
+/**
+ * Which days to drop when the person shortens a plan. The model keeps the first day (arrival) and the last (departure)
+ * where it can and drops the days that add the least; anything unusable falls back to dropping days just before the last.
+ */
+export async function chooseDaysToRemove(days: { n: number; stop: string; titles: string[] }[], remove: number, locale: string): Promise<number[]> {
+  const total = days.length;
+  const fallback = Array.from({ length: remove }, (_, i) => total - 1 - i).filter((n) => n >= 1);
+  while (fallback.length < remove) fallback.push(fallback.length + 1);
+  try {
+    const completion = await new OpenAI().chat.completions.create({
+      model: model(),
+      reasoning_effort: "low",
+      messages: [
+        {
+          role: "system",
+          content: `You shorten a travel itinerary. Choose exactly ${remove} day numbers to REMOVE so the trip still flows well: keep day 1 (arrival) and the last day (departure) unless there is no other choice, keep the strongest highlights, prefer removing quieter or repetitive days and days in stops that have the most nights. Return JSON {"removeDays":[...]} with distinct day numbers between 1 and ${total}. (${LANGUAGE[locale] ?? "English"} titles.)`,
+        },
+        { role: "user", content: days.map((d) => `Day ${d.n} (${d.stop}): ${d.titles.slice(0, 6).join("; ")}`).join("\n") },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "remove_days", strict: true, schema: { type: "object", additionalProperties: false, required: ["removeDays"], properties: { removeDays: { type: "array", items: { type: "integer" } } } } },
+      },
+    });
+    const raw = completion.choices[0]?.message?.content;
+    const picked = z.object({ removeDays: z.array(z.number().int()) }).parse(JSON.parse(raw ?? "{}")).removeDays;
+    const unique = [...new Set(picked)].filter((n) => n >= 1 && n <= total);
+    return unique.length === remove ? unique.sort((a, b) => a - b) : fallback.sort((a, b) => a - b);
+  } catch {
+    return fallback.sort((a, b) => a - b);
+  }
+}

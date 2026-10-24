@@ -1,12 +1,12 @@
-import { isLocale } from "@together/i18n/config";
+import { contentLocale, isLocale } from "@together/i18n/config";
 import { autocompleteDestination, resolveDestination } from "@together/integrations/destination";
 import { geocodePlace } from "@together/integrations/import-place";
-import { generatePlan } from "@together/integrations/planner";
-import { resolveDatePhrase } from "@together/shared/holidays";
+import { chooseDaysToRemove, generatePlan, type Outline, planDays } from "@together/integrations/planner";
+import { daysBetween, resolveDatePhrase, shiftIso } from "@together/shared/holidays";
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { fail } from "./lib/authz";
 import { accountMutation, userQuery } from "./lib/functions";
 
@@ -144,3 +144,84 @@ export const run = internalAction({
   },
 });
 
+
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Changes the dates of a plan and lets the AI reshape it: a shorter trip drops the days that add least (and closes the
+ * gaps), a longer one gets the extra days planned. A new start date moves everything. Organizers only.
+ */
+export const adjustDates = action({
+  args: { tripId: v.id("trips"), startDate: v.string(), endDate: v.string() },
+  handler: async (ctx, { tripId, startDate, endDate }): Promise<{ days: number; removed: number; added: number }> => {
+    if (!ISO.test(startDate) || !ISO.test(endDate)) fail("invalid", "dates");
+    const days = daysBetween(startDate, endDate);
+    if (days < 1 || days > 30) fail("invalid", "dates");
+    const info = await ctx.runQuery(internal.plannerData.adjustAccess, { tripId });
+    const trip = info.trip;
+    const before = daysBetween(trip.startDate, trip.endDate);
+    // Booked items are real: never slide them to other dates
+    const lastBooked = info.days.reduce((n, d) => (d.booked ? d.n : n), 0);
+    if (lastBooked && startDate !== trip.startDate) fail("invalid", "bookings_in_the_way");
+    if (lastBooked && days < before && before - days > before - lastBooked) fail("invalid", "bookings_in_the_way");
+    await ctx.runMutation(internal.plannerData.moveStart, { tripId, startDate });
+
+    if (days < before) {
+      // With bookings only trailing days can go (they are after the last booking); otherwise the AI picks the weakest days
+      const removeDays = lastBooked
+        ? Array.from({ length: before - days }, (_, i) => before - i).sort((a, b) => a - b)
+        : await chooseDaysToRemove(info.days, before - days, info.locale);
+      await ctx.runMutation(internal.plannerData.trimDays, { tripId, removeDays });
+      return { days, removed: before - days, added: 0 };
+    }
+    if (days === before) return { days, removed: 0, added: 0 };
+
+    // Longer: plan the extra days at the end, in the last stop, avoiding what the earlier days already cover
+    await ctx.runMutation(internal.plannerData.extendEnd, { tripId, endDate });
+    const lastStop = trip.stops[trip.stops.length - 1];
+    const outline: Outline = {
+      title: trip.name,
+      emoji: "sun",
+      summary: trip.summary ?? "",
+      datesReason: "",
+      tips: [],
+      startDate,
+      endDate,
+      stops: trip.stops.map((s, i) => ({
+        label: s.label,
+        country: s.country ?? "",
+        nights: Math.max(1, daysBetween(s.startDate, s.endDate) - 1) + (i === trip.stops.length - 1 ? days - before : 0),
+      })),
+      group: { kind: trip.groupKind, name: "", adults: info.adults, kidAges: [] },
+    };
+    const covered = info.days.slice(-4).flatMap((d) => d.titles).slice(0, 14).join("; ");
+    const extra = Array.from({ length: days - before }, (_, i) => before + 1 + i);
+    const planned = await planDays(outline, { text: `${trip.name}. Add extra days at the end of the existing plan; do not repeat what is already planned (${covered}).`, locale: contentLocale(isLocale(info.locale) ? info.locale : "en") }, extra, () => lastStop.label);
+    for (const day of planned) {
+      const items = day.items.filter((item) => item.kind !== "stay");
+      const wanted = [...new Set(items.filter((item) => item.kind !== "transport").map((item) => item.query))].slice(0, 12);
+      const geos = new Map<string, Awaited<ReturnType<typeof geocodePlace>>>();
+      await Promise.all(wanted.map(async (query) => void geos.set(query, await geocodePlace(query, `${lastStop.label} ${lastStop.country ?? ""}`).catch(() => null))));
+      await ctx.runMutation(internal.chatTools.replaceDay, {
+        tripId,
+        day: shiftIso(startDate, day.dayNumber - 1),
+        stopLabel: lastStop.label,
+        authorName: trip.ai.name,
+        items: items.map((item) => {
+          const geo = geos.get(item.query) ?? null;
+          return {
+            time: item.time,
+            title: item.title,
+            kind: item.kind,
+            durationMin: item.durationMin,
+            why: item.why,
+            query: item.query,
+            geo: geo ? { lat: geo.lat, lng: geo.lng, ...(geo.address ? { address: geo.address } : {}), ...(geo.photoUrl ? { photoUrl: geo.photoUrl } : {}) } : null,
+          };
+        }),
+      });
+    }
+    return { days, removed: 0, added: days - before };
+  },
+});
