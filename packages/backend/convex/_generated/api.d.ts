@@ -48,6 +48,7 @@ import type * as rates from "../rates.js";
 import type * as reports from "../reports.js";
 import type * as reportsData from "../reportsData.js";
 import type * as trips from "../trips.js";
+import type * as uploads from "../uploads.js";
 
 import type {
   ApiFromModules,
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   reports: typeof reports;
   reportsData: typeof reportsData;
   trips: typeof trips;
+  uploads: typeof uploads;
 }>;
 
 /**

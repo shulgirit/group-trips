@@ -4,8 +4,9 @@ import { tripCurrencies } from "@together/shared/currency";
 import { colors, radius } from "@together/shared/tokens";
 import { useAction } from "convex/react";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowDown, ArrowUp, Clock, Coins, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
+import { ArrowDown, ArrowUp, Clock, Coins, Pencil, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { CurrencyPicker } from "@/components/more/CurrencyPicker";
@@ -18,6 +19,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { TimeField } from "@/components/ui/TimeField";
 import { TRIP_GLYPHS, glyphIcon } from "@/lib/glyphs";
+import { uploadImage } from "@/lib/upload";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { StepHeader } from "./StepHeader";
 
@@ -148,6 +150,24 @@ function StopCard({
   const t = useT();
   const multi = count > 1;
   const stopNights = nights(stop.startDate, stop.endDate);
+  const [coverBusy, setCoverBusy] = useState(false);
+
+  /** The photo found for the destination is only a default: any picture from the gallery can replace it. */
+  async function pickCover() {
+    if (!stop.place) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [16, 9] });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setCoverBusy(true);
+    try {
+      const url = await uploadImage(asset.uri, asset.mimeType ?? "image/jpeg");
+      onChange({ place: { ...stop.place, coverImage: url } });
+    } catch {
+      // keep the default photo; the person can try again
+    } finally {
+      setCoverBusy(false);
+    }
+  }
   return (
     <View style={styles.stopRow}>
       <View style={styles.rail}>
@@ -163,6 +183,9 @@ function StopCard({
           <View style={styles.cover}>
             {stop.place.coverImage ? <Image source={stop.place.coverImage} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
             <LinearGradient colors={["transparent", "rgba(7,12,22,0.8)"]} style={StyleSheet.absoluteFill} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("trip.eventForm.photoChange")} onPress={pickCover} disabled={coverBusy} hitSlop={8} style={styles.pencil}>
+              {coverBusy ? <ActivityIndicator size="small" color={colors.night950} /> : <Icon icon={Pencil} size={16} color={colors.night950} />}
+            </Pressable>
             <View style={styles.coverText}>
               <View style={{ flex: 1 }}>
                 <Text variant="title" color={colors.chart50} numberOfLines={1}>
@@ -472,6 +495,7 @@ const styles = StyleSheet.create({
   nodeOpen: { borderWidth: 2, borderColor: colors.route300, backgroundColor: colors.chart50 },
   cover: { height: 112, backgroundColor: colors.night900, justifyContent: "flex-end" },
   coverText: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 14 },
+  pencil: { position: "absolute", top: 12, end: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(241,243,239,0.94)", alignItems: "center", justifyContent: "center" },
   change: { backgroundColor: "rgba(241,243,239,0.92)", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   stopFoot: { flexDirection: "row", alignItems: "center", minHeight: 44 },
   iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12 },

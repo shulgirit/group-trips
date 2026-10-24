@@ -21,3 +21,19 @@ export async function uploadToTrip(tripId: string, uri: string, mimeType?: strin
   const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
   return storageId;
 }
+
+/** Uploads a picture that isn't tied to a trip yet (a cover chosen in the trip wizard) and returns its URL. */
+export async function uploadImage(uri: string, mimeType?: string | null): Promise<string> {
+  const url = await convex.mutation(api.uploads.generateImageUrl, {});
+  const local = await fetch(uri);
+  const bytes = new Uint8Array(await local.arrayBuffer());
+  if (!bytes.length) throw new Error("upload_empty_file");
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": mimeType || local.headers.get("content-type") || "image/jpeg" },
+    body: bytes,
+  });
+  if (!response.ok) throw new Error(`upload_failed_${response.status}`);
+  const { storageId } = (await response.json()) as { storageId: Id<"_storage"> };
+  return convex.mutation(api.uploads.imageUrl, { storageId });
+}
