@@ -5,10 +5,10 @@ import { colors, radius } from "@together/shared/tokens";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { ArrowRight, Plus, UserRound } from "lucide-react-native";
 import { primaryPlace, type CreatorState } from "@together/backend/creator";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Logo } from "@/components/brand/Logo";
 import { readDraft } from "@/lib/creator-draft";
@@ -31,9 +31,12 @@ export default function Trips() {
 
   // A trip started on this phone that hasn't reached the server yet (steps 1-2 not completed)
   const [localDraft, setLocalDraft] = useState<CreatorState | null>(null);
-  useEffect(() => {
-    readDraft().then((draft) => setLocalDraft(draft && !draft.tripId && primaryPlace(draft) ? draft : null));
-  }, []);
+  // Re-read every time this screen comes back into view (the wizard may have just kept a draft)
+  useFocusEffect(
+    useCallback(() => {
+      readDraft().then((draft) => setLocalDraft(draft && !draft.tripId && primaryPlace(draft) ? draft : null));
+    }, [])
+  );
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
 

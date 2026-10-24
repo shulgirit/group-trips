@@ -19,7 +19,7 @@ import { colors, radius } from "@together/shared/tokens";
 import { type ConvexReactClient, useConvex, useConvexAuth, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { type Href, Redirect, router, Stack, useLocalSearchParams } from "expo-router";
+import { type Href, Redirect, router, Stack, useLocalSearchParams, useNavigation } from "expo-router";
 import { ArrowRight, BedDouble, CalendarDays, CarFront, Check, ChevronLeft, Plane, Share2, Ticket, Users, type LucideIcon } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
@@ -125,6 +125,8 @@ export default function NewTrip() {
   const [launched, setLaunched] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const loadedFor = useRef<string | null>(null);
+  const leaving = useRef(false);
+  const navigation = useNavigation();
   const scroll = useRef<ScrollView>(null);
 
   // Initial state: an existing trip (?trip=), the saved draft, or fresh
@@ -185,12 +187,23 @@ export default function NewTrip() {
     }
   }
 
+  // The system Back button / edge swipe asks the same question as Close, instead of silently dropping the work
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", (event) => {
+      if (leaving.current || !state || state.status === "active" || !(state.tripId || primaryPlace(state))) return;
+      event.preventDefault();
+      closeWizardRef.current();
+    });
+  });
+
   function leave() {
+    leaving.current = true;
     if (router.canGoBack()) router.back();
     else router.replace("/trips");
   }
 
   /** Close: nothing started → just leave; a live trip → leave; an unfinished trip → ask what to do with it. */
+  const closeWizardRef = useRef<() => void>(() => undefined);
   function closeWizard() {
     if (!state) return leave();
     const started = Boolean(state.tripId || primaryPlace(state));
@@ -228,6 +241,8 @@ export default function NewTrip() {
       { text: t("creator.close.keep"), style: "cancel" },
     ]);
   }
+
+  closeWizardRef.current = closeWizard;
 
   async function next() {
     if (!state) return;
