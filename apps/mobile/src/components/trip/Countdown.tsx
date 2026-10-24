@@ -40,7 +40,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
     <View style={styles.row} accessibilityRole="timer">
       {units.map((unit, index) => (
         <View key={unit.id} style={[styles.unit, index > 0 && styles.divider]}>
-          <Text variant="display" color={colors.chart50} align="center" style={{ fontVariant: ["tabular-nums"] }}>
+          <Text variant="display" color={colors.chart50} align="center" numberOfLines={1} style={{ fontVariant: ["tabular-nums"] }}>
             {String(unit.value).padStart(unit.id === "days" ? 1 : 2, "0")}
           </Text>
           <Text variant="caption" color="rgba(241,243,239,0.75)" align="center">
@@ -54,6 +54,7 @@ export function Countdown({ targetIso }: { targetIso: string }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", direction: "ltr", alignSelf: "flex-start" },
-  unit: { width: 72, paddingHorizontal: 6, gap: 4 },
+  // minWidth, not width: a 3-digit day count (179) must grow its column instead of wrapping to a second line
+  unit: { minWidth: 72, paddingHorizontal: 8, gap: 4, alignItems: "center" },
   divider: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: "rgba(241,243,239,0.25)" },
 });

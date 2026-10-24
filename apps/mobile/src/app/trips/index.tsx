@@ -86,8 +86,8 @@ export default function Trips() {
         <>
           {!me?.guest && (
             <Pressable accessibilityRole="button" onPress={() => router.push("/start")} style={({ pressed }) => [styles.newTrip, pressed && { opacity: 0.92 }]}>
-              <Image source={require("../../../assets/onboarding/plan.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
-              <LinearGradient colors={["rgba(7,12,22,0.25)", "rgba(7,12,22,0.88)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              <Image source={require("../../../assets/onboarding/start-ai.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <LinearGradient colors={["rgba(7,12,22,0.35)", "rgba(7,12,22,0.9)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
               <View style={styles.newTripText}>
                 <Text variant="title" color={colors.chart50}>
                   {t("product.trips.newTrip.title")}

@@ -110,7 +110,7 @@ export default function Now() {
             {t("settings.more.myTrips")}
           </Text>
         </Pressable>
-        <View style={styles.heroText}>
+        <View style={[styles.heroText, { paddingTop: insets.top + 56 }]} pointerEvents="box-none">
           {duringTrip ? (
             <>
               <View style={styles.dayChip}>
@@ -354,7 +354,7 @@ export default function Now() {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 430, backgroundColor: colors.night900, justifyContent: "flex-end" },
+  hero: { minHeight: 430, backgroundColor: colors.night900, justifyContent: "flex-end" },
   myTrips: {
     position: "absolute",
     end: 16,
@@ -365,6 +365,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: "rgba(7,12,22,0.45)",
+    // Above the hero text, which can be long enough to reach the top of the cover
+    zIndex: 10,
+    elevation: 10,
   },
   heroText: { paddingHorizontal: 24, paddingBottom: 64, gap: 8 },
   dayChip: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.18)" },
