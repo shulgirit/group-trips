@@ -46,7 +46,10 @@ function MemberRow({
         onPress={() => onChange({ kid: !member.kid })}
         style={[styles.kind, member.kid ? styles.kindKid : null]}
       >
-        <Icon icon={member.kid ? Baby : UserRound} size={20} color={member.kid ? colors.route700 : colors.ink700} />
+        <Icon icon={member.kid ? Baby : UserRound} size={18} color={member.kid ? colors.route700 : colors.ink700} />
+        <Text variant="caption" weight="medium" color={member.kid ? colors.route700 : colors.ink700} numberOfLines={1}>
+          {member.kid ? t("creator.who.member.child") : t("creator.who.member.adult")}
+        </Text>
       </Pressable>
       <Field
         value={member.name}
@@ -61,7 +64,7 @@ function MemberRow({
           value={member.age === null ? "" : String(member.age)}
           onChangeText={(text) => {
             const age = Number.parseInt(text, 10);
-            onChange({ age: Number.isFinite(age) ? Math.min(age, 25) : null });
+            onChange({ age: Number.isFinite(age) ? Math.min(Math.max(age, 0), 17) : null });
           }}
           keyboardType="number-pad"
           placeholder={t("creator.who.member.age")}
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
     borderColor: colors.chart300,
   },
   member: { flexDirection: "row", alignItems: "center", gap: 6 },
-  kind: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.chart100, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200 },
+  kind: { width: 60, height: 52, borderRadius: 16, gap: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.chart100, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200 },
   kindKid: { backgroundColor: colors.route100, borderColor: colors.route300 },
   me: { minHeight: 34, paddingHorizontal: 10, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200, alignItems: "center", justifyContent: "center" },
   meActive: { backgroundColor: colors.ink900, borderColor: colors.ink900 },

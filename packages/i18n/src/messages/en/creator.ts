@@ -174,6 +174,8 @@ const creator: typeof he = {
     summaryPeople: { one: "{count} traveler", other: "{count} travelers" },
     summaryKids: { one: "{count} child", other: "{count} children" },
     member: {
+      adult: "Adult",
+      child: "Child",
       kidToggle: "Child — tap to change to adult",
       adultToggle: "Adult — tap to change to child",
       kidName: "Child's name",

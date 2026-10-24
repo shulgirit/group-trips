@@ -172,6 +172,8 @@ const creator = {
     summaryPeople: { one: "משתתף אחד", other: "{count} משתתפים" },
     summaryKids: { one: "ילד אחד", other: "{count} ילדים" },
     member: {
+      adult: "מבוגר",
+      child: "ילד/ה",
       kidToggle: "ילד/ה — לחצו לשינוי למבוגר",
       adultToggle: "מבוגר — לחצו לשינוי לילד/ה",
       kidName: "שם הילד/ה",

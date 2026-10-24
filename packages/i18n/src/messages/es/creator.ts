@@ -174,6 +174,8 @@ const creator: PartialMessages["creator"] = {
     summaryPeople: { one: "{count} viajero", other: "{count} viajeros" },
     summaryKids: { one: "{count} niño", other: "{count} niños" },
     member: {
+      adult: "Adulto",
+      child: "Niño/a",
       kidToggle: "Niño. Toca para cambiar a adulto",
       adultToggle: "Adulto. Toca para cambiar a niño",
       kidName: "Nombre del niño",
