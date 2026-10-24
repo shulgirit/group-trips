@@ -255,6 +255,36 @@ export const setRateOverride = tripMutation({
 const dayMs = 86_400_000;
 const shiftDate = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * dayMs).toISOString().slice(0, 10);
 
+/** Moves the whole trip so it starts on `startDate`: stops, events, stays and reminders shift by the same days. */
+export async function shiftTripDates(ctx: MutationCtx, tripId: Id<"trips">, startDate: string): Promise<number> {
+  const trip = await ctx.db.get(tripId);
+  if (!trip) fail("not_found");
+  const delta = Math.round((Date.parse(`${startDate}T00:00:00Z`) - Date.parse(`${trip.startDate}T00:00:00Z`)) / dayMs);
+  if (delta === 0) return 0;
+  const stops = trip.stops.map((stop) => ({ ...stop, startDate: shiftDate(stop.startDate, delta), endDate: shiftDate(stop.endDate, delta) }));
+  await ctx.db.patch(tripId, {
+    stops,
+    startDate: shiftDate(trip.startDate, delta),
+    endDate: shiftDate(trip.endDate, delta),
+    departureAt: null,
+    departureNote: "",
+  });
+  const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect();
+  for (const event of events) await ctx.db.patch(event._id, { day: shiftDate(event.day, delta) });
+  const places = await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect();
+  for (const place of places) {
+    if (place.stayFrom || place.stayTo) {
+      await ctx.db.patch(place._id, {
+        ...(place.stayFrom ? { stayFrom: shiftDate(place.stayFrom, delta) } : {}),
+        ...(place.stayTo ? { stayTo: shiftDate(place.stayTo, delta) } : {}),
+      });
+    }
+  }
+  const fresh = (await ctx.db.get(tripId))!;
+  for (const event of events) await scheduleReminder(ctx, fresh, event._id);
+  return delta;
+}
+
 /**
  * Sets the real start date of a tentative trip: every stop, event and stay moves by the same number of days and the
  * reminders follow. Also works on any trip whose organizer moved the dates.
@@ -264,30 +294,7 @@ export const confirmDates = tripMutation({
   handler: async (ctx, { startDate }) => {
     if (!isAdmin(ctx.member)) fail("forbidden");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) fail("invalid", "date");
-    const delta = Math.round((Date.parse(`${startDate}T00:00:00Z`) - Date.parse(`${ctx.trip.startDate}T00:00:00Z`)) / dayMs);
-    if (delta !== 0) {
-      const stops = ctx.trip.stops.map((stop) => ({ ...stop, startDate: shiftDate(stop.startDate, delta), endDate: shiftDate(stop.endDate, delta) }));
-      await ctx.db.patch(ctx.tripId, {
-        stops,
-        startDate: shiftDate(ctx.trip.startDate, delta),
-        endDate: shiftDate(ctx.trip.endDate, delta),
-        departureAt: null,
-        departureNote: "",
-      });
-      const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", ctx.tripId)).collect();
-      for (const event of events) await ctx.db.patch(event._id, { day: shiftDate(event.day, delta) });
-      const places = await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).collect();
-      for (const place of places) {
-        if (place.stayFrom || place.stayTo) {
-          await ctx.db.patch(place._id, {
-            ...(place.stayFrom ? { stayFrom: shiftDate(place.stayFrom, delta) } : {}),
-            ...(place.stayTo ? { stayTo: shiftDate(place.stayTo, delta) } : {}),
-          });
-        }
-      }
-      const fresh = (await ctx.db.get(ctx.tripId))!;
-      for (const event of events) await scheduleReminder(ctx, fresh, event._id);
-    }
+    const delta = await shiftTripDates(ctx, ctx.tripId, startDate);
     await ctx.db.patch(ctx.tripId, { datesApproximate: false, updatedAt: Date.now() });
     return { delta };
   },

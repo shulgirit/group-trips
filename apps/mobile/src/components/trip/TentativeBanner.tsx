@@ -10,6 +10,8 @@ import { DateField } from "@/components/ui/DateField";
 import { Icon } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
+import { type Href, router } from "expo-router";
+import { Pressable } from "react-native";
 import { useT } from "@/lib/i18n";
 import { useTrip } from "@/lib/trip";
 
@@ -46,6 +48,11 @@ export function TentativeBanner() {
           {t("creator.planner.bannerText")}
         </Text>
       ) : null}
+      <Pressable accessibilityRole="link" onPress={() => router.push(`/t/${id}/import` as Href)} hitSlop={8}>
+        <Text variant="small" weight="medium" color={colors.route700}>
+          {t("creator.planner.bookCta")}
+        </Text>
+      </Pressable>
       {isAdmin && (
         <View style={styles.actions}>
           {doc.datesApproximate && <Button tone="outline" icon={CalendarCheck} label={t("creator.planner.confirm")} onPress={() => setOpen(true)} style={{ flex: 1 }} />}

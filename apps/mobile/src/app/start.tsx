@@ -12,7 +12,7 @@ import { type TKey, useT } from "@/lib/i18n";
 export default function Start() {
   const t = useT();
   const option = (icon: LucideIcon, title: TKey, text: TKey, href: "/plan" | "/new", primary = false) => (
-    <Pressable accessibilityRole="button" onPress={() => router.replace(href)} style={({ pressed }) => pressed && { opacity: 0.9 }}>
+    <Pressable accessibilityRole="button" onPress={() => router.replace(href)} style={({ pressed }) => (pressed ? { opacity: 0.9 } : undefined)}>
       <Card style={[styles.card, primary && styles.primary]}>
         <View style={[styles.badge, primary && { backgroundColor: colors.brass500 }]}>
           <Icon icon={icon} size={22} color={primary ? colors.night950 : colors.ink700} />

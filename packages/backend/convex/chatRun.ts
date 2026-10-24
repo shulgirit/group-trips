@@ -11,16 +11,21 @@ import {
   resolvePlace,
   runChat,
   searchRatedPlaces,
+  tripNow,
   ToolArgs,
 } from "@together/integrations/ai-chat";
 import { systemPrompt } from "@together/integrations/ai-persona";
 import { enrichPlace } from "@together/integrations/enrich";
 import { geocodePlace, importPlaceFromUrl } from "@together/integrations/import-place";
+import { type Outline, planDays } from "@together/integrations/planner";
+import { daysBetween } from "@together/shared/holidays";
+import { stopForDay } from "@together/shared/trip-doc";
 import { type Infer, v } from "convex/values";
 import OpenAI from "openai";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
+import { shiftIso } from "@together/shared/holidays";
 import { rosterLabel, speakerLine } from "./chat";
 import { regionOf } from "./events";
 import type { placeInput } from "./places";
@@ -33,6 +38,9 @@ import type { placeInput } from "./places";
  */
 
 type Context = NonNullable<Awaited<ReturnType<typeof loadContext>>>;
+type Ctx = Context;
+
+const errorDetail = (error: unknown) => String((error as { data?: { detail?: string } })?.data?.detail ?? "");
 
 /**
  * Writes the reply text into the pending message while the model streams: at most one write in
@@ -81,6 +89,15 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
   const tripId = trip._id;
   const places: ChatPlace[] = [...context.places];
   const speaker = speakerLine(locale, context.speakerName, context.speakerFamily);
+  // The lists the model points into by ref/name; kept current as tools change them
+  const events = context.events.map((e) => ({ ...e }));
+  const expenses: { id: string; ref: string; description: string }[] = context.expenses.map((x) => ({ id: x.id, ref: x.ref, description: x.description }));
+  const isOrganizer = context.role === "owner" || context.role === "admin";
+  const isKid = context.role === "kid";
+  const canDeletePlaces = isOrganizer || (context.membersCanDeletePlaces && !isKid && !context.guest);
+  const denied = (why: string) => ({ ok: false, error: `Not allowed: ${why}. Tell the user kindly and suggest asking an organizer.` });
+  const eventByRef = (ref: string) => events.find((e) => e.ref === ref.trim().toLowerCase());
+  const pollByQuestion = (text: string) => ctx.runQuery(internal.chatTools.findPoll, { tripId, question: text });
 
   return async (name: string, raw: unknown): Promise<Record<string, unknown>> => {
     switch (name) {
@@ -212,6 +229,237 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
         return { ok: true, summary: `"${args.label}" נוסף לסקר הרעיונות` };
       }
 
+
+      // ── edit tools: anything a person can do by hand ────────────────────
+      case "update_event": {
+        const args = ToolArgs.update_event.parse(raw);
+        if (isKid) return denied("kids can't change the schedule");
+        const target = eventByRef(args.ref);
+        if (!target) return { ok: false, error: `No schedule item with ref ${args.ref}` };
+        if (args.day && (args.day < trip.startDate || args.day > trip.endDate)) return { ok: false, error: `${args.day} is outside the trip dates` };
+        const place = args.placeName ? resolvePlace(args.placeName, places) : null;
+        if (args.placeName && !place) return { ok: false, error: `No saved place named "${args.placeName}"` };
+        const who = args.participants ? resolveParticipants(args.participants, context.families) : null;
+        await ctx.runMutation(internal.chatTools.updateEvent, {
+          tripId,
+          eventId: target.id as Id<"events">,
+          patch: {
+            ...(args.title ? { title: args.title } : {}),
+            ...(args.emoji ? { emoji: args.emoji } : {}),
+            ...(args.day ? { day: args.day } : {}),
+            ...(args.startTime ? { startTime: args.startTime } : {}),
+            ...(args.durationMin ? { durationMin: args.durationMin } : {}),
+            ...(place ? { placeId: place.id as Id<"places"> } : {}),
+            ...(who ? { participants: who.type === "families" ? { type: "families" as const, familyIds: who.familyIds as Id<"families">[] } : who } : {}),
+            ...(args.notes !== undefined ? { notes: args.notes } : {}),
+          },
+        });
+        if (args.day) target.day = args.day;
+        if (args.startTime) target.startTime = args.startTime;
+        if (args.title) target.title = args.title;
+        return { ok: true, summary: `Updated "${target.title}" (${target.day} ${target.startTime})` };
+      }
+
+      case "delete_event": {
+        const args = ToolArgs.delete_event.parse(raw);
+        if (isKid) return denied("kids can't remove schedule items");
+        const targets = args.refs.map(eventByRef).filter((e): e is Ctx["events"][number] => Boolean(e));
+        if (!targets.length) return { ok: false, error: "None of those refs exist" };
+        const removed = await ctx.runMutation(internal.chatTools.deleteEvents, { tripId, eventIds: targets.map((e) => e.id as Id<"events">) });
+        for (const target of targets) events.splice(events.indexOf(target), 1);
+        return { ok: true, summary: `Removed ${removed} item(s): ${targets.map((e) => e.title).join(", ")}` };
+      }
+
+      case "clear_day": {
+        const args = ToolArgs.clear_day.parse(raw);
+        if (isKid) return denied("kids can't remove schedule items");
+        const removed = await ctx.runMutation(internal.chatTools.clearDay, { tripId, day: args.day, includeBookings: args.includeBookings ?? false });
+        for (let i = events.length - 1; i >= 0; i--) if (events[i].day === args.day && (args.includeBookings || !events[i].booked)) events.splice(i, 1);
+        return { ok: true, summary: `Cleared ${removed} item(s) from ${args.day}${args.includeBookings ? "" : " (bookings kept)"}` };
+      }
+
+      case "shift_days": {
+        const args = ToolArgs.shift_days.parse(raw);
+        if (isKid) return denied("kids can't change the schedule");
+        try {
+          const moved = await ctx.runMutation(internal.chatTools.shiftDays, { tripId, fromDay: args.fromDay, toDay: args.toDay ?? trip.endDate, byDays: args.byDays });
+          for (const e of events) if (e.day >= args.fromDay && e.day <= (args.toDay ?? trip.endDate)) e.day = shiftIso(e.day, args.byDays);
+          return { ok: true, summary: `Moved ${moved} item(s) by ${args.byDays} day(s)` };
+        } catch (error) {
+          return { ok: false, error: errorDetail(error) === "day_out_of_range" ? "That would push items outside the trip dates. Change the trip dates first." : "Couldn't move the days" };
+        }
+      }
+
+      case "swap_days": {
+        const args = ToolArgs.swap_days.parse(raw);
+        if (isKid) return denied("kids can't change the schedule");
+        if (stopForDay(trip.stops, args.dayA).label !== stopForDay(trip.stops, args.dayB).label) {
+          return { ok: false, error: "Those two days are in different cities of the route, so swapping them would put activities in the wrong place. Offer to move specific items with update_event instead." };
+        }
+        try {
+          const moved = await ctx.runMutation(internal.chatTools.swapDays, { tripId, dayA: args.dayA, dayB: args.dayB });
+          for (const e of events) e.day = e.day === args.dayA ? args.dayB : e.day === args.dayB ? args.dayA : e.day;
+          return { ok: true, summary: `Swapped ${args.dayA} and ${args.dayB} (${moved} items)` };
+        } catch {
+          return { ok: false, error: "Both days must be within the trip dates" };
+        }
+      }
+
+      case "replan_day": {
+        const args = ToolArgs.replan_day.parse(raw);
+        if (isKid) return denied("kids can't change the schedule");
+        if (args.day < trip.startDate || args.day > trip.endDate) return { ok: false, error: `${args.day} is outside the trip dates` };
+        const stop = stopForDay(trip.stops, args.day);
+        const outline: Outline = {
+          title: trip.name,
+          emoji: "sun",
+          summary: trip.summary ?? "",
+          datesReason: "",
+          tips: [],
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          stops: trip.stops.map((s) => ({ label: s.label, country: s.country ?? "", nights: Math.max(1, daysBetween(s.startDate, s.endDate) - 1) })),
+          group: { kind: trip.groupKind, name: "", adults: Math.max(1, context.families.reduce((n, f) => n + f.members.length, 0)), kidAges: [] },
+        };
+        const dayNumber = daysBetween(trip.startDate, args.day);
+        const planned = await planDays(outline, { text: `${trip.name}. Plan only this one day: ${args.instruction}`, locale: contentLocale(locale) }, [dayNumber], () => stop.label);
+        // A re-plan never adds another hotel; the stay stays as booked/planned
+        const items = (planned[0]?.items ?? []).filter((item) => item.kind !== "stay");
+        if (!items.length) return { ok: false, error: "Couldn't come up with a plan for that day" };
+        const stopRow = trip.stops.find((s) => s.label === stop.label);
+        const geos = new Map<string, Awaited<ReturnType<typeof geocodePlace>>>();
+        const wanted = [...new Set(items.filter((item) => item.kind !== "transport").map((item) => item.query))].slice(0, 12);
+        await Promise.all(wanted.map(async (query) => void geos.set(query, await geocodePlace(query, stopRow ? `${stopRow.label} ${stopRow.country ?? ""}` : regionOf(trip)).catch(() => null))));
+        const result = await ctx.runMutation(internal.chatTools.replaceDay, {
+          tripId,
+          day: args.day,
+          stopLabel: stop.label,
+          authorName: speaker ? `${speaker} (${trip.ai.name})` : trip.ai.name,
+          items: items.map((item) => {
+            const geo = geos.get(item.query) ?? null;
+            return {
+              time: item.time,
+              title: item.title,
+              kind: item.kind,
+              durationMin: item.durationMin,
+              why: item.why,
+              query: item.query,
+              geo: geo ? { lat: geo.lat, lng: geo.lng, ...(geo.address ? { address: geo.address } : {}), ...(geo.photoUrl ? { photoUrl: geo.photoUrl } : {}) } : null,
+            };
+          }),
+        });
+        return { ok: true, summary: `Re-planned ${args.day}: replaced ${result.removed} item(s) with ${result.added} new ones (booked items kept). Tell the user what the new day looks like.`, items: items.map((i) => `${i.time} ${i.title}`) };
+      }
+
+      case "change_trip_dates": {
+        const args = ToolArgs.change_trip_dates.parse(raw);
+        if (!isOrganizer) return denied("only organizers can change the trip dates");
+        if (!args.startDate && !args.endDate) return { ok: false, error: "Give a new startDate and/or endDate" };
+        try {
+          const range = await ctx.runMutation(internal.chatTools.changeTripDates, { tripId, ...(args.startDate ? { startDate: args.startDate } : {}), ...(args.endDate ? { endDate: args.endDate } : {}) });
+          return { ok: true, summary: `The trip now runs ${range.startDate} to ${range.endDate}` };
+        } catch {
+          return { ok: false, error: "Those dates don't work (end before start, or longer than 120 days)" };
+        }
+      }
+
+      case "update_place": {
+        const args = ToolArgs.update_place.parse(raw);
+        if (isKid) return denied("kids can't edit places");
+        const target = resolvePlace(args.placeName, places);
+        if (!target) return { ok: false, error: `No saved place named "${args.placeName}"` };
+        const { placeName: _ignored, ...patch } = args;
+        void _ignored;
+        await ctx.runMutation(internal.chatTools.updatePlace, { tripId, placeId: target.id as Id<"places">, patch: patch as never });
+        if (args.name) target.name = args.name;
+        return { ok: true, summary: `Updated the place "${target.name}"` };
+      }
+
+      case "delete_place": {
+        const args = ToolArgs.delete_place.parse(raw);
+        if (!canDeletePlaces) return denied("you don't have permission to delete places in this trip");
+        const target = resolvePlace(args.placeName, places);
+        if (!target) return { ok: false, error: `No saved place named "${args.placeName}"` };
+        await ctx.runMutation(internal.chatTools.deletePlace, { tripId, placeId: target.id as Id<"places"> });
+        places.splice(places.indexOf(target), 1);
+        return { ok: true, summary: `Deleted "${target.name}"` };
+      }
+
+      case "set_home_base": {
+        const args = ToolArgs.set_home_base.parse(raw);
+        if (!isOrganizer) return denied("only organizers can set the home base");
+        const target = resolvePlace(args.placeName, places);
+        if (!target) return { ok: false, error: `No saved place named "${args.placeName}"` };
+        await ctx.runMutation(internal.chatTools.setHomeBase, { tripId, placeId: target.id as Id<"places"> });
+        return { ok: true, summary: `"${target.name}" is now the home base` };
+      }
+
+      case "vote_poll": {
+        const args = ToolArgs.vote_poll.parse(raw);
+        const poll = await pollByQuestion(args.question);
+        if (!poll) return { ok: false, error: `No poll matching "${args.question}"` };
+        const option = poll.options.find((o) => o.label.toLowerCase() === args.option.toLowerCase()) ?? poll.options.find((o) => o.label.toLowerCase().includes(args.option.toLowerCase()) || args.option.toLowerCase().includes(o.label.toLowerCase()));
+        if (!option) return { ok: false, error: `No option "${args.option}" in "${poll.question}"` };
+        try {
+          await ctx.runMutation(internal.chatTools.votePoll, { tripId, pollId: poll.id as Id<"polls">, optionId: option.id, userId: context.ownerId });
+          return { ok: true, summary: `Voted "${option.label}" in "${poll.question}"` };
+        } catch {
+          return { ok: false, error: "That poll is closed" };
+        }
+      }
+
+      case "close_poll": {
+        const args = ToolArgs.close_poll.parse(raw);
+        if (isKid) return denied("kids can't close polls");
+        const poll = await pollByQuestion(args.question);
+        if (!poll) return { ok: false, error: `No poll matching "${args.question}"` };
+        await ctx.runMutation(internal.chatTools.setPollClosed, { tripId, pollId: poll.id as Id<"polls">, closed: args.closed ?? true });
+        return { ok: true, summary: `${args.closed === false ? "Reopened" : "Closed"} "${poll.question}"` };
+      }
+
+      case "delete_poll": {
+        const args = ToolArgs.delete_poll.parse(raw);
+        if (isKid) return denied("kids can't delete polls");
+        const poll = await pollByQuestion(args.question);
+        if (!poll) return { ok: false, error: `No poll matching "${args.question}"` };
+        await ctx.runMutation(internal.chatTools.deletePoll, { tripId, pollId: poll.id as Id<"polls"> });
+        return { ok: true, summary: `Deleted the poll "${poll.question}"` };
+      }
+
+      case "add_expense": {
+        const args = ToolArgs.add_expense.parse(raw);
+        if (isKid || context.guest) return denied("only adults with an account can record expenses");
+        const payerName = args.payer ?? context.speakerFamily;
+        const payer = payerName ? resolveParticipants([payerName], context.families) : null;
+        const payerId = payer?.type === "families" ? payer.familyIds[0] : context.families.find((f) => f.id === context.myFamilyId)?.id;
+        if (!payerId) return { ok: false, error: "Say which family paid" };
+        const split = args.splitBetween?.length ? resolveParticipants(args.splitBetween, context.families) : null;
+        const currency = (args.currency ?? trip.mainCurrency ?? trip.stops[0]?.currency ?? "EUR").toUpperCase();
+        const date = args.date ?? tripNow(trip.timezone).todayIso;
+        const id = await ctx.runMutation(internal.chatTools.addExpense, {
+          tripId,
+          payerFamilyId: payerId as Id<"families">,
+          description: args.description,
+          amount: args.amount,
+          currency,
+          date,
+          participantFamilyIds: split?.type === "families" ? (split.familyIds as Id<"families">[]) : null,
+          userId: context.ownerId,
+        });
+        expenses.push({ id, ref: `x${expenses.length + 1}`, description: args.description });
+        return { ok: true, summary: `Recorded ${args.amount} ${currency} for "${args.description}"` };
+      }
+
+      case "delete_expense": {
+        const args = ToolArgs.delete_expense.parse(raw);
+        if (isKid || context.guest) return denied("only adults with an account can delete expenses");
+        const target = expenses.find((x) => x.ref === args.ref);
+        if (!target) return { ok: false, error: `No expense with ref ${args.ref}` };
+        await ctx.runMutation(internal.chatTools.deleteExpense, { tripId, expenseId: target.id as Id<"expenses"> });
+        expenses.splice(expenses.indexOf(target), 1);
+        return { ok: true, summary: `Deleted the expense "${target.description}"` };
+      }
+
       default:
         return { ok: false, error: "unknown_tool" };
     }
@@ -257,6 +505,7 @@ export const run = internalAction({
           families: context.families,
           places: context.places,
           events: context.events,
+          expenses: context.expenses,
           polls: context.polls,
         }),
         speaker: speakerLine(locale, context.speakerName, context.speakerFamily),

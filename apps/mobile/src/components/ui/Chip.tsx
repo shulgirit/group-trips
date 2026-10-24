@@ -18,7 +18,7 @@ export function Chip({ label, active = false, onPress }: { label: string; active
 }
 
 const styles = StyleSheet.create({
-  chip: { minHeight: 40, paddingHorizontal: 16, borderRadius: radius.chip, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth * 2 },
+  chip: { minHeight: 40, paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.chip, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth * 2 },
   idle: { backgroundColor: colors.paper, borderColor: colors.chart200 },
   active: { backgroundColor: colors.ink900, borderColor: colors.ink900 },
 });

@@ -30,16 +30,16 @@ export const failRun = internalMutation({
   },
 });
 
-const EMOJI = { attraction: "pin", restaurant: "dining", stay: "hotel", transport: "car", activity: "ticket" } as const;
-const CATEGORY = { attraction: "attraction", activity: "attraction", restaurant: "restaurant", stay: "accommodation" } as const;
+export const EMOJI = { attraction: "pin", restaurant: "dining", stay: "hotel", transport: "car", activity: "ticket" } as const;
+export const CATEGORY = { attraction: "attraction", activity: "attraction", restaurant: "restaurant", stay: "accommodation" } as const;
 
-const pad = (time: string) => {
+export const pad = (time: string) => {
   const [h, m] = time.split(":");
   return `${String(Math.min(23, Number(h) || 0)).padStart(2, "0")}:${String(Math.min(59, Number(m) || 0)).padStart(2, "0")}`;
 };
 
 /** Drops the trailing city from a search query so the saved place has a clean name. */
-const placeName = (query: string, stop: string, fallback: string) => {
+export const placeName = (query: string, stop: string, fallback: string) => {
   const stripped = query.replace(new RegExp(`[\\s,]*${stop.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "i"), "").trim();
   return stripped.length >= 2 ? stripped : fallback;
 };
@@ -131,10 +131,17 @@ export const build = internalMutation({
 
     let events = 0;
     let places = 0;
+    // One suggested stay per stop, whatever the model listed
+    const stayed = new Set<string>();
     for (const day of days as { dayNumber: number; stopLabel: string; items: { time: string; title: string; kind: keyof typeof EMOJI; query: string; durationMin: number; why: string }[] }[]) {
       const date = shiftIso(outline.startDate, day.dayNumber - 1);
       const stop = stopInputs.find((s: { label: string }) => s.label === day.stopLabel) ?? stopInputs.find((s: { startDate: string; endDate: string }) => date >= s.startDate && date <= s.endDate);
       for (const item of day.items) {
+        if (item.kind === "stay") {
+          const key = stop?.label ?? day.stopLabel;
+          if (stayed.has(key)) continue;
+          stayed.add(key);
+        }
         let placeId: Id<"places"> | null = null;
         const geo = item.kind === "transport" ? null : (geos.get(item.query) ?? null);
         if (geo) {

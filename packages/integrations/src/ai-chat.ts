@@ -200,8 +200,97 @@ export function buildTools(range: { startDate: string; endDate: string }): OpenA
         },
       },
     },
+    ...EDIT_TOOLS(range),
   ];
 }
+
+const REF = { type: "string", description: "The ref shown in brackets in the schedule list, e.g. e12" } as const;
+const DAY = (what: string) => ({ type: "string", description: `${what} (YYYY-MM-DD)` }) as const;
+const fn = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []): OpenAI.Chat.ChatCompletionTool => ({
+  type: "function",
+  function: { name, description, parameters: { type: "object", properties, required } },
+});
+
+/** Everything a person can do by hand in the app, plus re-planning a day. Names are resolved against the context lists. */
+function EDIT_TOOLS(range: { startDate: string; endDate: string }): OpenAI.Chat.ChatCompletionTool[] {
+  const inRange = `within the trip (${range.startDate} to ${range.endDate})`;
+  return [
+    fn(
+      "update_event",
+      "Change an existing schedule item: move it to another day or time, rename it, change its length, notes, icon, linked place or who is coming. Only pass the fields that change. Use this instead of deleting and re-creating.",
+      {
+        ref: REF,
+        title: { type: "string" },
+        emoji: { type: "string" },
+        day: DAY(`New day ${inRange}`),
+        startTime: { type: "string", description: "HH:mm (24h)" },
+        durationMin: { type: "number" },
+        placeName: { type: "string", description: "A saved place to link (from the places list)" },
+        participants: { type: "array", items: { type: "string" }, description: "Names or families; empty list = everyone" },
+        notes: { type: "string" },
+      },
+      ["ref"]
+    ),
+    fn("delete_event", "Remove one or more schedule items. Only when the user asks to remove/cancel them.", { refs: { type: "array", items: REF, description: "One or more refs" } }, ["refs"]),
+    fn("clear_day", "Remove every item of a day (not bookings unless includeBookings is true).", { day: DAY(`The day ${inRange}`), includeBookings: { type: "boolean" } }, ["day"]),
+    fn(
+      "shift_days",
+      "Move all items from one day (or a range of days) later or earlier by a number of days, e.g. 'push everything after Wednesday one day later'.",
+      { fromDay: DAY("First day to move"), toDay: DAY("Last day to move (default: the end of the trip)"), byDays: { type: "number", description: "Positive = later, negative = earlier" } },
+      ["fromDay", "byDays"]
+    ),
+    fn("swap_days", "Swap everything planned on two days of the same city/stop (not across different cities).", { dayA: DAY("First day"), dayB: DAY("Second day") }, ["dayA", "dayB"]),
+    fn(
+      "replan_day",
+      "Re-plan one day from scratch with new real places, following the user's wish (more kid friendly, slower, food focused, rainy-day...). Replaces the day's items except booked tickets, flights and hotels.",
+      { day: DAY(`The day to redo ${inRange}`), instruction: { type: "string", description: "What the user wants this day to be like" } },
+      ["day", "instruction"]
+    ),
+    fn(
+      "change_trip_dates",
+      "Change the trip's dates. startDate moves the whole trip (every item keeps its place in the sequence); endDate only makes the trip longer or shorter. Organizers only.",
+      { startDate: DAY("New first day"), endDate: DAY("New last day") }
+    ),
+    fn(
+      "update_place",
+      "Edit a saved place: rename, change category, address, notes/tips, opening hours, prices, website or mark it a favorite.",
+      {
+        placeName: { type: "string", description: "The saved place to edit" },
+        name: { type: "string" },
+        category: { type: "string", enum: CATEGORY_KEYS },
+        address: { type: "string" },
+        tips: { type: "string" },
+        summary: { type: "string" },
+        openingHours: { type: "string" },
+        priceNotes: { type: "string" },
+        website: { type: "string" },
+        favorite: { type: "boolean" },
+      },
+      ["placeName"]
+    ),
+    fn("delete_place", "Delete a saved place (its schedule items stay but lose the link). Only when asked.", { placeName: { type: "string" } }, ["placeName"]),
+    fn("set_home_base", "Make a saved place the trip's home base (where the group sleeps).", { placeName: { type: "string" } }, ["placeName"]),
+    fn("vote_poll", "Cast the speaker's own vote in a poll.", { question: { type: "string", description: "The poll (words from its question)" }, option: { type: "string", description: "The option to vote for" } }, ["question", "option"]),
+    fn("close_poll", "Close (or reopen) a poll.", { question: { type: "string" }, closed: { type: "boolean", description: "Default true" } }, ["question"]),
+    fn("delete_poll", "Delete a poll and its votes. Only when asked.", { question: { type: "string" } }, ["question"]),
+    fn(
+      "add_expense",
+      "Record a shared expense. The payer is a family/unit from the roster; split among everyone unless specific families are named.",
+      {
+        description: { type: "string" },
+        amount: { type: "number" },
+        currency: { type: "string", description: "ISO code, e.g. EUR. Default: the trip's main currency" },
+        payer: { type: "string", description: "Family/unit name from the roster (default: the speaker's)" },
+        splitBetween: { type: "array", items: { type: "string" }, description: "Family names; empty = everyone" },
+        date: DAY("Expense date (default today)"),
+      },
+      ["description", "amount"]
+    ),
+    fn("delete_expense", "Delete a recorded expense (ref from the expenses list).", { ref: { type: "string", description: "Expense ref, e.g. x3" } }, ["ref"]),
+  ];
+}
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export const ToolArgs = {
   add_place: z.object({
@@ -228,6 +317,49 @@ export const ToolArgs = {
     options: z.array(z.object({ label: z.string().min(1), placeName: z.string().optional() })).min(2).max(6),
   }),
   add_poll_option: z.object({ label: z.string().min(1), placeName: z.string().optional() }),
+  update_event: z.object({
+    ref: z.string().min(1),
+    title: z.string().min(1).optional(),
+    emoji: z.string().optional(),
+    day: z.string().regex(ISO).optional(),
+    startTime: z.string().regex(/^\d{1,2}:\d{2}$/).optional(),
+    durationMin: z.number().positive().optional(),
+    placeName: z.string().optional(),
+    participants: z.array(z.string()).optional(),
+    notes: z.string().optional(),
+  }),
+  delete_event: z.object({ refs: z.array(z.string()).min(1).max(40) }),
+  clear_day: z.object({ day: z.string().regex(ISO), includeBookings: z.boolean().optional() }),
+  shift_days: z.object({ fromDay: z.string().regex(ISO), toDay: z.string().regex(ISO).optional(), byDays: z.number().int().min(-60).max(60) }),
+  swap_days: z.object({ dayA: z.string().regex(ISO), dayB: z.string().regex(ISO) }),
+  replan_day: z.object({ day: z.string().regex(ISO), instruction: z.string().min(2).max(600) }),
+  change_trip_dates: z.object({ startDate: z.string().regex(ISO).optional(), endDate: z.string().regex(ISO).optional() }),
+  update_place: z.object({
+    placeName: z.string().min(1),
+    name: z.string().min(1).max(120).optional(),
+    category: z.enum(CATEGORY_KEYS).optional(),
+    address: z.string().max(300).optional(),
+    tips: z.string().max(2000).optional(),
+    summary: z.string().max(2000).optional(),
+    openingHours: z.string().max(500).optional(),
+    priceNotes: z.string().max(500).optional(),
+    website: z.string().max(500).optional(),
+    favorite: z.boolean().optional(),
+  }),
+  delete_place: z.object({ placeName: z.string().min(1) }),
+  set_home_base: z.object({ placeName: z.string().min(1) }),
+  vote_poll: z.object({ question: z.string().min(1), option: z.string().min(1) }),
+  close_poll: z.object({ question: z.string().min(1), closed: z.boolean().optional() }),
+  delete_poll: z.object({ question: z.string().min(1) }),
+  add_expense: z.object({
+    description: z.string().min(1).max(120),
+    amount: z.number().positive(),
+    currency: z.string().length(3).optional(),
+    payer: z.string().optional(),
+    splitBetween: z.array(z.string()).optional(),
+    date: z.string().regex(ISO).optional(),
+  }),
+  delete_expense: z.object({ ref: z.string().min(1) }),
 } as const;
 
 export type ToolName = keyof typeof ToolArgs;
@@ -261,7 +393,8 @@ export interface ChatContextInput {
   aboutUs: string;
   families: ChatFamily[];
   places: ChatPlace[];
-  events: { day: string; startTime: string; title: string }[];
+  events: { ref: string; day: string; startTime: string; title: string; place?: string; booked?: boolean }[];
+  expenses?: { ref: string; description: string; amount: number; currency: string; payer: string; date: string }[];
   polls: { question: string; closed: boolean; options: { label: string; votes: number }[] }[];
 }
 
@@ -289,7 +422,7 @@ export function buildContext(input: ChatContextInput, now = new Date()): string 
   const clock = tripNow(input.timezone, now);
   const events = [...input.events]
     .sort((a, b) => (a.day === b.day ? a.startTime.localeCompare(b.startTime) : a.day.localeCompare(b.day)))
-    .map((e) => `- ${e.day} ${e.startTime}: ${e.title}`);
+    .map((e) => `- [${e.ref}] ${e.day} ${e.startTime}: ${e.title}${e.place ? ` @ ${e.place}` : ""}${e.booked ? " (booked)" : ""}`);
   const polls = input.polls.map((p) => {
     const options = p.options.map((o) => `${o.label} (${o.votes} קולות)`).join(", ");
     return `- ${p.question}${p.closed ? " [סגור]" : ""}: ${options || "(בלי אפשרויות עדיין)"}`;
@@ -313,6 +446,9 @@ export function buildContext(input: ChatContextInput, now = new Date()): string 
     ``,
     `סקרים:`,
     ...(polls.length ? polls : ["(אין)"]),
+    ...(input.expenses?.length
+      ? [``, `הוצאות:`, ...input.expenses.map((x) => `- [${x.ref}] ${x.date} ${x.description}: ${x.amount} ${x.currency} (שילם/ה: ${x.payer})`)]
+      : []),
   ].join("\n");
 }
 
@@ -601,9 +737,43 @@ export async function runChat(options: {
       continue;
     }
     if (!message.content) throw new Error("empty_completion");
-    return AiResponseSchema.parse(JSON.parse(message.content));
+    return parseAnswer(message.content);
   }
   throw new Error("tool_loop_exceeded");
+}
+
+/**
+ * The model's final message as an answer. It occasionally trails the JSON with extra text (or a second object) after a
+ * tool-heavy turn; take the first complete object.
+ */
+export function parseAnswer(content: string): AiResponse {
+  const candidates = [content];
+  const start = content.indexOf("{");
+  if (start >= 0) {
+    let depth = 0;
+    let inString = false;
+    for (let i = start; i < content.length; i++) {
+      const ch = content[i];
+      if (inString) {
+        if (ch === "\\") i++;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') inString = true;
+      else if (ch === "{") depth++;
+      else if (ch === "}" && --depth === 0) {
+        candidates.push(content.slice(start, i + 1));
+        break;
+      }
+    }
+  }
+  for (const text of candidates) {
+    try {
+      const parsed = AiResponseSchema.safeParse(JSON.parse(text));
+      if (parsed.success) return parsed.data;
+    } catch {
+      // try the next candidate
+    }
+  }
+  throw new Error("bad_completion");
 }
 
 /** Attaches a real Google photo, rating and coordinates to every candidate. */

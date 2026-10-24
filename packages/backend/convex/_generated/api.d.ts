@@ -15,6 +15,7 @@ import type * as assist from "../assist.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chatRun from "../chatRun.js";
+import type * as chatTools from "../chatTools.js";
 import type * as config from "../config.js";
 import type * as crons from "../crons.js";
 import type * as destinations from "../destinations.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
   chatRun: typeof chatRun;
+  chatTools: typeof chatTools;
   config: typeof config;
   crons: typeof crons;
   destinations: typeof destinations;

@@ -231,7 +231,7 @@ describe("booking import apply", () => {
       notes: "Pool",
     };
     const result = await owner.as.action(api.imports.apply, { tripId, importId, items: [item] });
-    expect(result).toEqual({ events: 2, places: 1, homeBase: true });
+    expect(result).toEqual({ events: 2, places: 1, homeBase: true, datesMoved: null, staysReplaced: 0, eventsReplaced: 0, bookedEnd: null, trimmed: 0, tripEnd: expect.any(String) });
 
     const events = await owner.as.query(api.events.list, { tripId });
     expect(events.map((e) => [e.day, e.startTime, e.emoji])).toEqual([
@@ -243,5 +243,14 @@ describe("booking import apply", () => {
     const pushes = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
     expect(pushes.filter((job) => job.name.startsWith("pushSend"))).toHaveLength(0);
     expect(await code(owner.as.action(api.imports.apply, { tripId, importId, items: [item] }))).toBe("not_found");
+  });
+});
+
+describe("parseAnswer tolerates a messy final message", () => {
+  it("takes the first JSON object and still rejects non-JSON", async () => {
+    const { parseAnswer } = await import("@together/integrations/ai-chat");
+    expect(parseAnswer('{"reply":"Done","candidates":[]}\n{"reply":"again","candidates":[]}')).toEqual({ reply: "Done", candidates: [] });
+    expect(parseAnswer('Sure! {"reply":"With } brace inside \\" quote","candidates":[]} trailing')).toMatchObject({ reply: 'With } brace inside " quote' });
+    expect(() => parseAnswer("Just a sentence.")).toThrow();
   });
 });

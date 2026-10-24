@@ -5,9 +5,9 @@ import { colors, radius } from "@together/shared/tokens";
 import { useMutation, useQuery } from "convex/react";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, router } from "expo-router";
+import { type Href, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { BedDouble, FileImage, FileText, ImagePlus, Lock, Paperclip, Plane, Ticket, Trash2, Upload, type LucideIcon } from "lucide-react-native";
+import { BedDouble, FileImage, FileText, ImagePlus, Lock, Paperclip, Plane, Sparkles, Ticket, Trash2, Upload, type LucideIcon } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
 import { Button } from "@/components/ui/Button";
@@ -123,6 +123,19 @@ export default function Documents() {
     <>
       <Stack.Screen options={{ title: t("money.docs.title") }} />
       <Screen edges={[]}>
+        {personal && (
+          <Pressable accessibilityRole="button" onPress={() => router.push(`/t/${id}/import` as Href)} style={({ pressed }) => (pressed ? { opacity: 0.9 } : undefined)}>
+            <Card style={styles.importCard}>
+              <Icon icon={Sparkles} size={22} color={colors.brass600} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text weight="semibold">{t("money.docs.importTitle")}</Text>
+                <Text variant="small" color={colors.ink500}>
+                  {t("money.docs.importHint")}
+                </Text>
+              </View>
+            </Card>
+          </Pressable>
+        )}
         {/* Shared / private */}
         <View accessibilityRole="tablist" style={styles.tabs}>
           {(
@@ -253,6 +266,7 @@ export default function Documents() {
 }
 
 const styles = StyleSheet.create({
+  importCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderColor: colors.brass500 },
   tabs: {
     flexDirection: "row",
     gap: 4,
