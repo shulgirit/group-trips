@@ -54,6 +54,10 @@ const product: PartialMessages["product"] = {
   },
   trips: {
     nameTitle: "بماذا نناديك؟",
+    photoTitle: "صورة الملف الشخصي",
+    photoChoose: "اختيار صورة",
+    photoRemove: "إزالة الصورة",
+    photoFailed: "تعذّر حفظ الصورة. حاول مرة أخرى.",
     nameHint: "هكذا ستظهر لمجموعتك",
     namePlaceholder: "اسمك",
     nameSave: "حفظ",

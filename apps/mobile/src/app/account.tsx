@@ -1,22 +1,24 @@
 import { api } from "@together/backend/api";
 import { colors } from "@together/shared/tokens";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { FileText, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react-native";
+import { Camera, FileText, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react-native";
 import { useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, View } from "react-native";
 import { SignIn } from "@/components/auth/SignIn";
 import { LanguagePicker } from "@/components/more/LanguagePicker";
 import { LEGAL_URL } from "@/components/more/links";
 import { Group, Row, styles as rowStyles } from "@/components/more/Row";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { signOut } from "@/lib/auth";
+import { uploadImage } from "@/lib/upload";
 import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
 
@@ -28,6 +30,40 @@ export default function Account() {
   const setName = useMutation(api.account.setName);
   const [name, setNameValue] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
+  const setImage = useMutation(api.account.setImage);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+
+  async function pickPhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [1, 1], exif: false });
+    if (result.canceled || !result.assets?.[0]) return;
+    setSavingPhoto(true);
+    try {
+      const asset = result.assets[0];
+      await setImage({ image: await uploadImage(asset.uri, asset.mimeType ?? "image/jpeg") });
+    } catch {
+      Alert.alert(t("product.trips.photoFailed"));
+    } finally {
+      setSavingPhoto(false);
+    }
+  }
+
+  async function removePhoto() {
+    setSavingPhoto(true);
+    try {
+      await setImage({ image: null });
+    } finally {
+      setSavingPhoto(false);
+    }
+  }
+
+  function photoMenu(hasPhoto: boolean) {
+    if (!hasPhoto) return void pickPhoto();
+    Alert.alert(t("product.trips.photoTitle"), undefined, [
+      { text: t("product.trips.photoChoose"), onPress: () => void pickPhoto() },
+      { text: t("product.trips.photoRemove"), style: "destructive", onPress: () => void removePhoto() },
+      { text: t("common.cancel"), style: "cancel" },
+    ]);
+  }
   const [busy, setBusy] = useState(false);
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
@@ -68,17 +104,12 @@ export default function Account() {
             {/* Profile */}
             <View style={[rowStyles.surface, { padding: 16, gap: 12 }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-                <View style={styles.avatar}>
-                  {me.image ? (
-                    <Image source={me.image} style={StyleSheet.absoluteFill} contentFit="cover" />
-                  ) : me.name ? (
-                    <Text variant="headline" weight="medium" color={colors.ink700}>
-                      {me.name.slice(0, 1)}
-                    </Text>
-                  ) : (
-                    <Icon icon={UserRound} size={24} color={colors.ink500} />
-                  )}
-                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel={t("product.trips.photoTitle")} onPress={() => photoMenu(!!me.image)} disabled={savingPhoto} hitSlop={8}>
+                  <Avatar image={me.image} name={me.name} size={56} />
+                  <View style={styles.camera}>
+                    {savingPhoto ? <ActivityIndicator size="small" color={colors.chart50} /> : <Icon icon={Camera} size={12} color={colors.chart50} />}
+                  </View>
+                </Pressable>
                 <View style={{ flex: 1 }}>
                   <Pressable accessibilityRole="button" accessibilityLabel={t("product.trips.nameTitle")} onPress={() => setNameValue(me.name ?? "")}>
                     <Text variant="headline" weight="medium" numberOfLines={1}>
@@ -131,5 +162,5 @@ export default function Account() {
 }
 
 const styles = StyleSheet.create({
-  avatar: { width: 56, height: 56, borderRadius: 28, overflow: "hidden", backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
+  camera: { position: "absolute", bottom: -2, end: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.night950, borderWidth: 2, borderColor: colors.paper, alignItems: "center", justifyContent: "center" },
 });

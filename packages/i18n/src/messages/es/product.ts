@@ -58,6 +58,10 @@ const product: PartialMessages["product"] = {
   },
   trips: {
     nameTitle: "¿Cómo te llamamos?",
+    photoTitle: "Foto de perfil",
+    photoChoose: "Elegir una foto",
+    photoRemove: "Quitar la foto",
+    photoFailed: "No se pudo guardar la foto. Inténtalo de nuevo.",
     nameHint: "Así te verá tu grupo",
     namePlaceholder: "Tu nombre",
     nameSave: "Guardar",

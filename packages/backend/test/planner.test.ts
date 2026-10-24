@@ -201,6 +201,19 @@ describe("trip cover", () => {
   });
 });
 
+describe("profile photo", () => {
+  it("setImage updates the profile and every trip seat; null clears it; non-https is refused", async () => {
+    const { t, owner, tripId } = await plan();
+    await owner.as.mutation(api.account.setImage, { image: "https://example.com/me.jpg" });
+    const seat = async () => (await t.run((ctx) => ctx.db.query("memberships").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect())).find((m) => m.userId === owner.userId)!;
+    expect((await seat()).image).toBe("https://example.com/me.jpg");
+    expect((await t.run((ctx) => ctx.db.get(owner.userId)))!.image).toBe("https://example.com/me.jpg");
+    await expect(owner.as.mutation(api.account.setImage, { image: "http://example.com/me.jpg" })).rejects.toThrow();
+    await owner.as.mutation(api.account.setImage, { image: null });
+    expect((await seat()).image).toBeUndefined();
+  });
+});
+
 describe("changing the dates of a plan", () => {
   it("trimDays closes the gaps: later events, stays and stops move earlier, removed suggestions go", async () => {
     const { t, tripId } = await plan();

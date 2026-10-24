@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, type MutationCtx, query } from "./_generated/server";
-import { getUser } from "./lib/authz";
+import { fail, getUser } from "./lib/authz";
 import { userMutation } from "./lib/functions";
 
 /** The signed-in user's profile (null when signed out). */
@@ -152,5 +152,19 @@ export const setName = userMutation({
       .withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
       .collect();
     for (const seat of seats) if (!seat.displayName) await ctx.db.patch(seat._id, { displayName: clean });
+  },
+});
+
+/** Sets (or clears) the profile photo once: it shows on the account and on every trip seat of this user. */
+export const setImage = userMutation({
+  args: { image: v.union(v.string(), v.null()) },
+  handler: async (ctx, { image }) => {
+    if (image !== null && !/^https:\/\//.test(image)) fail("invalid", "image");
+    await ctx.db.patch(ctx.user._id, { image: image ?? undefined, updatedAt: Date.now() });
+    const seats = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+      .collect();
+    for (const seat of seats) await ctx.db.patch(seat._id, { image: image ?? undefined });
   },
 });

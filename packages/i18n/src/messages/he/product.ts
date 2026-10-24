@@ -57,6 +57,10 @@ const product = {
   },
   trips: {
     nameTitle: "איך לקרוא לך?",
+    photoTitle: "תמונת פרופיל",
+    photoChoose: "בחירת תמונה",
+    photoRemove: "הסרת התמונה",
+    photoFailed: "לא הצלחנו לשמור את התמונה. נסו שוב.",
     nameHint: "כך תופיעו לחברים בטיול",
     namePlaceholder: "השם שלך",
     nameSave: "שמירה",

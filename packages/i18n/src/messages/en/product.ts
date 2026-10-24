@@ -58,6 +58,10 @@ const product: typeof he = {
   },
   trips: {
     nameTitle: "What should we call you?",
+    photoTitle: "Profile photo",
+    photoChoose: "Choose a photo",
+    photoRemove: "Remove photo",
+    photoFailed: "Could not save the photo. Try again.",
     nameHint: "This is how you'll appear to your group",
     namePlaceholder: "Your name",
     nameSave: "Save",

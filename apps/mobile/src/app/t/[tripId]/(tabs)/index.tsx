@@ -19,6 +19,7 @@ import { Countdown } from "@/components/trip/Countdown";
 import { KidsNudge } from "@/components/trip/KidsNudge";
 import { TentativeBanner } from "@/components/trip/TentativeBanner";
 import { NotifyNudge } from "@/components/trip/NotifyNudge";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
@@ -27,7 +28,7 @@ import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { uploadImage } from "@/lib/upload";
 import { MAPS_AVAILABLE } from "@/lib/maps";
-import { useEvents, useFamilies, usePlaces, useTrip } from "@/lib/trip";
+import { useEvents, useFaces, useFamilies, usePlaces, useTrip } from "@/lib/trip";
 
 const DEFAULT_DURATION_MIN = 90;
 const FACE_TINT = ["#b08a55", "#4f7f7a", "#9c5a43", "#6b7fa8", "#8a8f52"];
@@ -52,6 +53,7 @@ export default function Now() {
   const events = useEvents();
   const places = usePlaces();
   const families = useFamilies();
+  const faces = useFaces();
   const base = `/t/${id}`;
   const go = (path: string) => router.push(`${base}${path}` as Href);
   const setCover = useMutation(api.trips.setCover);
@@ -98,7 +100,7 @@ export default function Now() {
     start: dateFormat.format(new Date(`${config.startDate}T12:00:00`)),
     end: dateFormat.format(new Date(`${config.endDate}T12:00:00`)),
   });
-  const travelers = (families ?? []).flatMap((family) => family.members.map((member) => ({ id: member.id, name: member.name })));
+  const travelers = (families ?? []).flatMap((family) => family.members.map((member) => ({ id: member.id, name: member.name, image: faces.bySeat.get(member.id) })));
   const minutes = next ? Math.round((startOf(next).getTime() - now.getTime()) / 60_000) : 0;
   const timeUntil = !next
     ? null
@@ -170,11 +172,7 @@ export default function Now() {
             <Pressable accessibilityRole="button" onPress={() => go("/families")} style={styles.travelers}>
               <View style={styles.faces}>
                 {travelers.slice(0, 5).map((person, index) => (
-                  <View key={person.id} style={[styles.face, { backgroundColor: FACE_TINT[index % FACE_TINT.length] }, index > 0 && { marginStart: -10 }]}>
-                    <Text variant="caption" weight="semibold" color="#fff">
-                      {person.name.slice(0, 1)}
-                    </Text>
-                  </View>
+                  <Avatar key={person.id} image={person.image} name={person.name} size={32} background={FACE_TINT[index % FACE_TINT.length]} textColor="#fff" style={{ borderWidth: 2, borderColor: colors.night950, ...(index > 0 ? { marginStart: -10 } : {}) }} />
                 ))}
               </View>
               <Text variant="small" color="rgba(241,243,239,0.9)">
