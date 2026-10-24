@@ -4,7 +4,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import * as ImagePicker from "expo-image-picker";
 import { Redirect, Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Camera, FileText, LayoutGrid, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react-native";
+import { Camera, FileText, LayoutGrid, LogOut, Mail, ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, View } from "react-native";
 import { SignIn } from "@/components/auth/SignIn";
