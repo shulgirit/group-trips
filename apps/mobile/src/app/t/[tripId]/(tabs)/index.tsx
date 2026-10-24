@@ -59,7 +59,7 @@ export default function Now() {
 
   /** The cover is a default found for the destination; organizers can swap it for any photo from the gallery. */
   async function changeCover() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [4, 5] });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, exif: false });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
     setCoverBusy(true);
