@@ -14,6 +14,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } f
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Countdown } from "@/components/trip/Countdown";
 import { KidsNudge } from "@/components/trip/KidsNudge";
+import { TentativeBanner } from "@/components/trip/TentativeBanner";
 import { NotifyNudge } from "@/components/trip/NotifyNudge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -157,6 +158,9 @@ export default function Now() {
         </View>
       </View>
 
+      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+        <TentativeBanner />
+      </View>
       <View style={styles.body}>
         {/* The core tools, one tap away */}
         <View style={styles.quickCard}>

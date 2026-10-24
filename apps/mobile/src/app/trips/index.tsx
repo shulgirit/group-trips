@@ -80,12 +80,12 @@ export default function Trips() {
           <Text variant="body" color="rgba(241,243,239,0.75)">
             {t("product.trips.first.text")}
           </Text>
-          {!me?.guest && <Button tone="brass" size="lg" icon={Plus} label={t("product.trips.first.cta")} onPress={() => router.push("/new")} />}
+          {!me?.guest && <Button tone="brass" size="lg" icon={Plus} label={t("product.trips.first.cta")} onPress={() => router.push("/start")} />}
         </Card>
       ) : (
         <>
           {!me?.guest && (
-            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={({ pressed }) => [styles.newTrip, pressed && { opacity: 0.92 }]}>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/start")} style={({ pressed }) => [styles.newTrip, pressed && { opacity: 0.92 }]}>
               <Image source={require("../../../assets/onboarding/plan.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
               <LinearGradient colors={["rgba(7,12,22,0.25)", "rgba(7,12,22,0.88)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
               <View style={styles.newTripText}>

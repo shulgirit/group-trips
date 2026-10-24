@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, query } from "./_generated/server";
+import { scheduleReminder } from "./events";
 import { fail, getUser, isAdmin } from "./lib/authz";
 import { accountMutation, tripMutation, tripQuery } from "./lib/functions";
 import { activeTripCount, FREE_LIMITS } from "./lib/limits";
@@ -139,11 +140,16 @@ async function createDefaultInvites(
   }
 }
 
-/** Creates a trip (draft or active); the caller becomes its owner. */
-export const create = accountMutation({
-  args: { input: tripInput },
-  handler: async (ctx, { input }) => {
-  const { user } = ctx;
+/**
+ * Inserts the trip, its families and the owner's membership. Shared by the wizard (`create`) and the AI planner.
+ * `invites: false` keeps a tentative trip private until it is published.
+ */
+export async function createTripFor(
+  ctx: MutationCtx,
+  user: Doc<"users">,
+  input: TripInput,
+  options: { extra?: Partial<Doc<"trips">>; invites?: boolean } = {}
+): Promise<Id<"trips">> {
   validateInput(input);
   if ((await activeTripCount(ctx, user._id)) >= FREE_LIMITS.activeTripsPerUser) fail("limit", "trip_limit");
 
@@ -156,6 +162,7 @@ export const create = accountMutation({
     plan: "free",
     createdAt: now,
     updatedAt: now,
+    ...options.extra,
   });
   const familyIds = await writeFamilies(ctx, tripId, input.families, { allowDelete: false });
   await ctx.db.insert("memberships", {
@@ -169,10 +176,15 @@ export const create = accountMutation({
     guest: false,
     joinedAt: now,
   });
-  if (input.status === "active") await createDefaultInvites(ctx, tripId, user._id, input.families, familyIds);
+  if (input.status === "active" && options.invites !== false) await createDefaultInvites(ctx, tripId, user._id, input.families, familyIds);
   await ctx.scheduler.runAfter(0, internal.photos.ensureTripCover, { tripId });
   return tripId;
-  },
+}
+
+/** Creates a trip (draft or active); the caller becomes its owner. */
+export const create = accountMutation({
+  args: { input: tripInput },
+  handler: async (ctx, { input }) => createTripFor(ctx, ctx.user, input),
 });
 
 /** Organizer edits (wizard autosave, settings). A live trip never returns to draft. */
@@ -237,6 +249,69 @@ export const setRateOverride = tripMutation({
       next[clean] = rate;
     }
     await ctx.db.patch(ctx.tripId, { rateOverrides: next, updatedAt: Date.now() });
+  },
+});
+
+const dayMs = 86_400_000;
+const shiftDate = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * dayMs).toISOString().slice(0, 10);
+
+/**
+ * Sets the real start date of a tentative trip: every stop, event and stay moves by the same number of days and the
+ * reminders follow. Also works on any trip whose organizer moved the dates.
+ */
+export const confirmDates = tripMutation({
+  args: { startDate: v.string() },
+  handler: async (ctx, { startDate }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) fail("invalid", "date");
+    const delta = Math.round((Date.parse(`${startDate}T00:00:00Z`) - Date.parse(`${ctx.trip.startDate}T00:00:00Z`)) / dayMs);
+    if (delta !== 0) {
+      const stops = ctx.trip.stops.map((stop) => ({ ...stop, startDate: shiftDate(stop.startDate, delta), endDate: shiftDate(stop.endDate, delta) }));
+      await ctx.db.patch(ctx.tripId, {
+        stops,
+        startDate: shiftDate(ctx.trip.startDate, delta),
+        endDate: shiftDate(ctx.trip.endDate, delta),
+        departureAt: null,
+        departureNote: "",
+      });
+      const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", ctx.tripId)).collect();
+      for (const event of events) await ctx.db.patch(event._id, { day: shiftDate(event.day, delta) });
+      const places = await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).collect();
+      for (const place of places) {
+        if (place.stayFrom || place.stayTo) {
+          await ctx.db.patch(place._id, {
+            ...(place.stayFrom ? { stayFrom: shiftDate(place.stayFrom, delta) } : {}),
+            ...(place.stayTo ? { stayTo: shiftDate(place.stayTo, delta) } : {}),
+          });
+        }
+      }
+      const fresh = (await ctx.db.get(ctx.tripId))!;
+      for (const event of events) await scheduleReminder(ctx, fresh, event._id);
+    }
+    await ctx.db.patch(ctx.tripId, { datesApproximate: false, updatedAt: Date.now() });
+    return { delta };
+  },
+});
+
+/** Makes a tentative plan a real trip: invite links appear, reminders start. Organizer only. */
+export const publish = tripMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!ctx.trip.tentative) return { published: false };
+    await ctx.db.patch(ctx.tripId, { tentative: false, updatedAt: Date.now() });
+    const fresh = (await ctx.db.get(ctx.tripId))!;
+    const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", ctx.tripId)).collect();
+    for (const event of events) await scheduleReminder(ctx, fresh, event._id);
+    const families = await ctx.db.query("families").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).collect();
+    const existing = await ctx.db.query("invites").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).first();
+    if (!existing) {
+      await createInvite(ctx, ctx.tripId, ctx.user._id, { role: "member", familyId: null, days: 60, maxUses: 60 });
+      for (const family of families) {
+        await createInvite(ctx, ctx.tripId, ctx.user._id, { role: "member", familyId: family._id, days: 60, maxUses: Math.max(4, family.members.length + 2) });
+      }
+    }
+    return { published: true };
   },
 });
 

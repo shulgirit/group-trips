@@ -1,3 +1,4 @@
+import { TentativeBanner } from "@/components/trip/TentativeBanner";
 import { formatDayLabel } from "@together/i18n/format";
 import { googleMapsUrl, wazeUrl } from "@together/shared/nav";
 import { participantsIntersect, participantsLabel } from "@together/shared/participants";
@@ -80,7 +81,7 @@ export default function Schedule() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.chart50 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} stickyHeaderIndices={[1]}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} stickyHeaderIndices={[2]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text variant="small" color={colors.ink500}>
@@ -89,6 +90,10 @@ export default function Schedule() {
             <Text variant="display">{t("trip.calendar.title")}</Text>
           </View>
           <Button icon={Plus} label={t("trip.calendar.addEvent")} onPress={() => go(`/event/new?day=${selected}`)} />
+        </View>
+
+        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+          <TentativeBanner />
         </View>
 
         {/* Day strip */}
