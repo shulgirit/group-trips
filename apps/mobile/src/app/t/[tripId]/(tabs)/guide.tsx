@@ -96,8 +96,23 @@ export default function Guide() {
   const failedReply = last?.role === "assistant" && last.status === "error" ? last : null;
   const shownError = error || failedReply?.content || "";
   const activeSession = sessions?.find((s) => s._id === sessionId) ?? null;
-  // Newest first for the inverted list
-  const listed = useMemo(() => [...done].reverse(), [done]);
+  // Oldest first. A new reply opens at its first line (like other chat apps); your own message and the first load go to the end.
+  const listRef = useRef<FlatList<Row>>(null);
+  const seen = useRef<{ session: string | null; id: string | null }>({ session: null, id: null });
+  const newest = done[done.length - 1];
+  useEffect(() => {
+    if (!newest) return;
+    const first = seen.current.session !== (sessionId ?? null);
+    const changed = seen.current.id !== newest._id;
+    seen.current = { session: sessionId ?? null, id: newest._id };
+    if (!changed && !first) return;
+    const index = done.length - 1;
+    const timer = setTimeout(() => {
+      if (first || newest.role === "user") listRef.current?.scrollToEnd({ animated: !first });
+      else listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: true });
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [newest, done.length, sessionId]);
 
   async function pickPhoto() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
@@ -385,12 +400,13 @@ export default function Guide() {
           </ScrollView>
         ) : (
           <FlatList
+            ref={listRef}
             style={styles.list}
-            inverted
-            data={listed}
+            data={done}
             keyExtractor={(row) => row._id}
             renderItem={renderMessage}
-            ListHeaderComponent={status}
+            ListFooterComponent={status}
+            onScrollToIndexFailed={({ index, averageItemLength }) => listRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: true })}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === "ios" ? "on-drag" : "interactive"}
