@@ -1,3 +1,4 @@
+import { timedFetch } from "./http";
 /** Destination lookup for the trip creator (Google Places API New). */
 
 const EURO = new Set([
@@ -57,7 +58,7 @@ export interface DestinationSuggestion {
 }
 
 async function autocompleteRequest(input: string, types: string[] | null) {
-  const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+  const response = await timedFetch("https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key() },
     body: JSON.stringify({
@@ -120,7 +121,7 @@ export interface ResolvedDestination {
 
 async function timezoneAt(lat: number, lng: number): Promise<string | null> {
   try {
-    const response = await fetch(
+    const response = await timedFetch(
       `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lng}&timestamp=${Math.floor(Date.now() / 1000)}&key=${key()}`
     );
     const data = await response.json();
@@ -133,7 +134,7 @@ async function timezoneAt(lat: number, lng: number): Promise<string | null> {
 async function photoUrl(photoName: string | undefined): Promise<string | null> {
   if (!photoName) return null;
   try {
-    const media = await fetch(
+    const media = await timedFetch(
       `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1600&skipHttpRedirect=true&key=${key()}`
     );
     if (!media.ok) return null;
@@ -151,7 +152,7 @@ export async function resolveDestination(
 ): Promise<ResolvedDestination | null> {
   const [he, en] = await Promise.all(
     ["he", "en"].map((language) =>
-      fetch(
+      timedFetch(
         `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=${language}`,
         {
           headers: {

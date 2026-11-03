@@ -6,7 +6,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
-import { CalendarDays, MapPin } from "lucide-react-native";
+import { CalendarDays, MapPin, Trash2 } from "lucide-react-native";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { glyphIcon } from "@/lib/glyphs";
@@ -23,6 +23,7 @@ export interface TripRow {
   status: "draft" | "active" | "archived";
   /** Draft only: furthest wizard step reached (0-4) */
   draftStep?: number;
+  isOwner?: boolean;
 }
 
 function daysUntil(dateIso: string, today: string) {
@@ -30,7 +31,7 @@ function daysUntil(dateIso: string, today: string) {
 }
 
 /** A trip as a photo card: cover (or night ground), phase badge, name and dates. */
-export function TripCard({ trip, large = false }: { trip: TripRow; large?: boolean }) {
+export function TripCard({ trip, large = false, onDelete }: { trip: TripRow; large?: boolean; onDelete?: (trip: TripRow) => void }) {
   const t = useT();
   const today = todayIso();
   const phase = tripPhase(trip, today);
@@ -68,6 +69,11 @@ export function TripCard({ trip, large = false }: { trip: TripRow; large?: boole
           {badge}
         </Text>
       </View>
+      {onDelete && trip.isOwner ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={t("product.admin.deleteTrip")} onPress={() => onDelete(trip)} hitSlop={8} style={styles.trash}>
+          <Icon icon={Trash2} size={16} color={colors.chart50} />
+        </Pressable>
+      ) : null}
       <View style={styles.footer}>
         <Text variant={large ? "displayLg" : "title"} color={colors.chart50} numberOfLines={large ? 2 : 1}>
           {trip.name}
@@ -107,6 +113,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 28, overflow: "hidden", backgroundColor: colors.night900, shadowColor: colors.ink900, shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } },
   live: { borderWidth: 2, borderColor: colors.route500 },
   empty: { alignItems: "center", justifyContent: "center", backgroundColor: colors.night900 },
+  trash: { position: "absolute", top: 10, end: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" },
   badge: { position: "absolute", top: 14, start: 14, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(11,19,34,0.55)", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: "rgba(255,255,255,0.2)", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   progressTrack: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" },
   progressFill: { height: 4, borderRadius: 2, backgroundColor: colors.brass500 },

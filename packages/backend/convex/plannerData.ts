@@ -32,6 +32,15 @@ export const failRun = internalMutation({
   },
 });
 
+/** A run that never finished is marked failed so the screen stops waiting and the person can try again. */
+export const expireRun = internalMutation({
+  args: { runId: v.id("planRuns") },
+  handler: async (ctx, { runId }) => {
+    const run = await ctx.db.get(runId);
+    if (run?.status === "running") await ctx.db.patch(runId, { status: "failed", error: "timeout" });
+  },
+});
+
 export const EMOJI = { attraction: "pin", restaurant: "dining", stay: "hotel", transport: "car", activity: "ticket" } as const;
 export const CATEGORY = { attraction: "attraction", activity: "attraction", restaurant: "restaurant", stay: "accommodation" } as const;
 

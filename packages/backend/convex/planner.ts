@@ -50,6 +50,8 @@ export const start = accountMutation({
       createdAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.planner.run, { runId, ...(hints ? { hints } : {}) });
+    // If the run is still going after this long it was killed (Convex stops actions after 10 minutes): free the person to retry
+    await ctx.scheduler.runAfter(STALE_RUN_MS - 60_000, internal.plannerData.expireRun, { runId });
     return runId;
   },
 });

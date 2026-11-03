@@ -1,4 +1,5 @@
 import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
 import { tripPhase } from "@together/shared/trip-doc";
 import { todayIso } from "@together/shared/trip";
 import { colors, radius } from "@together/shared/tokens";
@@ -12,7 +13,8 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Logo } from "@/components/brand/Logo";
 import { readDraft } from "@/lib/creator-draft";
-import { TripCard } from "@/components/trips/TripCard";
+import { ConfirmSheet } from "@/components/more/ConfirmSheet";
+import { TripCard, type TripRow } from "@/components/trips/TripCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -28,6 +30,21 @@ export default function Trips() {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
   const trips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+
+  // Deleting a trip you started (a plan you didn't want, a mistake)
+  const removeTrip = useMutation(api.trips.remove);
+  const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeleteError("");
+    try {
+      await removeTrip({ tripId: deleting.id as Id<"trips"> });
+      setDeleting(null);
+    } catch {
+      setDeleteError(t("product.admin.deleteTripFailed"));
+    }
+  }
 
   // A trip started on this phone that hasn't reached the server yet (steps 1-2 not completed)
   const [localDraft, setLocalDraft] = useState<CreatorState | null>(null);
@@ -118,7 +135,7 @@ export default function Trips() {
             <View style={{ gap: 12 }}>
               <Text variant="title">{t("product.trips.current")}</Text>
               {current.map((trip, index) => (
-                <TripCard key={trip.id} trip={trip} large={index === 0} />
+                <TripCard key={trip.id} trip={trip} large={index === 0} onDelete={setDeleting} />
               ))}
             </View>
           )}
@@ -126,7 +143,7 @@ export default function Trips() {
             <View style={{ gap: 12 }}>
               <Text variant="title">{t("product.trips.past")}</Text>
               {past.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
+                <TripCard key={trip.id} trip={trip} onDelete={setDeleting} />
               ))}
             </View>
           )}
@@ -137,6 +154,20 @@ export default function Trips() {
           {t("product.trips.guestNote")}
         </Text>
       )}
+      <ConfirmSheet
+        open={!!deleting}
+        title={t("product.admin.deleteTripTitle", { name: deleting?.name ?? "" })}
+        description={t("product.admin.deleteTripText")}
+        items={[t("product.admin.deleteTripItems.content"), t("product.admin.deleteTripItems.files"), t("product.admin.deleteTripItems.chats"), t("product.admin.deleteTripItems.people")]}
+        confirmWord={t("common.confirm.word")}
+        confirmLabel={t("product.admin.deleteTrip")}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onClose={() => {
+          setDeleting(null);
+          setDeleteError("");
+        }}
+      />
     </Screen>
   );
 }

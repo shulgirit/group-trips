@@ -1,3 +1,4 @@
+import { timedFetch } from "./http";
 import OpenAI from "openai";
 import { z } from "zod";
 import { PLACE_CATEGORIES } from "@together/shared/types";
@@ -135,7 +136,7 @@ export async function geocodePlace(
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key || !query.trim()) return null;
   try {
-    const response = await fetch(
+    const response = await timedFetch(
       "https://places.googleapis.com/v1/places:searchText",
       {
         method: "POST",
@@ -157,7 +158,7 @@ export async function geocodePlace(
     const photoName = place.photos?.[0]?.name;
     if (photoName) {
       try {
-        const media = await fetch(
+        const media = await timedFetch(
           `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true&key=${key}`
         );
         if (media.ok) {

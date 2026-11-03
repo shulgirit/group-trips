@@ -1,17 +1,27 @@
-/** Non-clickable "download" badges. Swap for real links once the apps are live. */
-function Badge({ label, small, big, icon }: { label: string; small: string; big: string; icon: React.ReactNode }) {
-  return (
-    <div
-      role="img"
-      aria-label={label}
-      className="pointer-events-none flex h-[52px] w-[156px] select-none items-center gap-2.5 rounded-xl border border-white/40 bg-black px-3 text-white"
-      dir="ltr"
-    >
+const APP_STORE_URL = "https://apps.apple.com/il/app/together-trip-groups/id6825445988";
+
+/** A store badge: a real link once the app is live, otherwise a dimmed "soon" badge. */
+function Badge({ label, small, big, icon, href }: { label: string; small: string; big: string; icon: React.ReactNode; href?: string }) {
+  const body = (
+    <>
       {icon}
       <span className="flex flex-col leading-none">
         <span className="text-[9px] tracking-wide opacity-90">{small}</span>
         <span className="mt-1 text-[17px] font-semibold tracking-tight">{big}</span>
       </span>
+    </>
+  );
+  const base = "flex h-[52px] w-[156px] items-center gap-2.5 rounded-xl border border-white/40 bg-black px-3 text-white";
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={`${base} transition-opacity hover:opacity-85`} dir="ltr">
+        {body}
+      </a>
+    );
+  }
+  return (
+    <div role="img" aria-label={`${label} (coming soon)`} className={`${base} pointer-events-none select-none opacity-60`} dir="ltr">
+      {body}
     </div>
   );
 }
@@ -21,6 +31,7 @@ export function StoreBadges({ className = "" }: { className?: string }) {
     <div className={`flex flex-wrap gap-3 ${className}`} dir="ltr">
       <Badge
         label="App Store"
+        href={APP_STORE_URL}
         small="Download on the"
         big="App Store"
         icon={
@@ -31,7 +42,7 @@ export function StoreBadges({ className = "" }: { className?: string }) {
       />
       <Badge
         label="Google Play"
-        small="GET IT ON"
+        small="COMING SOON"
         big="Google Play"
         icon={
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden>

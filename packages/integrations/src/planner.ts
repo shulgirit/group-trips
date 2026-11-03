@@ -8,6 +8,23 @@ import { z } from "zod";
  * days be written in parallel. Storage and place lookups happen in the caller (Convex).
  */
 
+/** A bounded client: a hung or rate-limited call fails (and is retried) instead of freezing the plan. */
+const ai = () => new OpenAI({ timeout: 90_000, maxRetries: 2 });
+
+/** The model sometimes returns a malformed or empty answer, or the API hiccups: try again before giving up. */
+async function retrying<T>(work: () => Promise<T>, tries = 3): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await work();
+    } catch (error) {
+      last = error;
+      console.warn("[planner] retry", i + 1, error instanceof Error ? error.message.slice(0, 200) : error);
+    }
+  }
+  throw last;
+}
+
 const model = () => process.env.OPENAI_MODEL ?? "gpt-5.1";
 
 export const ITEM_KINDS = ["attraction", "restaurant", "stay", "transport", "activity"] as const;
@@ -119,7 +136,7 @@ export async function planOutline(req: PlanRequest): Promise<Outline> {
         .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(",") : v}`)
         .join("; ")
     : "";
-  const completion = await new OpenAI().chat.completions.create({
+  const completion = await ai().chat.completions.create({
     model: model(),
     reasoning_effort: "low",
     messages: [
@@ -235,7 +252,7 @@ export async function planDays(
   dayNumbers: number[],
   stopForDay: (day: number) => string
 ): Promise<PlannedDay[]> {
-  const completion = await new OpenAI().chat.completions.create({
+  const completion = await ai().chat.completions.create({
     model: model(),
     reasoning_effort: "low",
     messages: [
@@ -271,13 +288,13 @@ export function stopForTripDay(outline: Outline, day: number): string {
 /** Whole plan: outline, then the days in parallel chunks of four. */
 export async function generatePlan(req: PlanRequest, onProgress?: (phase: "outline" | "days", detail?: string) => Promise<void> | void) {
   await onProgress?.("outline");
-  const outline = await planOutline(req);
+  const outline = await retrying(() => planOutline(req));
   const total = daysBetween(outline.startDate, outline.endDate);
   await onProgress?.("days", `0/${total}`);
   const numbers = Array.from({ length: total }, (_, i) => i + 1);
   const chunks: number[][] = [];
   for (let i = 0; i < numbers.length; i += 4) chunks.push(numbers.slice(i, i + 4));
-  const parts = await Promise.all(chunks.map((chunk) => planDays(outline, req, chunk, (d) => stopForTripDay(outline, d))));
+  const parts = await Promise.all(chunks.map((chunk) => retrying(() => planDays(outline, req, chunk, (d) => stopForTripDay(outline, d)))));
   const days = parts.flat().sort((a, b) => a.dayNumber - b.dayNumber);
   return { outline, days };
 }
@@ -291,7 +308,7 @@ export async function chooseDaysToRemove(days: { n: number; stop: string; titles
   const fallback = Array.from({ length: remove }, (_, i) => total - 1 - i).filter((n) => n >= 1);
   while (fallback.length < remove) fallback.push(fallback.length + 1);
   try {
-    const completion = await new OpenAI().chat.completions.create({
+    const completion = await ai().chat.completions.create({
       model: model(),
       reasoning_effort: "low",
       messages: [
