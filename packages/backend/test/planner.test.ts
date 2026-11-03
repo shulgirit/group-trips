@@ -202,30 +202,36 @@ describe("trip cover", () => {
 });
 
 describe("place relocation", () => {
-  it("relocate looks the text up on Google and moves the pin; a miss leaves it alone", async () => {
+  it("relocate tries texts in order, never accepts a hit on another continent, and a miss leaves the pin alone", async () => {
     const { t, owner, tripId } = await plan();
     const placeId = (await t.run((ctx) => ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).first()))!._id;
     vi.stubEnv("GOOGLE_MAPS_SERVER_API_KEY", "test-key");
     const queries: string[] = [];
+    const bodies: { locationBias?: unknown }[] = [];
     vi.stubGlobal("fetch", async (_url: string, init?: { body?: string }) => {
-      const q = JSON.parse(init?.body ?? "{}").textQuery as string;
-      queries.push(q);
-      const hit = q.includes("Kahal");
-      return new Response(JSON.stringify(hit ? { places: [{ formattedAddress: "Kahal, Israel", location: { latitude: 32.89, longitude: 35.51 } }] } : {}), { status: 200 });
+      const body = JSON.parse(init?.body ?? "{}") as { textQuery: string; locationBias?: unknown };
+      queries.push(body.textQuery);
+      bodies.push(body);
+      const place = body.textQuery.includes("Chicago")
+        ? { formattedAddress: "Chicago, IL, USA", location: { latitude: 41.88, longitude: -87.63 } }
+        : body.textQuery.includes("Tam Coc")
+          ? { formattedAddress: "Tam Coc, Ninh Binh, Vietnam", location: { latitude: 20.22, longitude: 105.93 } }
+          : null;
+      return new Response(JSON.stringify(place ? { places: [place] } : {}), { status: 200 });
     });
-    // The first text finds nothing, the second does: it keeps trying
-    const found = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, queries: ["Long venue name here", "Kahal"] });
-    expect(found).toEqual({ found: true, address: "Kahal, Israel" });
-    // (background photo lookups from the build may also pass through the stub, so look for ours)
-    const ours = queries.filter((q) => q.includes("Long venue name here") || q.includes("Kahal"));
-    expect(ours[0]).toContain("Long venue name here");
-    expect(ours[1]).toContain("Kahal");
-    const moved = (await t.run((ctx) => ctx.db.get(placeId)))!;
-    expect(moved).toMatchObject({ lat: 32.89, lng: 35.51, address: "Kahal, Israel" });
-    await t.run((ctx) => ctx.db.patch(placeId, { address: "elsewhere" }));
-    const miss = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, query: "nowhere" });
+    // first text: a wrong guess far away (skipped); second: a believable place near the trip
+    const found = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, queries: ["Chicago venue", "Tam Coc"] });
+    expect(found).toEqual({ found: true, address: "Tam Coc, Ninh Binh, Vietnam" });
+    const ours = queries.filter((q) => q.includes("Chicago venue") || q.includes("Tam Coc"));
+    expect(ours[0]).toContain("Chicago venue");
+    expect(ours[1]).toContain("Tam Coc");
+    expect(bodies.some((b) => b.locationBias)).toBe(true);
+    expect(await t.run((ctx) => ctx.db.get(placeId))).toMatchObject({ lat: 20.22, lng: 105.93 });
+    // only a far-away hit exists: the pin stays
+    await t.run((ctx) => ctx.db.patch(placeId, { address: "elsewhere", name: "Chicago spot" }));
+    const miss = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, queries: ["Chicago venue"] });
     expect(miss).toEqual({ found: false });
-    expect((await t.run((ctx) => ctx.db.get(placeId)))!.lat).toBe(32.89);
+    expect((await t.run((ctx) => ctx.db.get(placeId)))!.lat).toBe(20.22);
     vi.unstubAllGlobals();
   });
 });

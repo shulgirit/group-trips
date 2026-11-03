@@ -123,7 +123,8 @@ interface SearchResult {
 
 export async function geocodePlace(
   query: string,
-  region = "Sicily"
+  region = "Sicily",
+  bias?: { lat: number; lng: number; radiusM: number }
 ): Promise<{
   lat: number;
   lng: number;
@@ -147,7 +148,10 @@ export async function geocodePlace(
           "X-Goog-FieldMask":
             "places.formattedAddress,places.location,places.photos,places.rating,places.userRatingCount",
         },
-        body: JSON.stringify({ textQuery: `${query} ${region}` }),
+        body: JSON.stringify({
+          textQuery: `${query} ${region}`,
+          ...(bias ? { locationBias: { circle: { center: { latitude: bias.lat, longitude: bias.lng }, radius: Math.min(bias.radiusM, 50_000) } } } : {}),
+        }),
       }
     );
     if (!response.ok) {

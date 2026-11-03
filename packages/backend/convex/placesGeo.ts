@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
 import { fail, requireMember } from "./lib/authz";
 import { regionOf } from "./events";
+import { biasOf, nearTrip } from "./lib/geo";
 
 /** Reads what the lookup needs; the caller must be a member of the trip. */
 export const access = internalQuery({
@@ -12,7 +13,7 @@ export const access = internalQuery({
     const { trip } = await requireMember(ctx, tripId);
     const place = await ctx.db.get(placeId);
     if (!place || place.tripId !== tripId) fail("not_found");
-    return { name: place.name, address: place.address ?? "", region: regionOf(trip) };
+    return { name: place.name, address: place.address ?? "", region: regionOf(trip), bias: biasOf(trip), trip };
   },
 });
 
@@ -28,8 +29,12 @@ export const relocate = action({
     const texts = [...(queries ?? []), ...(query ? [query] : []), `${place.name} ${place.address}`.trim(), place.name].map((text) => text.trim().slice(0, 200)).filter((text, i, all) => text && all.indexOf(text) === i).slice(0, 4);
     let geo: Awaited<ReturnType<typeof geocodePlace>> = null;
     for (const text of texts) {
-      geo = await geocodePlace(text, place.region).catch(() => null);
-      if (geo) break;
+      const found = await geocodePlace(text, place.region, place.bias).catch(() => null);
+      // A hit on another continent is a wrong guess, not the place: keep trying
+      if (found && nearTrip(place.trip, found)) {
+        geo = found;
+        break;
+      }
     }
     if (!geo) {
       console.warn("[placesGeo] nothing found for", JSON.stringify(texts));
