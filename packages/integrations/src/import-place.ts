@@ -134,6 +134,7 @@ export async function geocodePlace(
   ratingCount?: number;
 } | null> {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
+  if (!key) console.error("[geocodePlace] GOOGLE_MAPS_SERVER_API_KEY is not set");
   if (!key || !query.trim()) return null;
   try {
     const response = await timedFetch(
@@ -149,7 +150,10 @@ export async function geocodePlace(
         body: JSON.stringify({ textQuery: `${query} ${region}` }),
       }
     );
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("[geocodePlace] Google Places failed", response.status, (await response.text().catch(() => "")).slice(0, 200));
+      return null;
+    }
     const data = await response.json();
     const place = data.places?.[0];
     if (!place) return null;

@@ -21,13 +21,20 @@ export const access = internalQuery({
  * coordinates (and the address, unless the person wrote one). Returns false when nothing was found (the pin stays).
  */
 export const relocate = action({
-  args: { tripId: v.id("trips"), placeId: v.id("places"), query: v.optional(v.string()), keepAddress: v.optional(v.boolean()) },
-  handler: async (ctx, { tripId, placeId, query, keepAddress }): Promise<{ found: boolean; address?: string }> => {
+  args: { tripId: v.id("trips"), placeId: v.id("places"), query: v.optional(v.string()), queries: v.optional(v.array(v.string())), keepAddress: v.optional(v.boolean()) },
+  handler: async (ctx, { tripId, placeId, query, queries, keepAddress }): Promise<{ found: boolean; address?: string }> => {
     const place = await ctx.runQuery(internal.placesGeo.access, { tripId, placeId });
-    const text = (query?.trim() || `${place.name} ${place.address}`.trim()).slice(0, 200);
-    if (!text) return { found: false };
-    const geo = await geocodePlace(text, place.region).catch(() => null);
-    if (!geo) return { found: false };
+    // Tried in order until Google finds something: the person's own words first (a long venue name next to a town makes Google guess)
+    const texts = [...(queries ?? []), ...(query ? [query] : []), `${place.name} ${place.address}`.trim(), place.name].map((text) => text.trim().slice(0, 200)).filter((text, i, all) => text && all.indexOf(text) === i).slice(0, 4);
+    let geo: Awaited<ReturnType<typeof geocodePlace>> = null;
+    for (const text of texts) {
+      geo = await geocodePlace(text, place.region).catch(() => null);
+      if (geo) break;
+    }
+    if (!geo) {
+      console.warn("[placesGeo] nothing found for", JSON.stringify(texts));
+      return { found: false };
+    }
     await ctx.runMutation(internal.places.patchInternal, {
       placeId,
       patch: { lat: geo.lat, lng: geo.lng, ...(keepAddress || !geo.address ? {} : { address: geo.address }) },

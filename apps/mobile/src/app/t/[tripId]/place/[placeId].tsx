@@ -149,7 +149,7 @@ export default function PlaceDetail() {
       const nameChanged = !!place && name !== place.name;
       const addressChanged = !!place && address !== (place.address ?? "").trim();
       if (nameChanged || addressChanged) {
-        const result = await relocate({ tripId: id, placeId: placeKey, query: addressChanged ? `${name} ${address}`.trim() : name, keepAddress: addressChanged && !!address }).catch(() => ({ found: false }));
+        const result = await relocate({ tripId: id, placeId: placeKey, queries: addressChanged && address ? [address, `${name} ${address}`] : [name], keepAddress: addressChanged && !!address }).catch(() => ({ found: false }));
         if (!result.found) setNotice({ text: t("trip.place.locationNotFound"), error: true });
       }
     } catch {
