@@ -248,6 +248,7 @@ const trip: PartialMessages["trip"] = {
     clearSearch: "Borrar búsqueda",
   },
   place: {
+    locationNotFound: "Guardado, pero no encontré la nueva ubicación en el mapa. El marcador no se movió: prueba con un nombre o dirección más claros.",
     notFoundTitle: "Lugar no encontrado",
     notFoundDescription: "Puede que se haya eliminado",
     allPlaces: "Todos los lugares",

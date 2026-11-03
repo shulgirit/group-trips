@@ -30,7 +30,8 @@
         "EXPO_PUBLIC_POSTHOG_KEY": "phc_pMgGKAaxR54e9V6HFP8oMDh4vN9vJTt7QJZbPx4pCrgQ",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "EXPO_PUBLIC_SENTRY_DSN": "https://134b5740b3206e3b05f23f917a33abe6@o4512369602396160.ingest.de.sentry.io/4512369611046992"
-      }
+      },
+      "environment": "production"
     },
     "preview-simulator": {
       "extends": "preview",

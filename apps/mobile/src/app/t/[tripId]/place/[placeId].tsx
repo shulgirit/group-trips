@@ -72,6 +72,7 @@ export default function PlaceDetail() {
   const update = useMutation(api.places.update);
   const remove = useMutation(api.places.remove);
   const enrich = useAction(api.placesAi.enrich);
+  const relocate = useAction(api.placesGeo.relocate);
   const report = useReport();
 
   const [editing, setEditing] = useState<PlaceDraft | null>(null);
@@ -142,6 +143,15 @@ export default function PlaceDetail() {
       // Empty strings are sent too, so clearing a field sticks
       await update({ tripId: id, placeId: placeKey, patch: placeArgs({ ...editing, name: editing.name.trim() }) });
       setEditing(null);
+      // A new name or address means a new location: move the pin (the address is only replaced when the person didn't type one)
+      const name = editing.name.trim();
+      const address = editing.address.trim();
+      const nameChanged = !!place && name !== place.name;
+      const addressChanged = !!place && address !== (place.address ?? "").trim();
+      if (nameChanged || addressChanged) {
+        const result = await relocate({ tripId: id, placeId: placeKey, query: addressChanged ? `${name} ${address}`.trim() : name, keepAddress: addressChanged && !!address }).catch(() => ({ found: false }));
+        if (!result.found) setNotice({ text: t("trip.place.locationNotFound"), error: true });
+      }
     } catch {
       setNotice({ text: t("common.errors.saveFailed"), error: true });
     } finally {

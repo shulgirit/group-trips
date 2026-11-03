@@ -40,6 +40,7 @@ import type * as migration from "../migration.js";
 import type * as photos from "../photos.js";
 import type * as places from "../places.js";
 import type * as placesAi from "../placesAi.js";
+import type * as placesGeo from "../placesGeo.js";
 import type * as planner from "../planner.js";
 import type * as plannerData from "../plannerData.js";
 import type * as polls from "../polls.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   photos: typeof photos;
   places: typeof places;
   placesAi: typeof placesAi;
+  placesGeo: typeof placesGeo;
   planner: typeof planner;
   plannerData: typeof plannerData;
   polls: typeof polls;
