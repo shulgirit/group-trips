@@ -76,9 +76,9 @@ background-location declaration video is needed.
 ## 6. Privacy policy
 
 `apps/web/src/legal/privacy.en.ts` / `privacy.he.ts` already describe optional live location (time-boxed,
-members only, deleted at the end) and now PostHog. Add Sentry (crash reports, no personal content) to the
-processors list when the Sentry project exists. The policy still names Firebase as database/auth provider;
-update to Convex and Better Auth.
+members only, deleted at the end) and now PostHog. Sentry is now listed in the
+processors list, and Firebase was replaced by Convex, Better Auth, Resend and Expo (done).
+
 
 ## 7. Reviewer-friendly checklist before submitting
 

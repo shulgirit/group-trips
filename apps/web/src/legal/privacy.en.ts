@@ -24,7 +24,7 @@ const privacyEn: LegalDoc = {
             "We collect what is needed to run your group's trip: your account, the trip content your group adds, and — only if you allow it — your location.",
             "Trip content is visible only to the members of that trip. Your AI conversations and private documents are visible only to you.",
             "We do not sell personal data, we do not show ads and we do not use your data to profile you for marketing.",
-            "Some data is processed by service providers that run the Service for us (for example Google Firebase, Vercel and OpenAI).",
+            "Some data is processed by service providers that run the Service for us (for example Convex, Vercel and OpenAI).",
             "You can delete your data in the app at any time: leave a trip and delete your data in it, delete a whole trip you organize, or delete your entire account.",
           ],
         },
@@ -114,7 +114,10 @@ const privacyEn: LegalDoc = {
         "We do not sell or rent personal data. We share it only with service providers (processors) that run parts of the Service for us, under contracts that require them to protect it and use it only on our instructions:",
         {
           list: [
-            "Google Cloud / Firebase (Google LLC) — database, file storage, authentication and push notifications.",
+            "Convex, Inc. — database, file storage and backend functions (hosted in the EU).",
+            "Better Auth (runs inside our Convex backend) and Resend — sign-in, including the one-time codes we email to you.",
+            "Expo (650 Industries, Inc.) — delivery of push notifications and of app updates.",
+            "Sentry (Functional Software, Inc.) — crash and error reports from the mobile app (hosted in the EU). Reports carry a random account identifier and technical details such as device model and app version, never trip content, messages or location.",
             "Vercel Inc. — hosting of the website and app servers.",
             "OpenAI, L.L.C. — generating AI assistant replies and reading booking confirmations you ask us to import. Content you send to the assistant is shared for this purpose only. Under OpenAI's API terms, this data is not used to train their models and is retained by them for a limited period for abuse monitoring.",
             "Google Maps Platform (Google LLC) — place search, place details and photos, maps and directions. Searches are sent without your account details.",
