@@ -34,7 +34,9 @@ and Vercel env (project `sicily-together`, scope `omer-9257s-projects`; the name
   Other branches get Vercel previews (behind Vercel login). Domains: `togethergroup.app` (primary).
 - **App OTA (JS only):** `bash apps/mobile/scripts/ota.sh <testflight|production> "message"`. Android: prefix `EAS_BUILD_PLATFORM=android`
   (different runtime fingerprint). Export `SENTRY_AUTH_TOKEN` in the shell first so source maps upload. `docs/ota.md` has details.
-- **Store builds (native changes):** `npx eas-cli build --platform ios|android --profile production`, then upload the iOS `.ipa`
+- **Store builds (native changes):** `npx eas-cli build --platform ios|android --profile production`. Android only builds with
+  `EAS_BUILD_PLATFORM=android EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY=<key from eas env:list production>` set in the shell (app.config.ts adds
+  the maps key only for Android; without it the local and EAS fingerprints differ and the build stops). The repo is public: never commit the key, then upload the iOS `.ipa`
   with Transporter (Expo submit has been unreliable) and attach it to the version in App Store Connect.
   Store texts, permission reasons and privacy answers: `docs/store/`.
 - **`apps/mobile/eas.json` is part of the app fingerprint** (the OTA runtime version): editing it changes the runtime, so an OTA will no longer reach builds made before the edit. Don't touch it between a store build and its OTAs; if you must, publish OTAs from a temporary copy of the eas.json used for that build and check the printed runtime equals the store build's (`eas submit:view`/`build:view` shows it).
