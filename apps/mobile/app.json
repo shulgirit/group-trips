@@ -60,7 +60,9 @@
       ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -87,14 +89,15 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Together shows you on the trip map and finds places near you while the app is open."
+          "locationWhenInUsePermission": "Together uses your precise location only while the app is open: to show you on the trip map, to sort the trip's places by distance, and — only if you choose to share — to show your position to the members of your trip for the time you pick (1 hour, 4 hours or until the end of the day). You can stop at any moment."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Together uses your photos when you add one to the trip guide, a document or your guide avatar.",
-          "cameraPermission": "Together uses the camera when you photograph a ticket or document for the trip."
+          "photosPermission": "Together uses a photo you choose from your library as your profile picture, the trip cover, a document or ticket for the trip, or a picture you send to the trip guide.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],

@@ -2,15 +2,19 @@ import type { Place } from "@together/shared/types";
 import { colors, radius } from "@together/shared/tokens";
 import { Image } from "expo-image";
 import { type Href, router } from "expo-router";
-import { ChevronRight, House, X } from "lucide-react-native";
+import { ChevronRight, House, MapPinned, X } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { Sheet } from "@/components/ui/Sheet";
 import { Text } from "@/components/ui/Text";
 import { categoryIcon } from "@/lib/glyphs";
 import { type TKey, useT } from "@/lib/i18n";
-import { useTrip } from "@/lib/trip";
+import { SHARE_DURATIONS, useLiveShare } from "@/lib/live-share";
+import { useFaces, useTrip } from "@/lib/trip";
 import { hasCoords } from "./geo";
 
 /**
@@ -21,6 +25,22 @@ export function PlacesMap({ places, home, scheduledIds }: { places: Place[]; hom
   const t = useT();
   const { id, config } = useTrip();
   const [selected, setSelected] = useState<Place | null>(null);
+  const faces = useFaces();
+  const { people, mine, start, stop } = useLiveShare();
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<"denied" | "unavailable" | null>(null);
+  const others = people.filter((person) => !person.isMe);
+  const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  async function begin(durationId: (typeof SHARE_DURATIONS)[number]["id"]) {
+    setSharing(true);
+    setShareError(null);
+    const result = await start(durationId);
+    setSharing(false);
+    if (result === "ok") setShareOpen(false);
+    else setShareError(result);
+  }
   const pinned = useMemo(() => places.filter(hasCoords) as (Place & { lat: number; lng: number })[], [places]);
   const missing = places.length - pinned.length;
 
@@ -60,7 +80,50 @@ export function PlacesMap({ places, home, scheduledIds }: { places: Place[]; hom
             </Marker>
           );
         })}
+        {others.map((person) => (
+          <Marker key={`live-${person.userId}`} coordinate={{ latitude: person.lat, longitude: person.lng }} anchor={{ x: 0.5, y: 0.5 }} accessibilityLabel={person.name}>
+            <View style={styles.live}>
+              <Avatar image={faces.byUser.get(person.userId)} name={person.name} size={38} background={colors.route500} textColor={colors.chart50} style={{ borderWidth: 2, borderColor: colors.paper }} />
+              <View style={styles.liveName}>
+                <Text variant="caption" weight="medium" color={colors.ink900} numberOfLines={1}>
+                  {person.name.split(" ")[0]}
+                </Text>
+              </View>
+            </View>
+          </Marker>
+        ))}
       </MapView>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("trip.share.aria")}
+        onPress={() => (mine ? void stop() : setShareOpen(true))}
+        style={[styles.sharePill, mine && styles.sharePillOn]}
+      >
+        <Icon icon={MapPinned} size={16} color={mine ? colors.chart50 : colors.ink900} />
+        <Text variant="small" weight="medium" color={mine ? colors.chart50 : colors.ink900} numberOfLines={1}>
+          {mine ? `${t("trip.share.sharingUntil", { time: clock(mine.expiresAt) })} · ${t("trip.share.stop")}` : t("trip.share.aria")}
+        </Text>
+      </Pressable>
+
+      <Sheet open={shareOpen} onClose={() => setShareOpen(false)} title={t("trip.share.title")}>
+        <Text color={colors.ink700}>{t("trip.share.description")}</Text>
+        {shareError === "denied" && (
+          <Text variant="small" color={colors.terra600}>
+            {t("trip.places.locationDenied")}
+          </Text>
+        )}
+        {shareError === "unavailable" && (
+          <Text variant="small" color={colors.terra600}>
+            {t("trip.places.locationUnavailable")}
+          </Text>
+        )}
+        {sharing ? (
+          <ActivityIndicator color={colors.ink500} />
+        ) : (
+          SHARE_DURATIONS.map((duration) => <Button key={duration.id} tone="soft" label={t(duration.key)} onPress={() => void begin(duration.id)} />)
+        )}
+      </Sheet>
 
       {missing > 0 && !selected && (
         <View style={styles.notice}>
@@ -103,6 +166,10 @@ export function PlacesMap({ places, home, scheduledIds }: { places: Place[]; hom
 }
 
 const styles = StyleSheet.create({
+  live: { alignItems: "center", gap: 2 },
+  liveName: { backgroundColor: "rgba(255,255,255,0.94)", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, maxWidth: 90 },
+  sharePill: { position: "absolute", top: 12, start: 12, maxWidth: "92%", flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.95)", shadowColor: colors.ink900, shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  sharePillOn: { backgroundColor: colors.route500 },
   pin: {
     width: 32,
     height: 32,
