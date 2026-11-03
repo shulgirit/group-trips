@@ -2,7 +2,7 @@
   "expo": {
     "name": "Together",
     "slug": "together-group-plans",
-    "version": "1.0.0",
+    "version": "1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "together",
@@ -98,6 +98,14 @@
           "photosPermission": "Together uses a photo you choose from your library as your profile picture, the trip cover, a document or ticket for the trip, or a picture you send to the trip guide.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "tal-pituach",
+          "project": "react-native",
+          "url": "https://de.sentry.io/"
         }
       ]
     ],
