@@ -1,177 +1,48 @@
-# Sicily Together (סיציליה 2026) — agent handoff
+# Together — agent handoff
 
-> **Migration in progress (Convex + Better Auth + Expo). Start with [`HANDOFF.md`](HANDOFF.md), then [`NEXT.md`](NEXT.md) and [`CUTOVER.md`](CUTOVER.md).**
-> Production (`main`) is still the Firebase app; the new stack lives on branch `convex-web`. Sections below that mention Firebase describe the live production app.
+Together is a trip-planning app for groups: an **Expo mobile app** (iOS live on the App Store, Android in progress),
+a **Convex + Better Auth backend**, and a **Next.js landing site**. There is no web product: the only web pages are
+the landing page, invite links, legal pages and account deletion. (The old Sicily/Firebase web app, Capacitor shells
+and the Firestore migration tool are gone; see `docs/archive/`.)
 
-Private, Hebrew-first, RTL, mobile-first PWA for four Israeli families
-("חבורת מיחא" — parents and deaf kids with cochlear implants) traveling in
-Sicily **Aug 15–24, 2026**. Production: https://sicily-together.vercel.app
-(Vercel project `sicily-together`, scope `omer-9257s-projects`).
+> **The apps are live and used by real people.** Think about data and migrations before changing the Convex schema
+> (additive only), never push test data to production, and never deploy to production without the owner's explicit go.
 
-## Monorepo + migration (2026-10)
+## Monorepo (pnpm + Turborepo)
+Root: `pnpm install`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build` (all via turbo). CI (`.github/workflows/ci.yml`)
+runs typecheck + tests on every push; `preview.yml` deploys web previews; `deploy.yml` deploys the landing site.
 
-pnpm + Turborepo. The Next.js app lives in **`apps/web`** — every `src/…`,
-`public/…`, `scripts/…` path below is relative to it. Root: `pnpm install`,
-`pnpm build` / `pnpm typecheck` / `pnpm lint` (turbo). Vercel Root Directory
-is `apps/web`. pnpm blocks install scripts unless listed in
-`pnpm-workspace.yaml` `allowBuilds`.
+| Path | What |
+|---|---|
+| `apps/mobile` | Expo SDK 57 app (expo-router, Convex client, EAS builds + OTA). Package `@together/mobile`. |
+| `apps/web` | Next.js 16 landing only: `/welcome`, `/j/[code]` (opens the app / store), `/privacy`, `/terms`, `/support`, `/account` (+ `/delete`), `/api/auth`, `.well-known` (universal links). |
+| `packages/backend` | Convex (schema, functions, AI chat + planner, crons) + convex-test/vitest. Dev `mild-caterpillar-988`, **prod `tidy-dodo-188`**. |
+| `packages/shared` | Pure domain code (holiday/date resolver, settlement, tokens, trip types). |
+| `packages/i18n` | Messages (he/en/ar/es) shared by mobile and web. |
+| `packages/integrations` | OpenAI (gpt-5.1), Google Places, Firecrawl wrappers; the AI planner. |
 
-A staged migration to **Convex + Better Auth + an Expo app** is under way —
-read `docs/architecture/migration-plan.md` and keep
-`docs/migration/checklist.md` current in every PR that moves a feature.
+## Services
+Convex (db, storage, functions, EU) · Better Auth (inside Convex; Google, Apple, email OTP) · Resend (OTP email) · OpenAI ·
+Google Maps Platform (Places, Android map key) · Firecrawl · Expo/EAS (builds, push, OTA) · Vercel (landing) · PostHog
+(product analytics, US cloud, id-only) · Sentry (crash reports, EU, org `tal-pituach`, project `react-native`).
+Production secrets live in Convex env (`npx convex env list --prod`, never print values), EAS env (`eas env:list production`)
+and Vercel env (project `sicily-together`, scope `omer-9257s-projects`; the name is historical).
 
-> ## ⚠️ THE APP IS LIVE AND IN USE DURING THE TRIP
-> Real families depend on it right now. Before every push: `pnpm build`
-> must pass, think about data migrations (Firestore has live data), and
-> prefer additive changes. Never create test data without deleting it after.
+## Shipping
+- **Backend:** `cd packages/backend && npx convex deploy --yes` (production; owner's go required). Codegen: `npx convex dev --once`.
+- **Landing site:** push to `main` → GitHub Action `deploy.yml` → `vercel deploy --prod` (remote build on Vercel; never `--prebuilt`).
+  Other branches get Vercel previews (behind Vercel login). Domains: `togethergroup.app` (primary).
+- **App OTA (JS only):** `bash apps/mobile/scripts/ota.sh <testflight|production> "message"`. Android: prefix `EAS_BUILD_PLATFORM=android`
+  (different runtime fingerprint). Export `SENTRY_AUTH_TOKEN` in the shell first so source maps upload. `docs/ota.md` has details.
+- **Store builds (native changes):** `npx eas-cli build --platform ios|android --profile production`, then upload the iOS `.ipa`
+  with Transporter (Expo submit has been unreliable) and attach it to the version in App Store Connect.
+  Store texts, permission reasons and privacy answers: `docs/store/`.
+- Analytics/Sentry only run in production builds (`EXPO_PUBLIC_APP_ENV=production`); keys are public env vars in `eas.json` + EAS env.
 
-## Multi-trip (added 2026-08)
-
-The app now serves TWO trips from one deployment: **sicily** (root URLs,
-`trips/sicily-2026`) and **sardinia** (`/sardinia/*`, `trips/sardinia-2026`,
-5 adult friends celebrating 60, AI persona "הטייס" ✈️). All config lives in
-`src/lib/trips.ts` (client) + `src/lib/server/trip-server.ts` (personas,
-join codes — sardinia's is the `joinCode` field on its trip doc; sicily
-falls back to `TRIP_PASSWORD`). `TripProvider`/`useTrip()` supply the
-active trip; `src/lib/active-trip.ts` mirrors it for non-React code
-(db.ts, push-client). Every internal link must use `trip.prefix`.
-`src/app/sardinia/**` is a thin re-export tree — page logic stays in
-`src/app/(app)/**`. Firestore rules take the tripId wildcard
-(`isMember(tripId)`); one shared gate password + cookie covers both trips.
-
-## Self-serve product (added 2026-10, branch multitrip-platform)
-
-Anyone signs in (Google/Apple) and creates trips. Trip config lives in the
-**trip doc** (`TripDoc` in `src/lib/trip-doc.ts` → `tripConfigFromDoc()`
-builds the same `TripConfig` the pages already read; `trip.key === "custom"`,
-`trip.legacy === false`, prefix `/t/<tripId>`). Legacy sicily/sardinia stay
-on their static configs + cookie model (`trip.legacy`).
-- Membership = `trips/{id}/members/{uid}` (server-written only: create trip,
-  `/api/invites/redeem`); `src/lib/server/membership.ts` also writes the
-  trip `users/{uid}` profile, root `users/{uid}.tripIds` and the storage
-  claim `t.{tripId}`. Invites: top-level `invites/{code}` (server-only).
-- **Every API route authorizes with `authorizeTrip()`** (`src/lib/server/auth.ts`):
-  legacy cookie for legacy trips, Bearer ID token + members doc otherwise.
-  The proxy lets any Bearer `/api` request through — new routes MUST call it.
-  Client calls go through `apiFetch()` (attaches the token).
-- Creator wizard `src/components/creator/*` (`/new`), join `/j/[code]`,
-  hub `/trips`, AI persona composed by `composePersona()`; booking import
-  (`/api/import/booking` + `/apply`); GPS `src/lib/location.ts`, live
-  sharing `trips/{id}/locations/{uid}`.
-- Store apps: Capacitor shell (`capacitor.config.ts`, `ios/`, `android/`),
-  see `docs/native-apps.md`. Launch steps: `docs/multitrip-launch.md`.
-- Rules tests: `tests/rules.test.mjs` (emulator). Non-main branches get a
-  Vercel preview via `.github/workflows/preview.yml`.
-
-## Ship a change
-
-**`git push origin main` = production deploy.** GitHub Actions
-(`.github/workflows/deploy.yml`) runs `vercel deploy --prod` — a **remote
-build on Vercel's servers** — using repo secrets `VERCEL_TOKEN` /
-`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`. No local Vercel login needed.
-**Never switch the workflow to `--prebuilt`**: the `NEXT_PUBLIC_*` env
-vars are flagged Sensitive in Vercel and cannot be pulled into CI — a
-CI-side build bakes `[SENSITIVE]` into the bundle and kills the app's
-Firebase connection (happened on 2026-08-15; took the live app down). (From Omer's laptop,
-`npx vercel deploy --prod --yes --scope omer-9257s-projects` also works.)
-
-All runtime secrets live in **Vercel env** (production + preview): Firebase
-client + admin, `OPENAI_API_KEY`, `FIRECRAWL_API_KEY`,
-`GOOGLE_MAPS_API_KEY`, VAPID keys, `TRIP_PASSWORD`, `SESSION_SECRET`.
-Locally they're in `.env.local` (gitignored). **Never commit secrets.**
-
-## Stack
-
-Next.js 16 App Router (Turbopack) · TypeScript strict · Tailwind **v4**
-(`@theme` tokens in `globals.css`) · Firebase (Firestore/Storage/Auth,
-client SDK + Admin SDK) · OpenAI `gpt-5.1` · Firecrawl v2 · Google Places
-API (New) · web-push · Vercel. Node 22 (`engines`), pnpm `overrides` (pnpm-workspace.yaml) pins
-`jwks-rsa@3.2.0` (ESM crash on Vercel otherwise — don't remove).
-
-## Map
-
-- `src/proxy.ts` — middleware (v16 rename). Gates all routes on the HMAC
-  `trip_session` cookie. Matcher **excludes** `images/`, `sw.js`,
-  `api/auth/session`, `api/auth/kid-login` — keep exclusions when adding
-  public assets/endpoints.
-- `src/app/(app)/*` — pages: home (עכשיו), ai (המשרת), calendar (לו״ז), map,
-  places, polls, expenses, photos, documents, families, settings.
-- `src/app/api/ai/chat/route.ts` — the AI servant ("המשרת של חבורת מיחא"
-  🦻✨). System prompt + trip context builder + tool loop (add_place,
-  search_google_places, create_event, create_poll, add_poll_option,
-  enrich_place), vision via imageUrl parts, speaker identity from body,
-  reasoning_effort medium→low (Safari kills fetches ~60s), maxDuration 300.
-- `src/lib/db.ts` — all client Firestore writes (places/events/polls/
-  expenses). Places dedupe via `src/lib/place-name.ts` (`samePlaceName`:
-  exact normalized OR containment only when shorter name has ≥2 words and
-  ≥8 chars — the guard prevents "Erice" absorbing "Erice Adventure Park").
-  Places/events stamp `createdByUid`/`createdByName`.
-- `src/lib/server/` — `firebase-admin.ts`, `import-place.ts`
-  (`geocodePlace` = Places searchText + photo + rating;
-  `importPlaceFromUrl` via Firecrawl), `enrich.ts`, `push.ts`
-  (`sendPushToAll` with excludeUid).
-- `src/app/api/push/*` — subscribe / notify / check-reminders (polled every
-  5 min by `ReminderPinger` — Hobby plan has no cron). `public/sw.js` shows
-  pushes; `navUrl` payload adds a "נווט 🧭" action opening Waze.
-- Firestore under `trips/sicily-2026/*`: places, events, families, polls,
-  expenses, photos, documents, chatSessions, users, pushSubscriptions,
-  settings. Types in `src/types/index.ts`.
-
-## Auth model (unusual — read before touching)
-
-- Google sign-in (personal users) + one-time join code `italy2026`; kids log
-  in by picking their name → `/api/auth/kid-login` mints a custom token
-  (uid `member-{memberId}`) + `users/{uid}` profile.
-- Everyone gets Firebase custom claim **`member: true`** — Storage rules
-  depend on it (cross-service `firestore.exists` is NOT provisioned).
-  Any new token-minting path must set it.
-- Legacy HMAC cookie `trip_session` still gates routes in `proxy.ts`.
-- `isPersonalUser()` (Google) gates destructive UI (e.g. only Google
-  accounts may delete places).
-- **Firestore/Storage rules deploy via REST API script, not the CLI** (CLI
-  lacks serviceusage permission). See git history for the deploy snippet.
-
-## Design system
-
-Tailwind v4: component classes (`.card`, `.btn-*`, `.chip`, `.field`) are
-defined in `@layer components` in `globals.css` — **you cannot `@apply` a
-custom class in v4**; group selectors instead. **Redesign (2026-10, branch
-`redesign`): direction "Atlas & Journal" — read `docs/design/` first.**
-Fonts: IBM Plex Sans Hebrew (text/UI), Frank Ruhl Libre via `font-serif`
-(display headlines only — Omer approved the serif for the redesign), Jost
-(wordmark only). Landing globe = vanilla three.js in
-`src/components/landing/globe/` (lazy, never in trip routes). Home countdown is `dir="ltr"`, days leftmost, clock-style —
-**do not flip it**. Bottom nav order (RTL): עכשיו · המשרת (gold bubble,
-same size as siblings) · לו״ז · מפה · מקומות · עוד.
-
-## Hard-won gotchas
-
-- User-visible text is Hebrew; keep RTL layout intact (`dir`, logical
-  margins). Test flows on mobile widths (~390px).
-- Push a new event/poll notification **once per action**, not per option.
-- AI must never claim it lacks Google Maps access (it has
-  `search_google_places`); address+schedule requests chain
-  add_place → create_event.
-- `updateEvent` clears `reminderSentAt` (deleteField) so moved events
-  re-remind.
-- Verification pattern: `pnpm build` first, and for UI use
-  playwright-core headless screenshots (a `shot.mjs` with the session
-  cookie; suppress the onboarding tour via localStorage
-  `micha-tour-seen-v1`).
-
-## Firebase admin access from cloud/remote sessions
-
-The service-account JSON is **not in git** (only on Omer's laptop and in
-the `FIREBASE_SERVICE_ACCOUNT` repo secret — keep it that way). Remote
-sessions run admin/data-fix scripts through GitHub Actions:
-
-1. Write a script under `apps/web/scripts/admin/<name>.mjs` (use
-   `applicationDefault()` credentials — see `health-check.mjs`), commit,
-   push.
-2. `gh workflow run admin.yml -f script=<name>.mjs`
-3. `gh run watch $(gh run list --workflow=admin.yml -L1 --json databaseId -q '.[0].databaseId') --exit-status`
-   then `gh run view --log` for output.
-
-Remember the push in step 1 also triggers a production deploy — scripts
-are harmless to the build, but the usual "build must pass" rule applies.
-Prefer read-only checks first; the app is live.
+## Conventions and gotchas
+- User-visible text goes through `@together/i18n` (all four languages, Hebrew/Arabic are RTL — use logical start/end styles).
+- Convex field names must be plain ASCII (use arrays of `{key,value}` instead of objects keyed by free text).
+- pnpm blocks install scripts unless listed in `pnpm-workspace.yaml` `allowBuilds`; `@sentry/cli` must stay a direct dependency of `apps/mobile`.
+- The AI planner (`packages/integrations/src/planner.ts`, `packages/backend/convex/planner*.ts`) retries model calls, has timeouts and a
+  watchdog; tentative trips are private to the creator until published.
+- Tests: `pnpm --filter @together/backend test` (convex-test). Run `pnpm typecheck` before pushing; it must pass for CI.

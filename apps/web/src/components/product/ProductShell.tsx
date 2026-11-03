@@ -32,7 +32,7 @@ export function ProductShell({
           className={`mx-auto flex h-14 w-full items-center justify-between px-4 ${wide ? "max-w-3xl lg:max-w-5xl" : "max-w-lg md:max-w-xl"}`}
         >
           <Link
-            href={personal ? "/trips" : "/welcome"}
+            href="/welcome"
             aria-label="Together"
             className="flex items-center text-ink-900"
           >

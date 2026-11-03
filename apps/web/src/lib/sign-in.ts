@@ -15,7 +15,7 @@ export function appleSignInAvailable(): boolean {
 }
 
 export async function signInWithProvider(provider: SocialProvider, returnTo?: string): Promise<void> {
-  const callbackURL = returnTo ?? (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/trips");
+  const callbackURL = returnTo ?? (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/account");
   const result = await authClient.signIn.social({ provider, callbackURL });
   if (result.error) throw new Error(result.error.code ?? "sign_in_failed");
 }
