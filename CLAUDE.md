@@ -37,6 +37,7 @@ and Vercel env (project `sicily-together`, scope `omer-9257s-projects`; the name
 - **Store builds (native changes):** `npx eas-cli build --platform ios|android --profile production`, then upload the iOS `.ipa`
   with Transporter (Expo submit has been unreliable) and attach it to the version in App Store Connect.
   Store texts, permission reasons and privacy answers: `docs/store/`.
+- **`apps/mobile/eas.json` is part of the app fingerprint** (the OTA runtime version): editing it changes the runtime, so an OTA will no longer reach builds made before the edit. Don't touch it between a store build and its OTAs; if you must, publish OTAs from a temporary copy of the eas.json used for that build and check the printed runtime equals the store build's (`eas submit:view`/`build:view` shows it).
 - Analytics/Sentry only run in production builds (`EXPO_PUBLIC_APP_ENV=production`); keys are public env vars in `eas.json` + EAS env.
 
 ## Conventions and gotchas
