@@ -201,6 +201,35 @@ describe("trip cover", () => {
   });
 });
 
+describe("place relocation", () => {
+  it("relocate looks the text up on Google and moves the pin; a miss leaves it alone", async () => {
+    const { t, owner, tripId } = await plan();
+    const placeId = (await t.run((ctx) => ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).first()))!._id;
+    vi.stubEnv("GOOGLE_MAPS_SERVER_API_KEY", "test-key");
+    const queries: string[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init?: { body?: string }) => {
+      const q = JSON.parse(init?.body ?? "{}").textQuery as string;
+      queries.push(q);
+      const hit = q.includes("Kahal");
+      return new Response(JSON.stringify(hit ? { places: [{ formattedAddress: "Kahal, Israel", location: { latitude: 32.89, longitude: 35.51 } }] } : {}), { status: 200 });
+    });
+    // The first text finds nothing, the second does: it keeps trying
+    const found = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, queries: ["Long venue name here", "Kahal"] });
+    expect(found).toEqual({ found: true, address: "Kahal, Israel" });
+    // (background photo lookups from the build may also pass through the stub, so look for ours)
+    const ours = queries.filter((q) => q.includes("Long venue name here") || q.includes("Kahal"));
+    expect(ours[0]).toContain("Long venue name here");
+    expect(ours[1]).toContain("Kahal");
+    const moved = (await t.run((ctx) => ctx.db.get(placeId)))!;
+    expect(moved).toMatchObject({ lat: 32.89, lng: 35.51, address: "Kahal, Israel" });
+    await t.run((ctx) => ctx.db.patch(placeId, { address: "elsewhere" }));
+    const miss = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, query: "nowhere" });
+    expect(miss).toEqual({ found: false });
+    expect((await t.run((ctx) => ctx.db.get(placeId)))!.lat).toBe(32.89);
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("profile photo", () => {
   it("setImage updates the profile and every trip seat; null clears it; non-https is refused", async () => {
     const { t, owner, tripId } = await plan();

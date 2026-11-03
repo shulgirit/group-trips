@@ -373,7 +373,12 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
         // A new name or address means a new location: find it on Google Maps so the pin and the address follow
         let moved = "";
         if (args.name || args.address || lookup) {
-          const geo = await geocodePlace(lookup?.trim() || `${args.name ?? target.name} ${args.address ?? ""}`.trim(), regionOf(trip)).catch(() => null);
+          const candidates = [lookup?.trim(), args.address?.trim(), `${args.name ?? target.name} ${args.address ?? ""}`.trim()].filter((text, i, all): text is string => !!text && all.indexOf(text) === i);
+          let geo: Awaited<ReturnType<typeof geocodePlace>> = null;
+          for (const text of candidates) {
+            geo = await geocodePlace(text, regionOf(trip)).catch(() => null);
+            if (geo) break;
+          }
           if (geo) {
             Object.assign(patch, { lat: geo.lat, lng: geo.lng, ...(args.address || !geo.address ? {} : { address: geo.address }) });
             moved = ` and moved it on the map${geo.address ? ` to ${geo.address}` : ""}`;
