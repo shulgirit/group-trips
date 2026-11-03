@@ -248,6 +248,7 @@ const trip: PartialMessages["trip"] = {
     clearSearch: "مسح البحث",
   },
   place: {
+    locationNotFound: "تم الحفظ، لكنني لم أجد الموقع الجديد على الخريطة. بقي الدبوس مكانه — جرّب اسمًا أو عنوانًا أوضح.",
     notFoundTitle: "المكان غير موجود",
     notFoundDescription: "ربما تم حذفه",
     allPlaces: "كل الأماكن",

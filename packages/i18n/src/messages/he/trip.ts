@@ -247,6 +247,7 @@ const trip = {
     clearSearch: "ניקוי החיפוש",
   },
   place: {
+    locationNotFound: "נשמר, אבל לא מצאתי את המיקום החדש במפה. הסמן נשאר במקומו — נסו שם או כתובת ברורים יותר.",
     notFoundTitle: "המקום לא נמצא",
     notFoundDescription: "אולי הוא נמחק",
     allPlaces: "לכל המקומות",

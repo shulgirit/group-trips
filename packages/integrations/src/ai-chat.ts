@@ -253,12 +253,13 @@ function EDIT_TOOLS(range: { startDate: string; endDate: string }): OpenAI.Chat.
     ),
     fn(
       "update_place",
-      "Edit a saved place: rename, change category, address, notes/tips, opening hours, prices, website or mark it a favorite.",
+      "Edit a saved place: rename, change category, address, notes/tips, opening hours, prices, website or mark it a favorite. Changing the name or the address also moves the pin on the map to the new location (it is looked up on Google Maps); use \"query\" to say exactly what to look up when the name alone is ambiguous.",
       {
         placeName: { type: "string", description: "The saved place to edit" },
         name: { type: "string" },
         category: { type: "string", enum: CATEGORY_KEYS },
         address: { type: "string" },
+        query: { type: "string", description: "What to look up on Google Maps to find the new location, e.g. the venue name and the town" },
         tips: { type: "string" },
         summary: { type: "string" },
         openingHours: { type: "string" },
@@ -345,6 +346,7 @@ export const ToolArgs = {
     name: z.string().min(1).max(120).optional(),
     category: z.enum(CATEGORY_KEYS).optional(),
     address: z.string().max(300).optional(),
+    query: z.string().max(200).optional(),
     tips: z.string().max(2000).optional(),
     summary: z.string().max(2000).optional(),
     openingHours: z.string().max(500).optional(),

@@ -248,6 +248,7 @@ const trip: typeof he = {
     clearSearch: "Clear search",
   },
   place: {
+    locationNotFound: "Saved, but I couldn't find the new location on the map. The pin stayed where it was — try a clearer name or address.",
     notFoundTitle: "Place not found",
     notFoundDescription: "It may have been deleted",
     allPlaces: "All places",

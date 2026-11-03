@@ -368,11 +368,20 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
         if (isKid) return denied("kids can't edit places");
         const target = resolvePlace(args.placeName, places);
         if (!target) return { ok: false, error: `No saved place named "${args.placeName}"` };
-        const { placeName: _ignored, ...patch } = args;
+        const { placeName: _ignored, query: lookup, ...patch } = args;
         void _ignored;
+        // A new name or address means a new location: find it on Google Maps so the pin and the address follow
+        let moved = "";
+        if (args.name || args.address || lookup) {
+          const geo = await geocodePlace(lookup?.trim() || `${args.name ?? target.name} ${args.address ?? ""}`.trim(), regionOf(trip)).catch(() => null);
+          if (geo) {
+            Object.assign(patch, { lat: geo.lat, lng: geo.lng, ...(args.address || !geo.address ? {} : { address: geo.address }) });
+            moved = ` and moved it on the map${geo.address ? ` to ${geo.address}` : ""}`;
+          } else moved = ", but I couldn't find the new location on Google Maps so the pin stayed where it was";
+        }
         await ctx.runMutation(internal.chatTools.updatePlace, { tripId, placeId: target.id as Id<"places">, patch: patch as never });
         if (args.name) target.name = args.name;
-        return { ok: true, summary: `Updated the place "${target.name}"` };
+        return { ok: true, summary: `Updated the place "${target.name}"${moved}` };
       }
 
       case "delete_place": {
