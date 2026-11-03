@@ -216,8 +216,10 @@ describe("place relocation", () => {
     // The first text finds nothing, the second does: it keeps trying
     const found = await owner.as.action(api.placesGeo.relocate, { tripId, placeId, queries: ["Long venue name here", "Kahal"] });
     expect(found).toEqual({ found: true, address: "Kahal, Israel" });
-    expect(queries[0]).toContain("Long venue name here");
-    expect(queries[1]).toContain("Kahal");
+    // (background photo lookups from the build may also pass through the stub, so look for ours)
+    const ours = queries.filter((q) => q.includes("Long venue name here") || q.includes("Kahal"));
+    expect(ours[0]).toContain("Long venue name here");
+    expect(ours[1]).toContain("Kahal");
     const moved = (await t.run((ctx) => ctx.db.get(placeId)))!;
     expect(moved).toMatchObject({ lat: 32.89, lng: 35.51, address: "Kahal, Israel" });
     await t.run((ctx) => ctx.db.patch(placeId, { address: "elsewhere" }));
