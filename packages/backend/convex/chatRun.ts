@@ -28,6 +28,7 @@ import { type ActionCtx, internalAction } from "./_generated/server";
 import { shiftIso } from "@together/shared/holidays";
 import { rosterLabel, speakerLine } from "./chat";
 import { regionOf } from "./events";
+import { biasOf, nearTrip } from "./lib/geo";
 import type { placeInput } from "./places";
 
 /**
@@ -376,8 +377,11 @@ function executor(ctx: ActionCtx, context: Context, locale: Locale, ideas: strin
           const candidates = [lookup?.trim(), args.address?.trim(), `${args.name ?? target.name} ${args.address ?? ""}`.trim()].filter((text, i, all): text is string => !!text && all.indexOf(text) === i);
           let geo: Awaited<ReturnType<typeof geocodePlace>> = null;
           for (const text of candidates) {
-            geo = await geocodePlace(text, regionOf(trip)).catch(() => null);
-            if (geo) break;
+            const found = await geocodePlace(text, regionOf(trip), biasOf(trip)).catch(() => null);
+            if (found && nearTrip(trip, found)) {
+              geo = found;
+              break;
+            }
           }
           if (geo) {
             Object.assign(patch, { lat: geo.lat, lng: geo.lng, ...(args.address || !geo.address ? {} : { address: geo.address }) });

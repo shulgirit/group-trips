@@ -30,6 +30,7 @@ import type * as importsRun from "../importsRun.js";
 import type * as invites from "../invites.js";
 import type * as lib_authz from "../lib/authz.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as lib_geo from "../lib/geo.js";
 import type * as lib_limits from "../lib/limits.js";
 import type * as lib_migrationRecords from "../lib/migrationRecords.js";
 import type * as lib_notices from "../lib/notices.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   invites: typeof invites;
   "lib/authz": typeof lib_authz;
   "lib/functions": typeof lib_functions;
+  "lib/geo": typeof lib_geo;
   "lib/limits": typeof lib_limits;
   "lib/migrationRecords": typeof lib_migrationRecords;
   "lib/notices": typeof lib_notices;
