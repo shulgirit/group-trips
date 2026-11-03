@@ -21,6 +21,7 @@ import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { track } from "@/lib/analytics";
 import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
 
@@ -40,6 +41,7 @@ export default function Trips() {
     setDeleteError("");
     try {
       await removeTrip({ tripId: deleting.id as Id<"trips"> });
+      track("trip_deleted", { status: deleting.status });
       setDeleting(null);
     } catch {
       setDeleteError(t("product.admin.deleteTripFailed"));

@@ -10,6 +10,7 @@ import { Pressable, Text as RNText, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { authClient, convex } from "@/lib/convex";
 import { FONT_ASSETS } from "@/lib/fonts";
+import { AnalyticsBridge } from "@/components/AnalyticsBridge";
 import { PushBridge } from "@/components/trip/PushBridge";
 import { LocaleProvider } from "@/lib/i18n";
 
@@ -48,6 +49,7 @@ export default function RootLayout() {
           <ThemeProvider value={theme}>
             <StatusBar style="dark" />
             <PushBridge />
+            <AnalyticsBridge />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.chart50 } }} />
           </ThemeProvider>
         </LocaleProvider>

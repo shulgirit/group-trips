@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/Text";
 import { type Href, router } from "expo-router";
 import { Pressable } from "react-native";
 import { errorReason } from "@/lib/convert";
+import { track } from "@/lib/analytics";
 import { useLocale, useT } from "@/lib/i18n";
 import { useTrip } from "@/lib/trip";
 
@@ -63,7 +64,7 @@ export function TentativeBanner() {
   const askPublish = () =>
     Alert.alert(t("creator.planner.publishTitle"), t("creator.planner.publishText"), [
       { text: t("common.cancel"), style: "cancel" },
-      { text: t("creator.planner.publish"), onPress: () => void publish({ tripId: id }).catch(() => undefined) },
+      { text: t("creator.planner.publish"), onPress: () => void publish({ tripId: id }).then(() => track("trip_published", { from: "ai_plan" })).catch(() => undefined) },
     ]);
 
   return (

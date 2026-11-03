@@ -72,7 +72,7 @@ const privacyEn: LegalDoc = {
             "your language preference.",
           ],
         },
-        "We do not use third-party advertising or analytics trackers.",
+        "We use PostHog (product analytics) in the mobile app to understand which features are used and where things fail: screen names, actions such as starting or finishing a plan, and error reasons, linked to a random account identifier. We do not record your screen, and we do not send names, emails, trip content, messages or location to it. We do not use advertising trackers and do not sell data.",
       ],
     },
     {
@@ -120,6 +120,7 @@ const privacyEn: LegalDoc = {
             "Google Maps Platform (Google LLC) — place search, place details and photos, maps and directions. Searches are sent without your account details.",
             "Firecrawl — reading public web pages (such as a restaurant's website) when you add or enrich a place from a link. Only the link or place name is sent.",
             "Apple Inc. and Google LLC — Sign in with Apple and Sign in with Google, and push-notification delivery on their devices.",
+            "PostHog, Inc. — product analytics and error counts from the mobile app (United States). Events carry a random account identifier and no personal content.",
             "Open Exchange Rates (open.er-api.com) — currency exchange rates. No personal data is sent.",
           ],
         },

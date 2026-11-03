@@ -26,7 +26,9 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_pMgGKAaxR54e9V6HFP8oMDh4vN9vJTt7QJZbPx4pCrgQ",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       }
     },
     "preview-simulator": {
@@ -41,7 +43,9 @@
       "channel": "testflight",
       "environment": "production",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_pMgGKAaxR54e9V6HFP8oMDh4vN9vJTt7QJZbPx4pCrgQ",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
       }
     }
   },

@@ -18,6 +18,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { signOut } from "@/lib/auth";
+import { track } from "@/lib/analytics";
 import { uploadImage } from "@/lib/upload";
 import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
@@ -40,6 +41,7 @@ export default function Account() {
     try {
       const asset = result.assets[0];
       await setImage({ image: await uploadImage(asset.uri, asset.mimeType ?? "image/jpeg") });
+      track("profile_photo_set");
     } catch {
       Alert.alert(t("product.trips.photoFailed"));
     } finally {

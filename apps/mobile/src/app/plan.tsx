@@ -4,7 +4,7 @@ import { colors } from "@together/shared/tokens";
 import { useMutation, useQuery } from "convex/react";
 import { type Href, router } from "expo-router";
 import { ChevronLeft, Sparkles } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -14,6 +14,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
+import { track } from "@/lib/analytics";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 
 const EXAMPLES: TKey[] = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `creator.planner.ex${n}` as TKey);
@@ -36,9 +37,17 @@ export default function Plan() {
   const [offset, setOffset] = useState(0);
   const run = useQuery(api.planner.status, runId ? { runId } : "skip");
 
+  const startedAt = useRef(0);
+  const reported = useRef<string | null>(null);
   useEffect(() => {
     if (run?.status === "done" && run.tripId) router.replace(`/t/${run.tripId}` as Href);
-  }, [run]);
+    if (run && run.status !== "running" && runId && reported.current !== runId) {
+      reported.current = runId;
+      const seconds = startedAt.current ? Math.round((Date.now() - startedAt.current) / 1000) : null;
+      if (run.status === "done") track("plan_finished", { seconds });
+      else track("plan_failed", { stage: "run", reason: run.error ?? "unknown", seconds });
+    }
+  }, [run, runId]);
 
   async function go() {
     setError(null);
@@ -46,8 +55,11 @@ export default function Plan() {
     setStarting(true);
     try {
       setRunId(await start({ text, locale }));
+      startedAt.current = Date.now();
+      track("plan_started", { length: text.length, locale });
     } catch (err) {
       const reason = errorReason(err);
+      track("plan_failed", { stage: "start", reason: reason ?? "unknown" });
       setError(reason === "plan_limit" ? t("creator.planner.limit") : reason === "plan_running" ? t("creator.planner.running") : t("creator.planner.failed"));
     } finally {
       setStarting(false);

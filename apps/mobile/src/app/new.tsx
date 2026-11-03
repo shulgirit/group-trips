@@ -37,6 +37,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ChipRow } from "@/components/ui/ChipRow";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import { track } from "@/lib/analytics";
 import { errorReason } from "@/lib/convert";
 import { readDraft, writeDraft } from "@/lib/creator-draft";
 import { useSafeQuery } from "@/lib/safe-query";
@@ -172,6 +173,7 @@ export default function NewTrip() {
         tripId = state.tripId;
       } else {
         tripId = await convex.mutation(api.trips.create, { input });
+        track("trip_created", { via: "wizard" });
         writeDraft(null);
         loadedFor.current = tripId;
         setState((current) => (current ? { ...current, tripId } : current));

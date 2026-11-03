@@ -18,6 +18,7 @@ import { TimeField } from "@/components/ui/TimeField";
 import { convex } from "@/lib/convex";
 import { errorReason } from "@/lib/convert";
 import { fontFor } from "@/lib/fonts";
+import { track } from "@/lib/analytics";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { uploadToTrip } from "@/lib/upload";
 
@@ -147,6 +148,7 @@ export function BookingImporter({ tripId, onApplied }: { tripId: string; onAppli
     try {
       const items = entry.items.filter((i) => i.include).map(({ include, ...item }) => (void include, item));
       const summary = await applyImport({ tripId: id, importId: entry.importId, items });
+      track("booking_imported", { items: items.length });
       patch(entry.key, {
         status: "applied",
         message:

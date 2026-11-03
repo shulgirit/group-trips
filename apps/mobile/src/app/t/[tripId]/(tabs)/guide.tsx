@@ -20,6 +20,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
 import { fontFor } from "@/lib/fonts";
+import { track } from "@/lib/analytics";
 import { useLocale, useT } from "@/lib/i18n";
 import { useReport } from "@/lib/report";
 import { useTrip } from "@/lib/trip";
@@ -144,6 +145,7 @@ export default function Guide() {
         locale,
       });
       setSessionId(result.sessionId);
+      track("guide_message_sent", { photo: Boolean(imageStorageId) });
       setInput("");
     } catch (err) {
       setError(errorReason(err) === "quota_exceeded" ? t("ai.errors.quota", { limit: 400 }) : t("ai.errors.failed"));
