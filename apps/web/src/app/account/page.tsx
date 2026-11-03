@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { ProductShell } from "@/components/product/ProductShell";
-import { ChevronRight, FileText, LayoutGrid, ShieldCheck, UserRound } from "lucide-react";
+import { ChevronRight, FileText, ShieldCheck, UserRound } from "lucide-react";
 import { LanguagePicker } from "@/components/settings/LanguagePicker";
 import { SURFACE } from "@/components/settings/SettingsGroup";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -77,19 +77,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <Link
-            href="/trips"
-            className={`${SURFACE} flex min-h-16 items-center gap-4 px-4 py-3 transition active:bg-cream-100`}
-          >
-            <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cream-200 text-ink-700">
-              <LayoutGrid size={18} strokeWidth={STROKE} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium text-ink-900">{t("settings.more.myTrips")}</span>
-              <span className="block text-sm text-ink-500">{t("settings.more.myTripsDescription")}</span>
-            </span>
-            <ChevronRight size={16} strokeWidth={STROKE} aria-hidden className="shrink-0 text-ink-300 rtl:rotate-180" />
-          </Link>
 
           <section aria-labelledby="account-prefs" className="space-y-3">
             <h2 id="account-prefs" className="font-display text-2xl font-medium text-ink-900">

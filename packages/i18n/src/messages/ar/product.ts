@@ -54,6 +54,10 @@ const product: PartialMessages["product"] = {
   },
   trips: {
     nameTitle: "بماذا نناديك؟",
+    photoTitle: "صورة الملف الشخصي",
+    photoChoose: "اختيار صورة",
+    photoRemove: "إزالة الصورة",
+    photoFailed: "تعذّر حفظ الصورة. حاول مرة أخرى.",
     nameHint: "هكذا ستظهر لمجموعتك",
     namePlaceholder: "اسمك",
     nameSave: "حفظ",
@@ -78,7 +82,9 @@ const product: PartialMessages["product"] = {
     },
   },
   card: {
-    draft: "مسودة، تابعوا",
+    draft: "مسودة",
+    draftContinue: "الخطوة {n} من {total} · تابعوا الإعداد",
+    draftLocal: "تابعوا تخطيط رحلتكم",
     live: "في الرحلة الآن",
     tomorrow: "غدًا",
     inDays: "بعد {count} أيام",
@@ -96,6 +102,7 @@ const product: PartialMessages["product"] = {
   account: {
     title: "حسابي",
     deleteTitle: "حذف الحساب",
+    permanent: "حذف كامل ونهائي",
     deleteText:
       "احذفوا حسابكم وكل بياناتكم المحفوظة لدينا نهائيًا. لا يمكن استعادتها.",
     dialogTitle: "حذف حسابكم نهائيًا؟",
@@ -133,6 +140,11 @@ const product: PartialMessages["product"] = {
       failedNetwork: "تعذّر الانضمام. تحققوا من الاتصال وحاولوا مجددًا",
     },
     invited: "أنتم مدعوون",
+    appTitle: "انضم إلى الرحلة في تطبيق Together",
+    appText: "تُفتح الدعوات داخل التطبيق. اضغط على الزر لفتحه. إذا لم يكن لديك التطبيق بعد، نزّله أولاً ثم افتح هذا الرابط مرة أخرى.",
+    openApp: "فتح في التطبيق",
+    getApp: "ليس لديك التطبيق بعد؟",
+    codeLabel: "رمز دعوتك",
     organizers: "من تنظيم {name}",
     aiWaiting: "{name}، المساعد الذكي للرحلة، بانتظاركم",
     alreadyIn: "انضم {count} حتى الآن",

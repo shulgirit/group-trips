@@ -1,34 +1,70 @@
 import { api } from "@together/backend/api";
+import type { Id } from "@together/backend/dataModel";
 import { tripPhase } from "@together/shared/trip-doc";
 import { todayIso } from "@together/shared/trip";
 import { colors, radius } from "@together/shared/tokens";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Redirect, router } from "expo-router";
-import { Plus, UserRound } from "lucide-react-native";
-import { useState } from "react";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Redirect, router, useFocusEffect } from "expo-router";
+import { ArrowRight, Plus, UserRound } from "lucide-react-native";
+import { primaryPlace, type CreatorState } from "@together/backend/creator";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Logo } from "@/components/brand/Logo";
-import { TripCard } from "@/components/trips/TripCard";
+import { readDraft } from "@/lib/creator-draft";
+import { ConfirmSheet } from "@/components/more/ConfirmSheet";
+import { TripCard, type TripRow } from "@/components/trips/TripCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { track } from "@/lib/analytics";
+import { useSafeQuery } from "@/lib/safe-query";
 import { useT } from "@/lib/i18n";
 
 /** My trips: the live/next trip large, then the rest; past trips at the end. */
 export default function Trips() {
   const t = useT();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
-  const trips = useQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const trips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+
+  // Deleting a trip you started (a plan you didn't want, a mistake)
+  const removeTrip = useMutation(api.trips.remove);
+  const [deleting, setDeleting] = useState<TripRow | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeleteError("");
+    try {
+      await removeTrip({ tripId: deleting.id as Id<"trips"> });
+      track("trip_deleted", { status: deleting.status });
+      setDeleting(null);
+    } catch {
+      setDeleteError(t("product.admin.deleteTripFailed"));
+    }
+  }
+
+  // A trip started on this phone that hasn't reached the server yet (steps 1-2 not completed)
+  const [localDraft, setLocalDraft] = useState<CreatorState | null>(null);
+  // Re-read every time this screen comes back into view (the wizard may have just kept a draft)
+  useFocusEffect(
+    useCallback(() => {
+      readDraft().then((draft) => setLocalDraft(draft && !draft.tripId && primaryPlace(draft) ? draft : null));
+    }, [])
+  );
 
   if (!isLoading && !isAuthenticated) return <Redirect href="/welcome" />;
 
   const today = todayIso();
   const sorted = [...(trips ?? [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const current = sorted.filter((trip) => trip.status === "draft" || tripPhase(trip, today) !== "past");
+  const current = sorted
+    .filter((trip) => trip.status === "draft" || tripPhase(trip, today) !== "past")
+    // Unfinished trips first: they are waiting for the person to come back
+    .sort((a, b) => Number(b.status === "draft") - Number(a.status === "draft"));
   const past = sorted.filter((trip) => trip.status !== "draft" && tripPhase(trip, today) === "past").reverse();
   const firstName = (me?.name ?? "").split(" ")[0];
 
@@ -63,28 +99,45 @@ export default function Trips() {
           <Text variant="body" color="rgba(241,243,239,0.75)">
             {t("product.trips.first.text")}
           </Text>
-          {!me?.guest && <Button tone="brass" size="lg" icon={Plus} label={t("product.trips.first.cta")} onPress={() => router.push("/new")} />}
+          {!me?.guest && <Button tone="brass" size="lg" icon={Plus} label={t("product.trips.first.cta")} onPress={() => router.push("/start")} />}
         </Card>
       ) : (
         <>
           {!me?.guest && (
-            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={styles.newTrip}>
-              <View style={styles.plus}>
-                <Icon icon={Plus} size={20} color={colors.chart50} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text weight="semibold">{t("product.trips.newTrip.title")}</Text>
-                <Text variant="small" color={colors.ink500}>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/start")} style={({ pressed }) => [styles.newTrip, pressed && { opacity: 0.92 }]}>
+              <Image source={require("../../../assets/onboarding/start-ai.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <LinearGradient colors={["rgba(7,12,22,0.35)", "rgba(7,12,22,0.9)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+              <View style={styles.newTripText}>
+                <Text variant="title" color={colors.chart50}>
+                  {t("product.trips.newTrip.title")}
+                </Text>
+                <Text variant="small" color="rgba(241,243,239,0.85)" numberOfLines={2}>
                   {t("product.trips.newTrip.text")}
                 </Text>
               </View>
+              <View style={styles.plus}>
+                <Icon icon={Plus} size={22} color={colors.night950} />
+              </View>
+            </Pressable>
+          )}
+          {localDraft && (
+            <Pressable accessibilityRole="button" onPress={() => router.push("/new")} style={styles.localDraft}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text weight="semibold" color={colors.brass600}>
+                  {t("product.card.draftLocal")}
+                </Text>
+                <Text variant="small" color={colors.ink700} numberOfLines={1}>
+                  {primaryPlace(localDraft)?.label}
+                </Text>
+              </View>
+              <Icon icon={ArrowRight} size={18} color={colors.brass600} flip />
             </Pressable>
           )}
           {current.length > 0 && (
             <View style={{ gap: 12 }}>
               <Text variant="title">{t("product.trips.current")}</Text>
               {current.map((trip, index) => (
-                <TripCard key={trip.id} trip={trip} large={index === 0} />
+                <TripCard key={trip.id} trip={trip} large={index === 0} onDelete={setDeleting} />
               ))}
             </View>
           )}
@@ -92,7 +145,7 @@ export default function Trips() {
             <View style={{ gap: 12 }}>
               <Text variant="title">{t("product.trips.past")}</Text>
               {past.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
+                <TripCard key={trip.id} trip={trip} onDelete={setDeleting} />
               ))}
             </View>
           )}
@@ -103,6 +156,20 @@ export default function Trips() {
           {t("product.trips.guestNote")}
         </Text>
       )}
+      <ConfirmSheet
+        open={!!deleting}
+        title={t("product.admin.deleteTripTitle", { name: deleting?.name ?? "" })}
+        description={t("product.admin.deleteTripText")}
+        items={[t("product.admin.deleteTripItems.content"), t("product.admin.deleteTripItems.files"), t("product.admin.deleteTripItems.chats"), t("product.admin.deleteTripItems.people")]}
+        confirmWord={t("common.confirm.word")}
+        confirmLabel={t("product.admin.deleteTrip")}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onClose={() => {
+          setDeleting(null);
+          setDeleteError("");
+        }}
+      />
     </Screen>
   );
 }
@@ -135,15 +202,8 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth, borderColor: colors.chart200 },
   first: { backgroundColor: colors.night950, borderColor: colors.night900, padding: 24, gap: 14 },
-  newTrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    padding: 16,
-    borderRadius: radius.card,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: colors.chart300,
-  },
-  plus: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.ink900, alignItems: "center", justifyContent: "center" },
+  newTrip: { minHeight: 112, borderRadius: 28, overflow: "hidden", flexDirection: "row", alignItems: "center", gap: 14, padding: 20, backgroundColor: colors.night950, shadowColor: colors.ink900, shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  localDraft: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 20, backgroundColor: colors.brass100, borderWidth: 1, borderColor: colors.brass300 },
+  newTripText: { flex: 1, gap: 4 },
+  plus: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center", shadowColor: colors.brass500, shadowOpacity: 0.6, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
 });

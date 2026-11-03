@@ -2,7 +2,6 @@ import { colors, radius } from "@together/shared/tokens";
 import { type Href, router } from "expo-router";
 import { ChevronRight, LayoutGrid, Settings, Ticket, UserPlus, UserRound, Users, UsersRound, Vote, Wallet } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
-import { LanguagePicker } from "@/components/more/LanguagePicker";
 import { Group, Row } from "@/components/more/Row";
 import { GuideAvatar } from "@/components/trips/GuideAvatar";
 import { Icon } from "@/components/ui/Icon";
@@ -70,7 +69,6 @@ export default function More() {
         <Row icon={UserRound} label={t("product.account.title")} onPress={() => router.push("/account")} last />
       </Group>
 
-      <LanguagePicker />
     </Screen>
   );
 }

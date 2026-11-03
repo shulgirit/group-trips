@@ -1,3 +1,4 @@
+import { timedFetch } from "./http";
 import type { PlaceCategory } from "@together/shared/types";
 
 /** Google Places text search for the "add a place by name" flow (top 3, with photos). */
@@ -56,7 +57,7 @@ export async function searchPlaces(query: string, region: string): Promise<Place
 async function searchPlacesOnce(query: string, region: string): Promise<PlaceSearchResult[] | null> {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
   if (!key) return null;
-  const search = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const search = await timedFetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -74,7 +75,7 @@ async function searchPlacesOnce(query: string, region: string): Promise<PlaceSea
       const photoName = place.photos?.[0]?.name;
       if (photoName) {
         try {
-          const media = await fetch(`https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true&key=${key}`);
+          const media = await timedFetch(`https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true&key=${key}`);
           if (media.ok) {
             const { photoUri } = (await media.json()) as { photoUri?: unknown };
             if (typeof photoUri === "string") imageUrl = photoUri;

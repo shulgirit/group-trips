@@ -15,6 +15,7 @@ import type * as assist from "../assist.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as chatRun from "../chatRun.js";
+import type * as chatTools from "../chatTools.js";
 import type * as config from "../config.js";
 import type * as crons from "../crons.js";
 import type * as destinations from "../destinations.js";
@@ -39,13 +40,18 @@ import type * as migration from "../migration.js";
 import type * as photos from "../photos.js";
 import type * as places from "../places.js";
 import type * as placesAi from "../placesAi.js";
+import type * as planner from "../planner.js";
+import type * as plannerData from "../plannerData.js";
 import type * as polls from "../polls.js";
 import type * as providers from "../providers.js";
 import type * as purge from "../purge.js";
 import type * as push from "../push.js";
 import type * as pushSend from "../pushSend.js";
 import type * as rates from "../rates.js";
+import type * as reports from "../reports.js";
+import type * as reportsData from "../reportsData.js";
 import type * as trips from "../trips.js";
+import type * as uploads from "../uploads.js";
 
 import type {
   ApiFromModules,
@@ -61,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   chat: typeof chat;
   chatRun: typeof chatRun;
+  chatTools: typeof chatTools;
   config: typeof config;
   crons: typeof crons;
   destinations: typeof destinations;
@@ -85,13 +92,18 @@ declare const fullApi: ApiFromModules<{
   photos: typeof photos;
   places: typeof places;
   placesAi: typeof placesAi;
+  planner: typeof planner;
+  plannerData: typeof plannerData;
   polls: typeof polls;
   providers: typeof providers;
   purge: typeof purge;
   push: typeof push;
   pushSend: typeof pushSend;
   rates: typeof rates;
+  reports: typeof reports;
+  reportsData: typeof reportsData;
   trips: typeof trips;
+  uploads: typeof uploads;
 }>;
 
 /**

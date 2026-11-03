@@ -7,7 +7,8 @@ import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { useLocale, useT } from "@/lib/i18n";
-import { useFamilies, useTrip } from "@/lib/trip";
+import { Avatar } from "@/components/ui/Avatar";
+import { useFaces, useFamilies, useTrip } from "@/lib/trip";
 
 /** Roster members written by the creator carry `kid: true`. */
 const isKid = (member: object) => Boolean((member as { kid?: boolean }).kid);
@@ -18,6 +19,7 @@ export default function Families() {
   const { locale } = useLocale();
   const { config, me } = useTrip();
   const families = useFamilies();
+  const faces = useFaces();
 
   const everyone = (families ?? []).flatMap((family) => family.members.map((member) => ({ ...member, color: familyColors[family.color] ?? colors.route500 })));
   const kids = everyone.filter(isKid).length;
@@ -44,11 +46,7 @@ export default function Families() {
             <View style={styles.summary}>
               <View style={{ flexDirection: "row" }}>
                 {everyone.slice(0, 6).map((member, index) => (
-                  <View key={`${member.id}-${index}`} style={[styles.face, { backgroundColor: member.color }, index > 0 && { marginStart: -8 }]}>
-                    <Text variant="small" weight="medium" color={colors.chart50}>
-                      {member.name.slice(0, 1)}
-                    </Text>
-                  </View>
+                  <Avatar key={`${member.id}-${index}`} image={faces.bySeat.get(member.id)} name={member.name} size={36} background={member.color} textColor={colors.chart50} style={{ borderWidth: 2, borderColor: colors.chart50, ...(index > 0 ? { marginStart: -8 } : {}) }} />
                 ))}
               </View>
               <View style={{ flex: 1 }}>
@@ -91,11 +89,7 @@ export default function Families() {
                       const isMe = mine && me.memberKey === member.id;
                       return (
                         <View key={member.id} style={[styles.person, isMe && styles.personMe]}>
-                          <View style={[styles.avatar, { backgroundColor: tone }]}>
-                            <Text variant="small" weight="medium" color={colors.chart50}>
-                              {member.name.slice(0, 1)}
-                            </Text>
-                          </View>
+                          <Avatar image={faces.bySeat.get(member.id)} name={member.name} size={32} background={tone} textColor={colors.chart50} />
                           <Text variant="small">{member.name}</Text>
                           {isKid(member) && (
                             <Text variant="caption" color={colors.ink500}>

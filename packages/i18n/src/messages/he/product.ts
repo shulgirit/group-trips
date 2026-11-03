@@ -57,6 +57,10 @@ const product = {
   },
   trips: {
     nameTitle: "איך לקרוא לך?",
+    photoTitle: "תמונת פרופיל",
+    photoChoose: "בחירת תמונה",
+    photoRemove: "הסרת התמונה",
+    photoFailed: "לא הצלחנו לשמור את התמונה. נסו שוב.",
     nameHint: "כך תופיעו לחברים בטיול",
     namePlaceholder: "השם שלך",
     nameSave: "שמירה",
@@ -81,7 +85,9 @@ const product = {
     },
   },
   card: {
-    draft: "טיוטה — להמשיך",
+    draft: "טיוטה",
+    draftContinue: "שלב {n} מתוך {total} · להמשיך את ההגדרה",
+    draftLocal: "להמשיך לתכנן את הטיול",
     live: "עכשיו בטיול",
     tomorrow: "מחר!",
     inDays: "בעוד {count} ימים",
@@ -99,6 +105,7 @@ const product = {
   account: {
     title: "החשבון שלי",
     deleteTitle: "מחיקת החשבון",
+    permanent: "מחיקה מלאה לצמיתות",
     deleteText:
       "מחיקה מלאה ולצמיתות של החשבון וכל המידע שלכם אצלנו. אי אפשר לשחזר.",
     dialogTitle: "למחוק את החשבון לצמיתות?",
@@ -135,6 +142,11 @@ const product = {
       failedNetwork: "ההצטרפות נכשלה — בדקו את החיבור ונסו שוב",
     },
     invited: "הוזמנתם לטיול",
+    appTitle: "מצטרפים לטיול באפליקציית Together",
+    appText: "ההזמנות נפתחות באפליקציה. לחצו על הכפתור כדי לפתוח אותה. אם עוד אין לכם אותה, הורידו אותה קודם ואז פתחו שוב את הקישור הזה.",
+    openApp: "פתיחה באפליקציה",
+    getApp: "עוד אין לכם את האפליקציה?",
+    codeLabel: "קוד ההזמנה שלכם",
     organizers: "מארגנים: {name}",
     aiWaiting: "{name} — עוזר ה-AI של הטיול כבר מחכה",
     alreadyIn: "{count} כבר בפנים",

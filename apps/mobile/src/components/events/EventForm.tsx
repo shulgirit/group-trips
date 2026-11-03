@@ -4,7 +4,12 @@ import type { Participants } from "@together/shared/types";
 import { colors } from "@together/shared/tokens";
 import { Trash2 } from "lucide-react-native";
 import { useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from "react-native";
+import { api } from "@together/backend/api";
+import { useAction, useMutation } from "convex/react";
+import { uploadToTrip } from "@/lib/upload";
 import { DurationChips } from "@/components/events/DurationChips";
 import { GlyphPicker } from "@/components/events/GlyphPicker";
 import { ParticipantsPicker } from "@/components/events/ParticipantsPicker";
@@ -35,7 +40,11 @@ export function EventForm({
 }) {
   const t = useT();
   const { locale } = useLocale();
-  const { config } = useTrip();
+  const { id: tripId, config } = useTrip();
+  const addPlace = useMutation(api.places.add);
+  const updatePlace = useMutation(api.places.update);
+  const fileUrl = useMutation(api.documents.fileUrl);
+  const searchPlaces = useAction(api.placesAi.search);
   const families = useFamilies();
   const places = usePlaces();
   const days = tripDays(config);
@@ -49,6 +58,9 @@ export function EventForm({
   const [durationMin, setDurationMin] = useState<number | null>(initial.durationMin ?? null);
   const [participants, setParticipants] = useState<Participants>(initial.participants ?? { type: "all" });
   const [notes, setNotes] = useState(initial.notes ?? "");
+  const [address, setAddress] = useState("");
+  const [photo, setPhoto] = useState<string>("");
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,12 +68,52 @@ export function EventForm({
     (participants.type === "families" && !participants.familyIds.length) || (participants.type === "members" && !participants.memberIds.length);
   const disabled = saving || !title.trim() || participantsInvalid;
 
+  async function pickPhoto() {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setPhotoBusy(true);
+    setError("");
+    try {
+      const storageId = await uploadToTrip(tripId, asset.uri, asset.mimeType ?? "image/jpeg");
+      setPhoto(await fileUrl({ tripId, storageId }));
+    } catch {
+      setError(t("common.errors.saveFailed"));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function submit() {
     if (disabled) return;
     setSaving(true);
     setError("");
     try {
-      await onSubmit({ title, emoji: emoji || undefined, placeId: placeId || null, day, startTime, durationMin, participants, notes });
+      let linked = placeId;
+      if (!linked && (address.trim() || photo)) {
+        // A typed address (or a chosen photo) becomes a place of its own: it brings the map pin, the navigate button
+        // and, when no photo was chosen, an automatic Google photo
+        let found: { address: string; area: string; lat: number | null; lng: number | null; imageUrl: string } | undefined;
+        if (address.trim()) {
+          found = await searchPlaces({ tripId, query: address.trim() }).then((rows) => rows[0]).catch(() => undefined);
+        }
+        const created = await addPlace({
+          tripId,
+          input: {
+            name: title.trim(),
+            category: "other",
+            address: found?.address || address.trim() || undefined,
+            area: found?.area || undefined,
+            lat: found?.lat ?? undefined,
+            lng: found?.lng ?? undefined,
+            imageUrl: photo || found?.imageUrl || undefined,
+          },
+        });
+        linked = created.id;
+      } else if (linked && photo) {
+        await updatePlace({ tripId, placeId: linked as never, patch: { imageUrl: photo } });
+      }
+      await onSubmit({ title, emoji: emoji || undefined, placeId: linked || null, day, startTime, durationMin, participants, notes });
     } catch {
       setError(t("common.errors.saveFailed"));
       setSaving(false);
@@ -97,6 +149,30 @@ export function EventForm({
           options={(places ?? []).map((place) => ({ value: place.id, label: place.name, detail: place.address }))}
         />
       </Labeled>
+      {!placeId && (
+        <Labeled label={t("trip.eventForm.address")}>
+          <Field value={address} onChangeText={setAddress} placeholder={t("trip.eventForm.addressPlaceholder")} autoComplete="street-address" returnKeyType="done" />
+          <Text variant="caption" color={colors.ink500}>
+            {t("trip.eventForm.addressHint")}
+          </Text>
+        </Labeled>
+      )}
+      {placeId ? (
+        <Text variant="caption" color={colors.ink500}>
+          {t("trip.eventForm.addressLinked")}
+        </Text>
+      ) : null}
+      <Labeled label={t("trip.eventForm.photo")}>
+        <Pressable accessibilityRole="button" onPress={pickPhoto} disabled={photoBusy} style={styles.photo}>
+          {photo ? <Image source={photo} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+          <View style={styles.photoLabel}>
+            {photoBusy ? <ActivityIndicator color={colors.chart50} /> : null}
+            <Text variant="small" weight="medium" color={photo ? colors.chart50 : colors.ink700}>
+              {photo ? t("trip.eventForm.photoChange") : t("trip.eventForm.photoAdd")}
+            </Text>
+          </View>
+        </Pressable>
+      </Labeled>
       <Labeled label={t("trip.schedule.whichDay")}>
         <ChipRow scroll>
           {days.map((d) => (
@@ -130,3 +206,8 @@ export function EventForm({
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  photo: { height: 120, borderRadius: 16, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth * 2, borderColor: colors.chart200, backgroundColor: colors.paper, alignItems: "center", justifyContent: "center" },
+  photoLabel: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: "rgba(7,12,22,0.25)" },
+});

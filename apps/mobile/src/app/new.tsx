@@ -1,9 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@together/backend/api";
 import {
   basicsValid,
   type CreatorState,
-  DRAFT_KEY,
   groupValid,
   initialState,
   peopleCounts,
@@ -21,10 +19,10 @@ import { colors, radius } from "@together/shared/tokens";
 import { type ConvexReactClient, useConvex, useConvexAuth, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { type Href, Redirect, router, Stack, useLocalSearchParams } from "expo-router";
+import { type Href, Redirect, router, Stack, useLocalSearchParams, useNavigation } from "expo-router";
 import { ArrowRight, BedDouble, CalendarDays, CarFront, Check, ChevronLeft, Plane, Share2, Ticket, Users, type LucideIcon } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BookingImporter } from "@/components/creator/BookingImporter";
 import { StepAi } from "@/components/creator/StepAi";
@@ -39,7 +37,10 @@ import { Chip } from "@/components/ui/Chip";
 import { ChipRow } from "@/components/ui/ChipRow";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
+import { track } from "@/lib/analytics";
 import { errorReason } from "@/lib/convert";
+import { readDraft, writeDraft } from "@/lib/creator-draft";
+import { useSafeQuery } from "@/lib/safe-query";
 import { glyphIcon } from "@/lib/glyphs";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 
@@ -50,19 +51,6 @@ const STEPS = [
   { key: "ai", label: "creator.steps.ai" },
   { key: "launch", label: "creator.steps.launch" },
 ] as const satisfies readonly { key: string; label: TKey }[];
-
-async function readDraft(): Promise<CreatorState | null> {
-  try {
-    const raw = await AsyncStorage.getItem(DRAFT_KEY);
-    return raw ? (JSON.parse(raw) as CreatorState) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeDraft(state: CreatorState | null) {
-  (state ? AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(state)) : AsyncStorage.removeItem(DRAFT_KEY)).catch(() => undefined);
-}
 
 /** Loads an existing trip (draft resume / organizer edit) into wizard state. */
 async function loadTrip(convex: ConvexReactClient, ref: string): Promise<CreatorState | null> {
@@ -93,6 +81,8 @@ async function loadTrip(convex: ConvexReactClient, ref: string): Promise<Creator
       endDate: stop.endDate,
     })),
     departureTime: data.departureAt?.slice(11, 16) ?? "",
+    currencies: trip.currencies ?? [],
+    draftStep: trip.draftStep ?? 2,
     groupKind: data.groupKind,
     groupName: data.groupName,
     families: familyRows.map((f) => ({
@@ -126,8 +116,8 @@ export default function NewTrip() {
   const { locale, rtl } = useLocale();
   const convex = useConvex();
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
-  const myTrips = useQuery(api.trips.mine, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const myTrips = useSafeQuery(api.trips.mine, isAuthenticated ? {} : "skip");
   const params = useLocalSearchParams<{ trip?: string }>();
   const [state, setState] = useState<CreatorState | null>(null);
   const [step, setStep] = useState(0);
@@ -136,6 +126,8 @@ export default function NewTrip() {
   const [launched, setLaunched] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const loadedFor = useRef<string | null>(null);
+  const leaving = useRef(false);
+  const navigation = useNavigation();
   const scroll = useRef<ScrollView>(null);
 
   // Initial state: an existing trip (?trip=), the saved draft, or fresh
@@ -150,7 +142,7 @@ export default function NewTrip() {
           if (!loaded) return setError(t("creator.errors.notFound"));
           setState(loaded);
           // Drafts resume where details are still missing
-          setStep(loaded.status === "draft" ? 2 : 0);
+          setStep(loaded.status === "draft" ? Math.min(Math.max(loaded.draftStep, 0), STEPS.length - 1) : 0);
         })
         .catch(() => setError(t("creator.errors.noPermission")));
     } else {
@@ -168,23 +160,25 @@ export default function NewTrip() {
     });
   }, []);
 
-  async function save(status: "draft" | "active"): Promise<string | null> {
+  async function save(status: "draft" | "active", reachedStep?: number): Promise<string | null> {
     if (!state) return null;
     setSaving(true);
     setError("");
     try {
-      const input = toTripInput(state, status);
+      const draftStep = Math.max(state.draftStep ?? 0, reachedStep ?? step);
+      const input = toTripInput({ ...state, draftStep }, status);
       let tripId: string;
       if (state.tripId) {
         await convex.mutation(api.trips.update, { tripId: state.tripId as Id<"trips">, input });
         tripId = state.tripId;
       } else {
         tripId = await convex.mutation(api.trips.create, { input });
+        track("trip_created", { via: "wizard" });
         writeDraft(null);
         loadedFor.current = tripId;
         setState((current) => (current ? { ...current, tripId } : current));
       }
-      if (status === "active") setState((current) => (current ? { ...current, status: "active" } : current));
+      setState((current) => (current ? { ...current, draftStep, ...(status === "active" ? { status: "active" as const } : {}) } : current));
       return tripId;
     } catch (err) {
       const reason = errorReason(err);
@@ -195,16 +189,78 @@ export default function NewTrip() {
     }
   }
 
+  // The system Back button / edge swipe asks the same question as Close, instead of silently dropping the work
+  useEffect(() => {
+    return navigation.addListener("beforeRemove", (event) => {
+      if (leaving.current || !state || state.status === "active" || !(state.tripId || primaryPlace(state))) return;
+      event.preventDefault();
+      closeWizardRef.current();
+    });
+  });
+
+  /** An intentional exit (after saving or discarding): the back-guard must not ask again. */
+  function exitToTrips() {
+    leaving.current = true;
+    router.replace("/trips");
+  }
+
+  function leave() {
+    leaving.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace("/trips");
+  }
+
+  /** Close: nothing started → just leave; a live trip → leave; an unfinished trip → ask what to do with it. */
+  const closeWizardRef = useRef<() => void>(() => undefined);
+  function closeWizard() {
+    if (!state) return leave();
+    const started = Boolean(state.tripId || primaryPlace(state));
+    if (state.status === "active" || !started) return leave();
+    Alert.alert(t("creator.close.title"), t("creator.close.text"), [
+      {
+        text: t("creator.close.save"),
+        onPress: async () => {
+          const problem = step === 0 ? basicsValid(state) : null;
+          if (problem && !state.tripId) {
+            // Destination and dates aren't complete yet: it stays on this phone and is offered again next time
+            writeDraft(state);
+            return exitToTrips();
+          }
+          if (await save("draft")) exitToTrips();
+        },
+      },
+      {
+        text: t("creator.close.discard"),
+        style: "destructive",
+        onPress: () =>
+          Alert.alert(t("creator.close.discardTitle"), t("creator.close.discardText"), [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("creator.close.discardConfirm"),
+              style: "destructive",
+              onPress: async () => {
+                writeDraft(null);
+                if (state.tripId) await convex.mutation(api.trips.remove, { tripId: state.tripId as Id<"trips"> }).catch(() => undefined);
+                exitToTrips();
+              },
+            },
+          ]),
+      },
+      { text: t("creator.close.keep"), style: "cancel" },
+    ]);
+  }
+
+  closeWizardRef.current = closeWizard;
+
   async function next() {
     if (!state) return;
     const problem = step === 0 ? basicsValid(state) : step === 1 ? groupValid(state) : null;
     if (problem) return setError(problem);
     setError("");
-    // From step 2 on there is a server trip (draft) to attach bookings to
-    if (step >= 1 || state.tripId) {
-      if (!(await save(state.status === "active" ? "active" : "draft"))) return;
-    }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    // The trip is saved as a draft as soon as the first step is valid (bookings attach to it, and it can be resumed)
+    const target = Math.min(step + 1, STEPS.length - 1);
+    if (!(await save(state.status === "active" ? "active" : "draft", target))) return;
+    setStep(target);
     scroll.current?.scrollTo({ y: 0, animated: true });
   }
 
@@ -254,11 +310,11 @@ export default function NewTrip() {
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* Progress: the steps as a route */}
         <View style={styles.top}>
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/trips"))} hitSlop={10}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={closeWizard} hitSlop={10}>
               <Text variant="small" weight="medium" color={colors.route700}>
                 {t("common.close")}
               </Text>

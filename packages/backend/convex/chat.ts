@@ -228,11 +228,12 @@ export const runContext = internalQuery({
     const user = session ? await ctx.db.get(session.ownerId) : null;
     if (!session || !trip || !user) return null;
 
-    const [families, places, events, polls, member, history] = await Promise.all([
+    const [families, places, events, polls, expenseRows, member, history] = await Promise.all([
       ctx.db.query("families").withIndex("by_trip", (q) => q.eq("tripId", trip._id)).collect(),
       ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", trip._id)).collect(),
       ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", trip._id)).collect(),
       ctx.db.query("polls").withIndex("by_trip", (q) => q.eq("tripId", trip._id)).collect(),
+      ctx.db.query("expenses").withIndex("by_trip", (q) => q.eq("tripId", trip._id)).collect(),
       ctx.db.query("memberships").withIndex("by_trip_user", (q) => q.eq("tripId", trip._id).eq("userId", user._id)).unique(),
       ctx.db.query("chatMessages").withIndex("by_session", (q) => q.eq("sessionId", session._id)).order("desc").take(HISTORY + 1),
     ]);
@@ -240,9 +241,10 @@ export const runContext = internalQuery({
       polls.map(async (poll) => {
         const votes = await ctx.db.query("pollVotes").withIndex("by_poll", (q) => q.eq("pollId", poll._id)).collect();
         return {
+          id: poll._id as string,
           question: poll.question,
           closed: poll.closed,
-          options: poll.options.map((option) => ({ label: option.label, votes: votes.filter((vote) => vote.optionId === option.id).length })),
+          options: poll.options.map((option) => ({ id: option.id, label: option.label, votes: votes.filter((vote) => vote.optionId === option.id).length })),
         };
       })
     );
@@ -266,7 +268,34 @@ export const runContext = internalQuery({
       speakerFamily: user.guest ? undefined : family?.name,
       families: families.map((f) => ({ id: f._id as string, name: f.name, members: f.members.map((m) => ({ key: m.key, name: m.name })) })),
       places: places.map((p) => ({ id: p._id as string, name: p.name, category: p.category, ...(p.area ? { area: p.area } : {}) })),
-      events: events.map((e) => ({ day: e.day, startTime: e.startTime, title: e.title })),
+      role: member?.role ?? "member",
+      myFamilyId: (member?.familyId as string | undefined) ?? null,
+      guest: Boolean(user.guest),
+      membersCanDeletePlaces: Boolean(trip.membersCanDeletePlaces),
+      // Short refs ("e12") the model uses to point at a schedule item; same order the context prints
+      events: [...events]
+        .sort((a, b) => (a.day === b.day ? a.startTime.localeCompare(b.startTime) : a.day.localeCompare(b.day)))
+        .map((e, i) => ({
+          id: e._id as string,
+          ref: `e${i + 1}`,
+          day: e.day,
+          startTime: e.startTime,
+          title: e.title,
+          source: e.source,
+          ...(e.placeId ? { place: places.find((p) => p._id === e.placeId)?.name } : {}),
+          ...(e.source === "booking" ? { booked: true } : {}),
+        })),
+      expenses: [...expenseRows]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((x, i) => ({
+          id: x._id as string,
+          ref: `x${i + 1}`,
+          description: x.description,
+          amount: x.amount,
+          currency: x.currency,
+          date: x.date,
+          payer: families.find((f) => f._id === x.payerFamilyId)?.name ?? "",
+        })),
       polls: pollsWithVotes,
       turns,
     };

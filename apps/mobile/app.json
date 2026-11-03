@@ -2,7 +2,7 @@
   "expo": {
     "name": "Together",
     "slug": "together-group-plans",
-    "version": "1.0.0",
+    "version": "1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "together",
@@ -10,7 +10,7 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "app.together.trips",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "associatedDomains": [
         "applinks:togethergroup.app"
       ],
@@ -27,6 +27,7 @@
       "usesAppleSignIn": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0f1b2d",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -59,7 +60,9 @@
       ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -86,14 +89,23 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Together shows you on the trip map and finds places near you while the app is open."
+          "locationWhenInUsePermission": "Together uses your precise location only while the app is open: to show you on the trip map, to sort the trip's places by distance, and — only if you choose to share — to show your position to the members of your trip for the time you pick (1 hour, 4 hours or until the end of the day). You can stop at any moment."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Together uses your photos when you add one to the trip guide, a document or your guide avatar.",
-          "cameraPermission": "Together uses the camera when you photograph a ticket or document for the trip."
+          "photosPermission": "Together uses a photo you choose from your library as your profile picture, the trip cover, a document or ticket for the trip, or a picture you send to the trip guide.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "tal-pituach",
+          "project": "react-native",
+          "url": "https://de.sentry.io/"
         }
       ]
     ],
@@ -112,7 +124,9 @@
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://u.expo.dev/b7f14588-d89f-4ee4-8e3e-a113ee10d933"
+      "url": "https://u.expo.dev/b7f14588-d89f-4ee4-8e3e-a113ee10d933",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
     }
   }
 }

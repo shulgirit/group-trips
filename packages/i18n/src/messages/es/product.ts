@@ -58,6 +58,10 @@ const product: PartialMessages["product"] = {
   },
   trips: {
     nameTitle: "¿Cómo te llamamos?",
+    photoTitle: "Foto de perfil",
+    photoChoose: "Elegir una foto",
+    photoRemove: "Quitar la foto",
+    photoFailed: "No se pudo guardar la foto. Inténtalo de nuevo.",
     nameHint: "Así te verá tu grupo",
     namePlaceholder: "Tu nombre",
     nameSave: "Guardar",
@@ -82,7 +86,9 @@ const product: PartialMessages["product"] = {
     },
   },
   card: {
-    draft: "Borrador. Continuar",
+    draft: "Borrador",
+    draftContinue: "Paso {n} de {total} · Continuar la configuración",
+    draftLocal: "Continúa planificando tu viaje",
     live: "De viaje ahora",
     tomorrow: "Mañana",
     inDays: "En {count} días",
@@ -100,6 +106,7 @@ const product: PartialMessages["product"] = {
   account: {
     title: "Mi cuenta",
     deleteTitle: "Eliminar cuenta",
+    permanent: "Eliminación completa y permanente",
     deleteText:
       "Elimina de forma permanente tu cuenta y todos los datos tuyos que guardamos. No se puede recuperar.",
     dialogTitle: "¿Eliminar tu cuenta para siempre?",
@@ -137,6 +144,11 @@ const product: PartialMessages["product"] = {
       failedNetwork: "No se pudo unir. Revisa tu conexión e inténtalo de nuevo",
     },
     invited: "Estás invitado",
+    appTitle: "Únete al viaje en la app Together",
+    appText: "Las invitaciones se abren en la app. Toca el botón para abrirla. Si aún no la tienes, descárgala primero y vuelve a abrir este enlace.",
+    openApp: "Abrir en la app",
+    getApp: "¿Aún no tienes la app?",
+    codeLabel: "Tu código de invitación",
     organizers: "Organizado por {name}",
     aiWaiting: "{name}, el asistente de IA del viaje, ya te está esperando",
     alreadyIn: "{count} ya se han unido",

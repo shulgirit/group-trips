@@ -151,6 +151,8 @@ export const tripInput = v.object({
   stops: v.array(stop),
   departureAt: v.optional(v.union(v.string(), v.null())),
   departureNote: v.optional(v.string()),
+  currencies: v.optional(v.array(v.string())),
+  draftStep: v.optional(v.number()),
   homeBase: v.union(homeBase, v.null()),
   groupKind,
   groupName: v.string(),

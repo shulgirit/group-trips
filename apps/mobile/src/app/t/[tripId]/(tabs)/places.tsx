@@ -16,6 +16,7 @@ import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { type TKey, useT } from "@/lib/i18n";
+import { MAPS_AVAILABLE } from "@/lib/maps";
 import { useEvents, useHomeBase, usePlaces, useTrip } from "@/lib/trip";
 
 const FILTERS = ["all", "near", "attractions", "food", "beach", "shopping", "unscheduled", "scheduled", "favorites"] as const;
@@ -53,12 +54,12 @@ export default function Places() {
   const places = usePlaces();
   const events = useEvents();
   const home = useHomeBase();
-  const [view, setView] = useState<"list" | "map">(params.view === "map" ? "map" : "list");
+  const [view, setView] = useState<"list" | "map">(params.view === "map" && MAPS_AVAILABLE ? "map" : "list");
   // A deep link (?view=map from Now) switches the view
   const [linkedView, setLinkedView] = useState(params.view);
   if (params.view !== linkedView) {
     setLinkedView(params.view);
-    if (params.view === "map" || params.view === "list") setView(params.view);
+    if ((params.view === "map" && MAPS_AVAILABLE) || params.view === "list") setView(params.view);
   }
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
@@ -122,7 +123,9 @@ export default function Places() {
             { id: "list", label: t("trip.places.title"), icon: List },
             { id: "map", label: t("trip.map.title"), icon: MapIcon },
           ] as { id: "list" | "map"; label: string; icon: LucideIcon }[]
-        ).map((option) => {
+        )
+          .filter((option) => option.id === "list" || MAPS_AVAILABLE)
+          .map((option) => {
           const active = view === option.id;
           return (
             <Pressable

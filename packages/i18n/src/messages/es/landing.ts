@@ -126,6 +126,7 @@ const landing: PartialMessages["landing"] = {
     inviteGo: "Unirme",
     inviteInvalid: "Eso no parece un enlace de invitación de Together",
     stepOf: "{n} de {total}",
+    demo: { invite: "Enlace de invitación", ask: "Planea un día de lluvia para nosotros", reply: "Hecho. Museo a las 11:00, comida a las 13:30.", owes: "Jamie le debe a Alex" },
   },
   footer: {
     legacy: "¿Viajas con Sicilia 2026 o Cerdeña?",

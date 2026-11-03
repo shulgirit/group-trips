@@ -1,32 +1,13 @@
-# סיציליה 2026 🇮🇹
+# Together
 
-Private travel app for four families traveling together in Sicily.
-Hebrew-first, RTL-first, mobile-first, installable as a PWA.
-
-## Stack
-
-- Next.js (App Router) + TypeScript strict + Tailwind CSS v4
-- Firebase: Firestore (realtime), Storage, Admin SDK (server)
-- OpenAI (trip concierge AI), Firecrawl (place import), Google Maps Platform
-- Deployed on Vercel
-
-## Development
+Trip planning for groups: shared schedule, places and map, polls, bookings and documents, expenses with settle-up, an AI trip
+planner and travel guide, and opt-in live location. Mobile app (Expo), Convex backend, Next.js landing site.
 
 ```bash
-npm install
-cp .env.example .env.local   # fill in what you have; the app runs without it
-npm run dev
+pnpm install
+pnpm typecheck && pnpm test      # all workspaces via Turborepo
+pnpm --filter @together/web dev  # landing site on http://localhost:3000
+pnpm --filter @together/mobile start
 ```
 
-Without `TRIP_PASSWORD` set, development uses the fallback password `sicilia`.
-
-## Structure
-
-- `src/app/gate` — shared-password access screen (signed HTTP-only cookie)
-- `src/proxy.ts` — request gate for every private route
-- `src/app/(app)` — the app shell: עכשיו, מקומות, לוח, מפה, עוד
-- `src/lib` — trip config, auth, (soon) Firebase + AI clients
-- `src/components` — layout, home, and UI building blocks
-
-Secrets live in `.env.local` (never committed). See `.env.example` for the
-full list of required keys and how each one is scoped.
+See `CLAUDE.md` for the repo map, services, deployment and conventions, and `docs/` for store texts, OTA and design notes.

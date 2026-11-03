@@ -1,3 +1,4 @@
+> **Note (Nov 2026):** the web product, Firebase and Capacitor were removed; this file describes the earlier migration. Current state: `CLAUDE.md`.
 # HANDOFF — read this first (written 2026-10-17)
 
 Another agent (or session) can continue from here without the earlier chat. Also read:

@@ -5,8 +5,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, query } from "./_generated/server";
+import { scheduleReminder } from "./events";
 import { fail, getUser, isAdmin } from "./lib/authz";
-import { accountMutation, tripMutation, tripQuery, userQuery } from "./lib/functions";
+import { accountMutation, tripMutation, tripQuery } from "./lib/functions";
 import { activeTripCount, FREE_LIMITS } from "./lib/limits";
 import { tripInput } from "./lib/validators";
 
@@ -41,6 +42,8 @@ function tripFields(input: TripInput) {
     coverImage: first.coverImage,
     departureAt: input.departureAt ?? null,
     departureNote: input.departureNote ?? "",
+    ...(input.currencies?.length ? { currencies: input.currencies } : {}),
+    ...(input.draftStep !== undefined ? { draftStep: input.draftStep } : {}),
     homeBase: input.homeBase,
     groupKind: input.groupKind,
     groupName: input.groupName.trim(),
@@ -137,11 +140,16 @@ async function createDefaultInvites(
   }
 }
 
-/** Creates a trip (draft or active); the caller becomes its owner. */
-export const create = accountMutation({
-  args: { input: tripInput },
-  handler: async (ctx, { input }) => {
-  const { user } = ctx;
+/**
+ * Inserts the trip, its families and the owner's membership. Shared by the wizard (`create`) and the AI planner.
+ * `invites: false` keeps a tentative trip private until it is published.
+ */
+export async function createTripFor(
+  ctx: MutationCtx,
+  user: Doc<"users">,
+  input: TripInput,
+  options: { extra?: Partial<Doc<"trips">>; invites?: boolean } = {}
+): Promise<Id<"trips">> {
   validateInput(input);
   if ((await activeTripCount(ctx, user._id)) >= FREE_LIMITS.activeTripsPerUser) fail("limit", "trip_limit");
 
@@ -154,6 +162,7 @@ export const create = accountMutation({
     plan: "free",
     createdAt: now,
     updatedAt: now,
+    ...options.extra,
   });
   const familyIds = await writeFamilies(ctx, tripId, input.families, { allowDelete: false });
   await ctx.db.insert("memberships", {
@@ -167,10 +176,15 @@ export const create = accountMutation({
     guest: false,
     joinedAt: now,
   });
-  if (input.status === "active") await createDefaultInvites(ctx, tripId, user._id, input.families, familyIds);
+  if (input.status === "active" && options.invites !== false) await createDefaultInvites(ctx, tripId, user._id, input.families, familyIds);
   await ctx.scheduler.runAfter(0, internal.photos.ensureTripCover, { tripId });
   return tripId;
-  },
+}
+
+/** Creates a trip (draft or active); the caller becomes its owner. */
+export const create = accountMutation({
+  args: { input: tripInput },
+  handler: async (ctx, { input }) => createTripFor(ctx, ctx.user, input),
 });
 
 /** Organizer edits (wizard autosave, settings). A live trip never returns to draft. */
@@ -181,7 +195,9 @@ export const update = tripMutation({
     validateInput(input);
     const wasDraft = ctx.trip.status === "draft";
     const status = wasDraft ? input.status : ctx.trip.status;
-    await ctx.db.patch(ctx.tripId, { ...tripFields(input), status, updatedAt: Date.now() });
+    // A draft going live must fit the free limit like any new trip (drafts themselves don't count)
+    if (wasDraft && status === "active" && (await activeTripCount(ctx, ctx.user._id)) >= FREE_LIMITS.activeTripsPerUser) fail("limit", "trip_limit");
+    await ctx.db.patch(ctx.tripId, { ...tripFields(input), status, ...(status === "active" ? { draftStep: undefined } : {}), updatedAt: Date.now() });
     const familyIds = await writeFamilies(ctx, ctx.tripId, input.families, { allowDelete: wasDraft });
     if (input.me) {
       await ctx.db.patch(ctx.member._id, {
@@ -193,6 +209,127 @@ export const update = tripMutation({
       await createDefaultInvites(ctx, ctx.tripId, ctx.user._id, input.families, familyIds);
     }
     return { status };
+  },
+});
+
+/** Replaces the trip's cover photo (the first stop's photo is what the app shows). Organizer only. */
+export const setCover = tripMutation({
+  args: { imageUrl: v.string() },
+  handler: async (ctx, { imageUrl }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!/^https:\/\//.test(imageUrl) || imageUrl.length > 2000) fail("invalid", "image");
+    const stops = ctx.trip.stops.map((stop, i) => (i === 0 ? { ...stop, coverImage: imageUrl } : stop));
+    await ctx.db.patch(ctx.tripId, { coverImage: imageUrl, stops, updatedAt: Date.now() });
+  },
+});
+
+/** The currencies offered when adding an expense (organizer only). */
+export const setCurrencies = tripMutation({
+  args: { currencies: v.array(v.string()) },
+  handler: async (ctx, { currencies }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = [...new Set(currencies.map((code) => code.trim().toUpperCase()))].filter((code) => /^[A-Z]{3}$/.test(code));
+    if (clean.length < 1 || clean.length > 8) fail("invalid", "currencies");
+    await ctx.db.patch(ctx.tripId, { currencies: clean, updatedAt: Date.now() });
+  },
+});
+
+/** The currency the combined settle-up is shown in (organizer only). */
+export const setMainCurrency = tripMutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = code.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(clean)) fail("invalid", "currency");
+    // Rates edited against the old main currency no longer mean anything
+    await ctx.db.patch(ctx.tripId, { mainCurrency: clean, rateOverrides: {}, updatedAt: Date.now() });
+  },
+});
+
+/** Edit one currency's rate (units of the main currency per 1 unit), or pass null to go back to the market rate. */
+export const setRateOverride = tripMutation({
+  args: { code: v.string(), rate: v.union(v.number(), v.null()) },
+  handler: async (ctx, { code, rate }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    const clean = code.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(clean)) fail("invalid", "currency");
+    const next = { ...(ctx.trip.rateOverrides ?? {}) };
+    if (rate === null) delete next[clean];
+    else {
+      if (!Number.isFinite(rate) || rate <= 0 || rate > 1e7) fail("invalid", "rate");
+      next[clean] = rate;
+    }
+    await ctx.db.patch(ctx.tripId, { rateOverrides: next, updatedAt: Date.now() });
+  },
+});
+
+const dayMs = 86_400_000;
+const shiftDate = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * dayMs).toISOString().slice(0, 10);
+
+/** Moves the whole trip so it starts on `startDate`: stops, events, stays and reminders shift by the same days. */
+export async function shiftTripDates(ctx: MutationCtx, tripId: Id<"trips">, startDate: string): Promise<number> {
+  const trip = await ctx.db.get(tripId);
+  if (!trip) fail("not_found");
+  const delta = Math.round((Date.parse(`${startDate}T00:00:00Z`) - Date.parse(`${trip.startDate}T00:00:00Z`)) / dayMs);
+  if (delta === 0) return 0;
+  const stops = trip.stops.map((stop) => ({ ...stop, startDate: shiftDate(stop.startDate, delta), endDate: shiftDate(stop.endDate, delta) }));
+  await ctx.db.patch(tripId, {
+    stops,
+    startDate: shiftDate(trip.startDate, delta),
+    endDate: shiftDate(trip.endDate, delta),
+    departureAt: null,
+    departureNote: "",
+  });
+  const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", tripId)).collect();
+  for (const event of events) await ctx.db.patch(event._id, { day: shiftDate(event.day, delta) });
+  const places = await ctx.db.query("places").withIndex("by_trip", (q) => q.eq("tripId", tripId)).collect();
+  for (const place of places) {
+    if (place.stayFrom || place.stayTo) {
+      await ctx.db.patch(place._id, {
+        ...(place.stayFrom ? { stayFrom: shiftDate(place.stayFrom, delta) } : {}),
+        ...(place.stayTo ? { stayTo: shiftDate(place.stayTo, delta) } : {}),
+      });
+    }
+  }
+  const fresh = (await ctx.db.get(tripId))!;
+  for (const event of events) await scheduleReminder(ctx, fresh, event._id);
+  return delta;
+}
+
+/**
+ * Sets the real start date of a tentative trip: every stop, event and stay moves by the same number of days and the
+ * reminders follow. Also works on any trip whose organizer moved the dates.
+ */
+export const confirmDates = tripMutation({
+  args: { startDate: v.string() },
+  handler: async (ctx, { startDate }) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) fail("invalid", "date");
+    const delta = await shiftTripDates(ctx, ctx.tripId, startDate);
+    await ctx.db.patch(ctx.tripId, { datesApproximate: false, updatedAt: Date.now() });
+    return { delta };
+  },
+});
+
+/** Makes a tentative plan a real trip: invite links appear, reminders start. Organizer only. */
+export const publish = tripMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!isAdmin(ctx.member)) fail("forbidden");
+    if (!ctx.trip.tentative) return { published: false };
+    await ctx.db.patch(ctx.tripId, { tentative: false, updatedAt: Date.now() });
+    const fresh = (await ctx.db.get(ctx.tripId))!;
+    const events = await ctx.db.query("events").withIndex("by_trip_day", (q) => q.eq("tripId", ctx.tripId)).collect();
+    for (const event of events) await scheduleReminder(ctx, fresh, event._id);
+    const families = await ctx.db.query("families").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).collect();
+    const existing = await ctx.db.query("invites").withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId)).first();
+    if (!existing) {
+      await createInvite(ctx, ctx.tripId, ctx.user._id, { role: "member", familyId: null, days: 60, maxUses: 60 });
+      for (const family of families) {
+        await createInvite(ctx, ctx.tripId, ctx.user._id, { role: "member", familyId: family._id, days: 60, maxUses: Math.max(4, family.members.length + 2) });
+      }
+    }
+    return { published: true };
   },
 });
 
@@ -274,12 +411,17 @@ export const resolve = query({
 });
 
 /** "My trips": every trip the caller belongs to, with their role. */
-export const mine = userQuery({
+export const mine = query({
   args: {},
   handler: async (ctx) => {
+    // Right after a brand-new sign-up the session is valid a moment before the app profile row exists:
+    // that is "no trips yet", not an error (an error here used to close the app).
+    const user = await getUser(ctx);
+    if (!user) return [];
+    const ctxUser = user;
     const memberships = await ctx.db
       .query("memberships")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.user._id))
+      .withIndex("by_user", (q) => q.eq("userId", ctxUser._id))
       .collect();
     const rows = await Promise.all(
       memberships.map(async (membership) => {
@@ -295,8 +437,9 @@ export const mine = userQuery({
           endDate: trip.endDate,
           coverImage: trip.coverImage,
           status: trip.status,
+          ...(trip.status === "draft" && trip.draftStep !== undefined ? { draftStep: trip.draftStep } : {}),
           role: membership.role,
-          isOwner: trip.ownerId === ctx.user._id,
+          isOwner: trip.ownerId === ctxUser._id,
         };
       })
     );

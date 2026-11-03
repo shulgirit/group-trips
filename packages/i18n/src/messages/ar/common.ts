@@ -7,6 +7,15 @@ const common: PartialMessages["common"] = {
   saving: "جارٍ الحفظ…",
   cancel: "إلغاء",
   close: "إغلاق",
+  report: {
+    action: "إبلاغ",
+    title: "الإبلاغ عن هذا المحتوى؟",
+    offensive: "مسيء أو غير آمن",
+    wrong: "خاطئ أو مضلّل",
+    spam: "محتوى مزعج",
+    thanks: "شكرًا، وصلنا البلاغ. سنراجعه خلال 24 ساعة.",
+    failed: "تعذّر إرسال البلاغ، حاولوا مرة أخرى",
+  },
   confirm: {
     irreversible: "لا يمكن التراجع عن هذا الإجراء",
     typeToConfirm: "للتأكيد، اكتبوا {word}",

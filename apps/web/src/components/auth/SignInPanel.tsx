@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { STROKE } from "@/components/ui/Icon";
 import { useT } from "@/i18n";
 import { appleSignInAvailable, sendEmailCode, signInWithProvider, verifyEmailCode } from "@/lib/sign-in";
@@ -40,9 +40,7 @@ export function SignInPanel({
   const t = useT();
   const [busy, setBusy] = useState<"google" | "apple" | "email" | null>(null);
   const [error, setError] = useState("");
-  // Decided after mount (avoids hydration drift)
-  const [showApple, setShowApple] = useState(false);
-  useEffect(() => setShowApple(appleSignInAvailable()), []);
+  const showApple = appleSignInAvailable();
   const [emailStep, setEmailStep] = useState<"closed" | "address" | "code">("closed");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");

@@ -1,7 +1,9 @@
 import { ExpenseInputSchema, ExpenseSplitInputSchema } from "@together/shared/schemas";
+import { calcBalances, calcSettlement } from "@together/shared/settlement";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
+import { toExpense, toFamily } from "../client/shapes";
 import { fail } from "./lib/authz";
 import { tripMutation, tripQuery } from "./lib/functions";
 
@@ -99,6 +101,50 @@ export const recordSettlement = tripMutation({
       createdBy: ctx.user._id,
       createdAt: Date.now(),
     });
+  },
+});
+
+/**
+ * "Everything is paid": the group closed the account in one transfer (the combined settle-up in the
+ * main currency), so record the repayments that bring every currency's balances to zero.
+ */
+export const settleAll = tripMutation({
+  args: { date: v.string() },
+  handler: async (ctx, { date }) => {
+    const [rows, familyRows] = await Promise.all([
+      ctx.db
+        .query("expenses")
+        .withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId))
+        .collect(),
+      ctx.db
+        .query("families")
+        .withIndex("by_trip", (q) => q.eq("tripId", ctx.tripId))
+        .collect(),
+    ]);
+    const expenses = rows.map(toExpense);
+    const families = familyRows.map(toFamily);
+    let recorded = 0;
+    for (const currency of new Set(expenses.map((e) => e.currency))) {
+      for (const transfer of calcSettlement(calcBalances(expenses, families, currency))) {
+        const amount = Math.round(transfer.amount * 100) / 100;
+        if (!(amount > 0)) continue;
+        await ctx.db.insert("expenses", {
+          tripId: ctx.tripId,
+          kind: "settlement",
+          payerFamilyId: transfer.fromFamilyId as Id<"families">,
+          participantFamilyIds: [transfer.toFamilyId as Id<"families">],
+          description: "settlement",
+          amount,
+          currency,
+          date,
+          settledByName: ctx.member.displayName || undefined,
+          createdBy: ctx.user._id,
+          createdAt: Date.now(),
+        });
+        recorded++;
+      }
+    }
+    return { recorded };
   },
 });
 

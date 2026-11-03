@@ -2,15 +2,16 @@ import { api } from "@together/backend/api";
 import type { Id } from "@together/backend/dataModel";
 import { colors } from "@together/shared/tokens";
 import { useMutation } from "convex/react";
-import { Image } from "expo-image";
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { ActionSheetIOS, ActivityIndicator, Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { ConfirmSheet } from "@/components/more/ConfirmSheet";
 import { styles as rowStyles } from "@/components/more/Row";
+import { Avatar } from "@/components/ui/Avatar";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { type TKey, useT } from "@/lib/i18n";
+import { useReport } from "@/lib/report";
 import { useMembers, useTrip } from "@/lib/trip";
 
 const ROLE_LABEL: Record<string, TKey | null> = {
@@ -29,6 +30,7 @@ export default function Members() {
   const members = useMembers();
   const setRole = useMutation(api.memberships.setRole);
   const removeMember = useMutation(api.memberships.remove);
+  const report = useReport();
   const [target, setTarget] = useState<{ id: Id<"memberships">; name: string } | null>(null);
   const [error, setError] = useState("");
 
@@ -63,15 +65,7 @@ export default function Members() {
               const editable = isAdmin && member.role !== "owner" && !member.isMe;
               return (
                 <View key={member.id} style={[styles.row, index < members.length - 1 && rowStyles.divider]}>
-                  <View style={styles.avatar}>
-                    {member.image ? (
-                      <Image source={member.image} style={StyleSheet.absoluteFill} contentFit="cover" />
-                    ) : (
-                      <Text variant="small" weight="medium" color={colors.ink700}>
-                        {(member.displayName || "?").slice(0, 1)}
-                      </Text>
-                    )}
-                  </View>
+                  <Avatar image={member.image} name={member.displayName} size={36} />
                   <Pressable
                     accessibilityRole={editable ? "button" : undefined}
                     disabled={!editable}
@@ -87,6 +81,13 @@ export default function Members() {
                       </Text>
                     )}
                   </Pressable>
+                  {!member.isMe && (
+                    <Pressable accessibilityRole="button" onPress={() => report("member", String(member.id), member.displayName)} style={styles.remove} hitSlop={6}>
+                      <Text variant="small" weight="medium" color={colors.ink500}>
+                        {t("common.report.action")}
+                      </Text>
+                    </Pressable>
+                  )}
                   {editable && (
                     <Pressable accessibilityRole="button" onPress={() => setTarget({ id: member.id, name: member.displayName })} style={styles.remove} hitSlop={6}>
                       <Text variant="small" weight="medium" color={colors.terra600}>

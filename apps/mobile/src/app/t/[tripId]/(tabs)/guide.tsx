@@ -4,9 +4,10 @@ import type { ChatCandidate } from "@together/shared/types";
 import { colors, radius } from "@together/shared/tokens";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { type Href, router } from "expo-router";
-import { ArrowUp, ChevronRight, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
+import { ArrowUp, ChevronDown, ChevronRight, Flag, Info, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,7 +20,9 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { errorReason } from "@/lib/convert";
 import { fontFor } from "@/lib/fonts";
+import { track } from "@/lib/analytics";
 import { useLocale, useT } from "@/lib/i18n";
+import { useReport } from "@/lib/report";
 import { useTrip } from "@/lib/trip";
 
 /** Native tab bar height above the home indicator (content isn't inset for a fixed composer). */
@@ -46,6 +49,7 @@ export default function Guide() {
   const personal = !me.guest;
   const avatar = doc.ai.avatar?.kind === "bot" ? `bot:${doc.ai.avatar.id}` : avatarUrl;
 
+  const report = useReport();
   const sessions = useQuery(api.chat.sessions, { tripId });
   const [sessionId, setSessionId] = useState<Id<"chatSessions"> | null>(null);
   const rows = useQuery(api.chat.messages, sessionId ? { tripId, sessionId } : "skip");
@@ -93,8 +97,23 @@ export default function Guide() {
   const failedReply = last?.role === "assistant" && last.status === "error" ? last : null;
   const shownError = error || failedReply?.content || "";
   const activeSession = sessions?.find((s) => s._id === sessionId) ?? null;
-  // Newest first for the inverted list
-  const listed = useMemo(() => [...done].reverse(), [done]);
+  // Oldest first. A new reply opens at its first line (like other chat apps); your own message and the first load go to the end.
+  const listRef = useRef<FlatList<Row>>(null);
+  const seen = useRef<{ session: string | null; id: string | null }>({ session: null, id: null });
+  const newest = done[done.length - 1];
+  useEffect(() => {
+    if (!newest) return;
+    const first = seen.current.session !== (sessionId ?? null);
+    const changed = seen.current.id !== newest._id;
+    seen.current = { session: sessionId ?? null, id: newest._id };
+    if (!changed && !first) return;
+    const index = done.length - 1;
+    const timer = setTimeout(() => {
+      if (first || newest.role === "user") listRef.current?.scrollToEnd({ animated: !first });
+      else listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: true });
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [newest, done.length, sessionId]);
 
   async function pickPhoto() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
@@ -126,6 +145,7 @@ export default function Guide() {
         locale,
       });
       setSessionId(result.sessionId);
+      track("guide_message_sent", { photo: Boolean(imageStorageId) });
       setInput("");
     } catch (err) {
       setError(errorReason(err) === "quota_exceeded" ? t("ai.errors.quota", { limit: 400 }) : t("ai.errors.failed"));
@@ -213,6 +233,12 @@ export default function Guide() {
             <Text variant="caption" color={colors.ink500}>
               {config.ai.title}
             </Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("common.report.action")} onPress={() => report("ai_reply", String(row._id), row.content)} hitSlop={10} style={styles.reportBtn}>
+              <Icon icon={Flag} size={13} color={colors.ink500} />
+              <Text variant="caption" weight="medium" color={colors.ink500}>
+                {t("common.report.action")}
+              </Text>
+            </Pressable>
           </View>
         )}
         <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
@@ -279,16 +305,23 @@ export default function Guide() {
   const intro = (
     <View style={{ gap: 12 }}>
       <View style={styles.hero}>
-        <View style={{ alignItems: "center" }}>
-          <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={96} />
+        <Image source={require("../../../../../assets/onboarding/guide.webp")} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <LinearGradient colors={["rgba(7,12,22,0.1)", "rgba(7,12,22,0.55)", "rgba(7,12,22,0.92)"]} style={StyleSheet.absoluteFill} />
+        <View style={styles.heroGlow}>
+          <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={104} />
         </View>
-        <Text color="rgba(241,243,239,0.85)" align="center">
+        <Text variant="headline" color={colors.chart50} align="center">
+          {config.ai.title}
+        </Text>
+        <Text color="rgba(241,243,239,0.82)" align="center">
           {config.ai.heroBlurb}
         </Text>
       </View>
       {config.ai.suggestedPrompts.map((prompt) => (
         <Pressable key={prompt} accessibilityRole="button" disabled={loading} onPress={() => send(prompt)} style={styles.prompt}>
-          <Icon icon={Sparkles} size={16} color={colors.brass500} />
+          <View style={styles.promptIcon}>
+            <Icon icon={Sparkles} size={15} color={colors.brass600} />
+          </View>
           <Text style={{ flex: 1 }}>{prompt}</Text>
           <Icon icon={ChevronRight} size={16} color={colors.ink300} flip />
         </Pressable>
@@ -298,7 +331,7 @@ export default function Guide() {
 
   return (
     <SafeAreaView edges={["top"]} style={styles.root}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.header}>
           <GuideAvatar avatar={avatar} emoji={config.ai.emoji} size={40} />
           <View style={{ flex: 1 }}>
@@ -369,15 +402,16 @@ export default function Guide() {
           </ScrollView>
         ) : (
           <FlatList
+            ref={listRef}
             style={styles.list}
-            inverted
-            data={listed}
+            data={done}
             keyExtractor={(row) => row._id}
             renderItem={renderMessage}
-            ListHeaderComponent={status}
+            ListFooterComponent={status}
+            onScrollToIndexFailed={({ index, averageItemLength }) => listRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: true })}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode={Platform.OS === "ios" ? "on-drag" : "interactive"}
           />
         )}
 
@@ -406,6 +440,11 @@ export default function Guide() {
               multiline
               style={[styles.input, { fontFamily: fontFor(locale, "regular") }]}
             />
+            {keyboard ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={t("common.close")} onPress={() => Keyboard.dismiss()} style={styles.attach}>
+                <Icon icon={ChevronDown} size={20} color={colors.ink700} />
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("ai.send")}
@@ -413,7 +452,7 @@ export default function Guide() {
               onPress={() => send(input)}
               style={[styles.send, (loading || (!input.trim() && !pendingImage)) && { opacity: 0.4 }]}
             >
-              <Icon icon={ArrowUp} size={19} color={colors.chart50} />
+              <Icon icon={ArrowUp} size={19} color={colors.night950} />
             </Pressable>
           </View>
         </View>
@@ -459,8 +498,9 @@ const styles = StyleSheet.create({
   },
   sessionActive: { backgroundColor: colors.route700, borderColor: colors.route700 },
   listContent: { paddingHorizontal: 20, paddingVertical: 12, gap: 4 },
+  reportBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingStart: 8 },
   speaker: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end" },
-  bubble: { maxWidth: "85%", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  bubble: { maxWidth: "88%", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, gap: 8, shadowColor: colors.ink900, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   mine: { alignSelf: "flex-start", backgroundColor: colors.route700, borderBottomStartRadius: 6 },
   theirs: {
     alignSelf: "flex-end",
@@ -484,29 +524,35 @@ const styles = StyleSheet.create({
   },
   error: { backgroundColor: colors.terra100, borderRadius: radius.card, padding: 14, gap: 10 },
   retry: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 42, borderRadius: radius.field, backgroundColor: colors.ink900 },
-  hero: { backgroundColor: colors.night950, borderRadius: 28, padding: 24, gap: 18 },
+  hero: { backgroundColor: colors.night950, borderRadius: 28, paddingHorizontal: 24, paddingTop: 36, paddingBottom: 26, gap: 12, overflow: "hidden", alignItems: "center" },
+  heroGlow: { shadowColor: colors.brass500, shadowOpacity: 0.8, shadowRadius: 34, shadowOffset: { width: 0, height: 0 }, marginBottom: 8 },
+  promptIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brass100, alignItems: "center", justifyContent: "center" },
   prompt: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: radius.card,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: colors.chart200,
     backgroundColor: colors.paper,
+    shadowColor: colors.ink900,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   composer: { paddingHorizontal: 16, paddingTop: 8, gap: 8, backgroundColor: colors.chart50 },
   attached: { flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: radius.card, backgroundColor: colors.paper },
   attachedImage: { width: 52, height: 52, borderRadius: 12 },
   roundButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  attach: { width: 44, height: 44, borderRadius: radius.field, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
+  attach: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.chart100, alignItems: "center", justifyContent: "center" },
   input: {
     flex: 1,
     minHeight: 44,
     maxHeight: 140,
-    borderRadius: radius.field,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: colors.chart200,
     backgroundColor: colors.paper,
@@ -517,5 +563,5 @@ const styles = StyleSheet.create({
     color: colors.ink900,
     textAlign: "auto",
   },
-  send: { width: 44, height: 44, borderRadius: radius.field, backgroundColor: colors.ink900, alignItems: "center", justifyContent: "center" },
+  send: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brass500, alignItems: "center", justifyContent: "center" },
 });

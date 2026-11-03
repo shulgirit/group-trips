@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "189376911004",
+    "project_id": "group-trips-2f753",
+    "storage_bucket": "group-trips-2f753.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189376911004:android:da6c8397ef04fb72c63f59",
+        "android_client_info": {
+          "package_name": "app.together.trips"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "189376911004-het2elhcngd115lamlrqugr2077f3cef.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.together.trips",
+            "certificate_hash": "f1ccbd80b5a42d2a36cb5a92880d43f1f6a3a1c6"
+          }
+        },
+        {
+          "client_id": "189376911004-dj1u8aghejfatoduqml8kda0vtb9u11t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzOEZtFDGvaderxrpkGVeIW_oGcvL9HJg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "189376911004-dj1u8aghejfatoduqml8kda0vtb9u11t.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "189376911004-n73cldcet8sbu4202jnqfc76asv8ebo5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.together.trips"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

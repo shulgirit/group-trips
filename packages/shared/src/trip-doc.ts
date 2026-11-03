@@ -80,6 +80,12 @@ export interface TripDoc {
   timezone: string;
   /** ISO 4217 — the first stop's currency */
   currency: string;
+  /** Currencies the organizer offers for expenses (absent = the stops' + ₪) */
+  currencies?: string[];
+  /** The currency the combined settle-up is shown in */
+  mainCurrency?: string;
+  /** Manually edited rates: units of the main currency per 1 unit of the key */
+  rateOverrides?: Record<string, number>;
   /** https cover photo (Places photo) or null for a designed hero */
   coverImage: string | null;
   /** Outbound departure, ISO with offset — drives the home countdown */
@@ -441,6 +447,9 @@ export function tripConfigFromDoc(
     endDate: trip.endDate,
     timezone: current.timezone || trip.timezone || "UTC",
     currency: current.currency || trip.currency || "EUR",
+    currencies: trip.currencies?.length ? trip.currencies : undefined,
+    mainCurrency: trip.mainCurrency || undefined,
+    rateOverrides: trip.rateOverrides && Object.keys(trip.rateOverrides).length ? trip.rateOverrides : undefined,
     mapCenter: {
       lat: stops.reduce((sum, s) => sum + s.lat, 0) / stops.length,
       lng: stops.reduce((sum, s) => sum + s.lng, 0) / stops.length,

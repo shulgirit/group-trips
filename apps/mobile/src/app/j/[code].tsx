@@ -17,6 +17,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { signInAsGuest } from "@/lib/auth";
+import { useSafeQuery } from "@/lib/safe-query";
+import { track } from "@/lib/analytics";
 import { type TKey, useT } from "@/lib/i18n";
 
 const MUTED = "rgba(241,243,239,0.72)";
@@ -39,7 +41,7 @@ export default function Join() {
   const code = String(raw ?? "").toLowerCase();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const result = useQuery(api.invites.preview, { code });
-  const me = useQuery(api.account.me, isAuthenticated ? {} : "skip");
+  const me = useSafeQuery(api.account.me, isAuthenticated ? {} : "skip");
   const redeem = useMutation(api.invites.redeem);
 
   const [pickedFamily, setPickedFamily] = useState<string | null>(null);
@@ -107,6 +109,7 @@ export default function Join() {
       }
       try {
         const tripId = await redeem({ code, familyId: memberFamilyId as Id<"families"> | null, memberKey });
+        track("invite_joined");
         router.replace(`/t/${tripId}`);
       } catch (err) {
         const data = (err as { data?: { detail?: string; code?: string } }).data;

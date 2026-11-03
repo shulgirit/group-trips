@@ -65,6 +65,128 @@ describe("trip access", () => {
   });
 });
 
+describe("trip drafts", () => {
+  it("saves wizard progress, hides it from others, and does not use up the free limit", async () => {
+    const t = makeTest();
+    const owner = await userClient(t, { name: "Omer" });
+    const draftId = await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 2 }) });
+    let mine = await owner.as.query(api.trips.mine, {});
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ status: "draft", draftStep: 2 });
+
+    // Progress moves forward on later saves
+    await owner.as.mutation(api.trips.update, { tripId: draftId, input: tripInput({ status: "draft", draftStep: 3 }) });
+    mine = await owner.as.query(api.trips.mine, {});
+    expect(mine[0]).toMatchObject({ draftStep: 3 });
+
+    // Someone else never sees it
+    const other = await userClient(t, { name: "Noa" });
+    expect(await other.as.query(api.trips.mine, {})).toEqual([]);
+
+    // Five abandoned drafts do not block creating live trips
+    for (let i = 0; i < 5; i++) await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 1, name: `Draft ${i}` }) });
+    for (let i = 0; i < 5; i++) await owner.as.mutation(api.trips.create, { input: tripInput({ name: `Live ${i}` }) });
+    expect(await code(owner.as.mutation(api.trips.create, { input: tripInput({ name: "One too many" }) }))).toBe("trip_limit");
+
+    // Launching a draft goes through the same limit, and clears the progress marker once live
+    expect(await code(owner.as.mutation(api.trips.update, { tripId: draftId, input: tripInput({ status: "active" }) }))).toBe("trip_limit");
+  });
+
+  it("a draft that goes live drops its progress marker", async () => {
+    const t = makeTest();
+    const owner = await userClient(t, { name: "Omer" });
+    const id = await owner.as.mutation(api.trips.create, { input: tripInput({ status: "draft", draftStep: 3 }) });
+    await owner.as.mutation(api.trips.update, { tripId: id, input: tripInput({ status: "active" }) });
+    const { trip } = await owner.as.query(api.trips.get, { tripId: id });
+    expect(trip.status).toBe("active");
+    expect(trip.draftStep).toBeUndefined();
+  });
+});
+
+describe("sign-up race", () => {
+  it("the trip list is empty (not an error) before the profile row exists", async () => {
+    const t = makeTest();
+    const identity = t.withIdentity({ subject: "brand-new-auth-id", issuer: "https://example.test" });
+    expect(await identity.query(api.trips.mine, {})).toEqual([]);
+    expect(await t.query(api.trips.mine, {})).toEqual([]);
+  });
+});
+
+describe("reports", () => {
+  it("members can report; outsiders cannot; the daily limit holds", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    const stranger = await userClient(t);
+    expect(await code(stranger.as.mutation(api.reports.submit, { tripId, kind: "place", targetId: "p1", excerpt: "x" }))).toBe("not_member");
+    const first = await member.as.mutation(api.reports.submit, { tripId, kind: "ai_reply", targetId: "m1", excerpt: "bad answer", reason: "offensive" });
+    expect(first.id).toBeTruthy();
+    const stored = await t.run(async (ctx) => ctx.db.query("reports").collect());
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ kind: "ai_reply", status: "open", reason: "offensive" });
+    for (let i = 0; i < 20; i++) await owner.as.mutation(api.reports.submit, { tripId, kind: "other", targetId: `t${i}`, excerpt: "e" });
+    expect(await code(owner.as.mutation(api.reports.submit, { tripId, kind: "other", targetId: "t99", excerpt: "e" }))).toBe("too_many_reports");
+  });
+});
+
+describe("settle everything", () => {
+  it("records repayments that bring every currency to zero", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    const [a, b] = (await owner.as.query(api.families.list, { tripId })).map((f) => f._id);
+    const day = "2026-10-23";
+    await owner.as.mutation(api.expenses.add, { tripId, payerFamilyId: a, description: "Hotel", amount: 200, currency: "GBP", date: day, participantFamilyIds: null });
+    await owner.as.mutation(api.expenses.add, { tripId, payerFamilyId: b, description: "Taxi", amount: 90, currency: "ILS", date: day, participantFamilyIds: null });
+
+    const result = await member.as.mutation(api.expenses.settleAll, { tripId, date: day });
+    expect(result.recorded).toBe(2);
+    const rows = await owner.as.query(api.expenses.list, { tripId });
+    expect(rows.filter((r) => r.kind === "settlement")).toHaveLength(2);
+
+    // Nothing left to settle: a second call records nothing
+    const again = await owner.as.mutation(api.expenses.settleAll, { tripId, date: day });
+    expect(again.recorded).toBe(0);
+  });
+});
+
+describe("trip currencies", () => {
+  it("only organizers choose them, valid codes only, 1-8", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    expect(await code(member.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ILS"] }))).toBe("forbidden");
+    expect(await code(owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: [] }))).toBe("currencies");
+    expect(await code(owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ILS", "USD", "EUR", "GBP", "AED", "JPY", "MXN", "THB", "CHF"] }))).toBe("currencies");
+    await owner.as.mutation(api.trips.setCurrencies, { tripId, currencies: ["ils", "AED", "ILS"] });
+    const { trip } = await owner.as.query(api.trips.get, { tripId });
+    expect(trip.currencies).toEqual(["ILS", "AED"]);
+  });
+
+  it("main currency and edited rates are organizer-only, validated, and reset with null", async () => {
+    const { t, owner, tripId } = await tripWithOwner();
+    const member = await join(t, tripId);
+    expect(await code(member.as.mutation(api.trips.setMainCurrency, { tripId, code: "USD" }))).toBe("forbidden");
+    expect(await code(member.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 4 }))).toBe("forbidden");
+    expect(await code(owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "dollars" }))).toBe("currency");
+    expect(await code(owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 0 }))).toBe("rate");
+    expect(await code(owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: Number.NaN }))).toBe("rate");
+
+    await owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "ils" });
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: 3.9 });
+    let { trip } = await member.as.query(api.trips.get, { tripId });
+    expect(trip.mainCurrency).toBe("ILS");
+    expect(trip.rateOverrides).toEqual({ EUR: 3.9 });
+
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "EUR", rate: null });
+    ({ trip } = await member.as.query(api.trips.get, { tripId }));
+    expect(trip.rateOverrides).toEqual({});
+
+    // Changing the main currency drops rates that were relative to the old one
+    await owner.as.mutation(api.trips.setRateOverride, { tripId, code: "GBP", rate: 4.6 });
+    await owner.as.mutation(api.trips.setMainCurrency, { tripId, code: "USD" });
+    ({ trip } = await member.as.query(api.trips.get, { tripId }));
+    expect(trip.rateOverrides).toEqual({});
+  });
+});
+
 describe("invites", () => {
   it("counts uses once per person and stops at maxUses", async () => {
     const { t, owner, tripId } = await tripWithOwner();

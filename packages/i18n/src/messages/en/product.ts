@@ -58,6 +58,10 @@ const product: typeof he = {
   },
   trips: {
     nameTitle: "What should we call you?",
+    photoTitle: "Profile photo",
+    photoChoose: "Choose a photo",
+    photoRemove: "Remove photo",
+    photoFailed: "Could not save the photo. Try again.",
     nameHint: "This is how you'll appear to your group",
     namePlaceholder: "Your name",
     nameSave: "Save",
@@ -82,7 +86,9 @@ const product: typeof he = {
     },
   },
   card: {
-    draft: "Draft — continue",
+    draft: "Draft",
+    draftContinue: "Step {n} of {total} · Continue setting up",
+    draftLocal: "Continue planning your trip",
     live: "On the trip now",
     tomorrow: "Tomorrow",
     inDays: "In {count} days",
@@ -100,6 +106,7 @@ const product: typeof he = {
   account: {
     title: "My account",
     deleteTitle: "Delete account",
+    permanent: "Permanent, complete deletion",
     deleteText:
       "Permanently delete your account and all of your data that we hold. It can't be recovered.",
     dialogTitle: "Permanently delete your account?",
@@ -137,6 +144,11 @@ const product: typeof he = {
       failedNetwork: "Couldn't join — check your connection and try again",
     },
     invited: "You're invited",
+    appTitle: "Join the trip in the Together app",
+    appText: "Invitations open in the app. Tap the button to open it. If you don't have it yet, get it first, then open this link again.",
+    openApp: "Open in the app",
+    getApp: "Don't have the app yet?",
+    codeLabel: "Your invite code",
     organizers: "Organized by {name}",
     aiWaiting: "{name}, the trip's AI assistant, is already waiting",
     alreadyIn: "{count} already joined",

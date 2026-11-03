@@ -126,6 +126,7 @@ const landing: PartialMessages["landing"] = {
     inviteGo: "انضمام",
     inviteInvalid: "هذا لا يبدو رابط دعوة من Together",
     stepOf: "{n} من {total}",
+    demo: { invite: "رابط الدعوة", ask: "خطط لنا يوماً ماطراً", reply: "تم. المتحف الساعة 11:00 والغداء 13:30.", owes: "جيمي مدين لأليكس" },
   },
   footer: {
     legacy: "مسافرون مع صقلية 2026 أو سردينيا؟",

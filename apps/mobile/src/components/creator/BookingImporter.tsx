@@ -1,6 +1,7 @@
 import { api } from "@together/backend/api";
 import type { Doc, Id } from "@together/backend/dataModel";
 import type { BookingItem } from "@together/shared/booking";
+import { formatShortDate } from "@together/i18n/format";
 import { colors, radius } from "@together/shared/tokens";
 import { useAction, useMutation } from "convex/react";
 import * as DocumentPicker from "expo-document-picker";
@@ -17,6 +18,7 @@ import { TimeField } from "@/components/ui/TimeField";
 import { convex } from "@/lib/convex";
 import { errorReason } from "@/lib/convert";
 import { fontFor } from "@/lib/fonts";
+import { track } from "@/lib/analytics";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { uploadToTrip } from "@/lib/upload";
 
@@ -56,7 +58,9 @@ function untilRead(tripId: Id<"trips">, importId: Id<"imports">): Promise<Doc<"i
  * email): the AI extracts each reservation, the organizer reviews and
  * confirms, then events, places and the home base are created.
  */
-export function BookingImporter({ tripId, onApplied }: { tripId: string; onApplied?: (summary: { events: number; places: number; homeBase: boolean }) => void }) {
+type ApplySummary = Awaited<ReturnType<ReturnType<typeof useAction<typeof api.imports.apply>>>>;
+
+export function BookingImporter({ tripId, onApplied }: { tripId: string; onApplied?: (summary: ApplySummary) => void }) {
   const t = useT();
   const { locale } = useLocale();
   const fromFile = useMutation(api.imports.fromFile);
@@ -126,18 +130,32 @@ export function BookingImporter({ tripId, onApplied }: { tripId: string; onAppli
     await extract(key, () => fromText({ tripId: id, text: body, locale }));
   }
 
+  /** What the booking changed in an AI-planned trip, one line each */
+  function reshapeNote(summary: ApplySummary) {
+    const lines = [
+      summary.datesMoved ? t("creator.booking.reshape.dates", { date: formatShortDate(summary.datesMoved.to) }) : "",
+      summary.staysReplaced ? t("creator.booking.reshape.stays", { count: summary.staysReplaced }) : "",
+      summary.eventsReplaced ? t("creator.booking.reshape.events", { count: summary.eventsReplaced }) : "",
+      summary.trimmed ? t("creator.booking.reshape.trimmed", { count: summary.trimmed }) : "",
+      summary.bookedEnd ? t("creator.booking.reshape.end", { date: formatShortDate(summary.bookedEnd), planEnd: formatShortDate(summary.tripEnd) }) : "",
+    ].filter(Boolean);
+    return lines.length ? `\n${lines.join("\n")}` : "";
+  }
+
   async function apply(entry: PendingImport) {
     if (!entry.importId) return;
     patch(entry.key, { status: "applying" });
     try {
       const items = entry.items.filter((i) => i.include).map(({ include, ...item }) => (void include, item));
       const summary = await applyImport({ tripId: id, importId: entry.importId, items });
+      track("booking_imported", { items: items.length });
       patch(entry.key, {
         status: "applied",
         message:
           t("creator.booking.applied", { count: summary.events }) +
           (summary.places ? t("creator.booking.appliedPlaces", { count: summary.places }) : "") +
-          (summary.homeBase ? t("creator.booking.appliedHome") : ""),
+          (summary.homeBase ? t("creator.booking.appliedHome") : "") +
+          reshapeNote(summary),
       });
       onApplied?.(summary);
     } catch {

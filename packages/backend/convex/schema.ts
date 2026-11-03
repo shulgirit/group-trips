@@ -49,6 +49,23 @@ export default defineSchema({
     endDate: v.string(),
     timezone: v.string(),
     currency: v.string(),
+    /** Currencies offered for expenses; absent = the stops' + ILS */
+    currencies: v.optional(v.array(v.string())),
+    /** AI-planned trip not yet confirmed by its organizer: private, no reminders or pushes, dates may move */
+    tentative: v.optional(v.boolean()),
+    /** True while the dates are a suggestion (shifted wholesale by confirmDates) */
+    datesApproximate: v.optional(v.boolean()),
+    plannedFrom: v.optional(v.literal("ai")),
+    /** What the person asked the planner for */
+    planPrompt: v.optional(v.string()),
+    /** The planner's date reasoning and practical tips, shown on the tentative banner */
+    planNotes: v.optional(v.string()),
+    /** Wizard progress of a draft: the furthest step reached (0-4); cleared when the trip goes live */
+    draftStep: v.optional(v.number()),
+    /** The currency the combined settle-up is shown in; absent = ILS when offered, else the first currency */
+    mainCurrency: v.optional(v.string()),
+    /** Manually edited rates: units of the main currency per 1 unit of the key (absent key = live market rate) */
+    rateOverrides: v.optional(v.record(v.string(), v.number())),
     coverImage: v.union(v.string(), v.null()),
     coverTriedAt: v.optional(v.number()),
     departureAt: v.optional(v.union(v.string(), v.null())),
@@ -120,6 +137,7 @@ export default defineSchema({
 
   places: defineTable({
     tripId: v.id("trips"),
+    source: v.optional(v.union(v.literal("ai_plan"), v.literal("booking"), v.literal("manual"))),
     name: v.string(),
     category: placeCategory,
     area: v.optional(v.string()),
@@ -165,6 +183,8 @@ export default defineSchema({
     /** Scheduled reminder push (cancelled/rescheduled when the event moves) */
     reminderJobId: v.optional(v.id("_scheduled_functions")),
     reminderSentAt: v.optional(v.number()),
+    /** Where it came from: AI plan items can be replaced by real bookings */
+    source: v.optional(v.union(v.literal("ai_plan"), v.literal("booking"), v.literal("manual"))),
     createdBy: v.optional(v.id("users")),
     createdByName: v.optional(v.string()),
     firebaseId: v.optional(v.string()),
@@ -329,6 +349,19 @@ export default defineSchema({
     .index("by_trip", ["tripId"])
     .index("by_created", ["createdAt"]),
 
+  /** One AI trip-planner request from free text; the client watches `status` and `phase` */
+  planRuns: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    locale: v.string(),
+    status: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),
+    phase: v.string(),
+    detail: v.optional(v.string()),
+    tripId: v.optional(v.id("trips")),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId", "createdAt"]),
+
   /** Monthly AI quota per trip */
   usage: defineTable({
     tripId: v.id("trips"),
@@ -362,6 +395,22 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_token", ["token"]),
+
+  /** Content / member reports from inside the app (App Store 1.2); reviewed by the owner */
+  reports: defineTable({
+    tripId: v.id("trips"),
+    reporterId: v.id("users"),
+    kind: v.union(v.literal("ai_reply"), v.literal("place"), v.literal("member"), v.literal("other")),
+    /** The reported thing's id (message, place or membership) */
+    targetId: v.string(),
+    /** A short copy of what was reported, so it can be judged even if deleted later */
+    excerpt: v.string(),
+    reason: v.string(),
+    status: v.union(v.literal("open"), v.literal("reviewed")),
+    createdAt: v.number(),
+  })
+    .index("by_trip", ["tripId", "createdAt"])
+    .index("by_status", ["status", "createdAt"]),
 
   /** Exchange-rate cache (EUR base), refreshed by a cron */
   rates: defineTable({

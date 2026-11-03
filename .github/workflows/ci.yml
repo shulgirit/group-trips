@@ -1,6 +1,6 @@
 name: CI
 
-# Typecheck + tests for every workspace (backend/convex-test, i18n, shared, migrate, web, mobile).
+# Typecheck + tests for every workspace (backend/convex-test, i18n, shared, web, mobile).
 # Deploys stay in deploy.yml / preview.yml; this only reports.
 on:
   push:

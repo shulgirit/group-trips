@@ -13,7 +13,8 @@ import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { categoryIcon } from "@/lib/glyphs";
 import { useT } from "@/lib/i18n";
-import { useTrip } from "@/lib/trip";
+import { Avatar } from "@/components/ui/Avatar";
+import { useFaces, useTrip } from "@/lib/trip";
 
 interface Vote {
   voterKey: string;
@@ -47,6 +48,7 @@ export function PollCard({ poll, places }: { poll: Poll; places: Place[] }) {
   const [votersOpen, setVotersOpen] = useState(false);
   const pollId = poll.id as Id<"polls">;
 
+  const faces = useFaces();
   const votes = votesOf(poll, t("polls.traveler"));
   const myVote = votes.find((v) => v.voterKey === me.userId)?.optionId;
   const voterName = me.displayName || t("polls.traveler");
@@ -190,11 +192,7 @@ export function PollCard({ poll, places }: { poll: Poll; places: Place[] }) {
               <View style={styles.optionFoot}>
                 <View style={styles.faces}>
                   {voters.slice(0, 4).map((v, i) => (
-                    <View key={v.voterKey} style={[styles.face, i > 0 && { marginStart: -6 }]}>
-                      <Text variant="caption" weight="medium" color={colors.ink700}>
-                        {v.name.slice(0, 1)}
-                      </Text>
-                    </View>
+                    <Avatar key={v.voterKey} image={faces.byUser.get(v.voterKey)} name={v.name} size={24} style={{ borderWidth: 2, borderColor: colors.paper, ...(i > 0 ? { marginStart: -6 } : {}) }} />
                   ))}
                   {voters.length > 4 && (
                     <Text variant="caption" color={colors.ink500} style={{ marginStart: 4 }}>

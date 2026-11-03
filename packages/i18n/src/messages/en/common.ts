@@ -7,6 +7,15 @@ const common: typeof he = {
   saving: "Saving…",
   cancel: "Cancel",
   close: "Close",
+  report: {
+    action: "Report",
+    title: "Report this content?",
+    offensive: "Offensive or unsafe",
+    wrong: "Wrong or misleading",
+    spam: "Spam",
+    thanks: "Thanks, we got it. We'll review it within 24 hours.",
+    failed: "Couldn't send the report, please try again",
+  },
   confirm: {
     irreversible: "This cannot be undone",
     typeToConfirm: "To confirm, type {word}",

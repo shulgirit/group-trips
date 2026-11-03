@@ -1,3 +1,4 @@
+> **Note (Nov 2026):** the web product, Firebase and Capacitor were removed; this file describes the earlier migration. Current state: `CLAUDE.md`.
 # NEXT — prioritised to-do (2026-10-17)
 
 Legend: 🧑 needs Omer · 🤖 an agent can do it. Update this file as you finish items.

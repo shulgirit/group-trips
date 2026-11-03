@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import {
   BedDouble,
   Binoculars,
@@ -149,15 +150,5 @@ export function Glyph({
   size = 18,
   ...props
 }: { value: string | null | undefined; fallback?: LucideIcon; size?: number } & Omit<LucideProps, "ref">) {
-  const IconComponent = glyphIcon(value, fallback);
-  return <IconComponent size={size} strokeWidth={STROKE} aria-hidden {...props} />;
-}
-
-export function CategoryIcon({
-  category,
-  size = 16,
-  ...props
-}: { category: string; size?: number } & Omit<LucideProps, "ref">) {
-  const IconComponent = CATEGORY_ICON[category as PlaceCategory] ?? MapPin;
-  return <IconComponent size={size} strokeWidth={STROKE} aria-hidden {...props} />;
+  return createElement(glyphIcon(value, fallback), { size, strokeWidth: STROKE, "aria-hidden": true, ...props });
 }

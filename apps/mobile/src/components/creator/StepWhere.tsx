@@ -1,21 +1,25 @@
 import { api } from "@together/backend/api";
 import { type CreatorDestination, type CreatorState, type CreatorStop, primaryPlace, shortId, tripEnd, tripStart } from "@together/backend/creator";
+import { tripCurrencies } from "@together/shared/currency";
 import { colors, radius } from "@together/shared/tokens";
 import { useAction } from "convex/react";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowDown, ArrowUp, Clock, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
+import { ArrowDown, ArrowUp, Clock, Coins, Pencil, MapPin, Plus, Search, Sparkles, Trash2, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { CurrencyPicker } from "@/components/more/CurrencyPicker";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { ChipRow } from "@/components/ui/ChipRow";
-import { DateField } from "@/components/ui/DateField";
+import { DateRangeField } from "@/components/ui/DateRangeField";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { TimeField } from "@/components/ui/TimeField";
 import { TRIP_GLYPHS, glyphIcon } from "@/lib/glyphs";
+import { uploadImage } from "@/lib/upload";
 import { type TKey, useLocale, useT } from "@/lib/i18n";
 import { StepHeader } from "./StepHeader";
 
@@ -146,6 +150,24 @@ function StopCard({
   const t = useT();
   const multi = count > 1;
   const stopNights = nights(stop.startDate, stop.endDate);
+  const [coverBusy, setCoverBusy] = useState(false);
+
+  /** The photo found for the destination is only a default: any picture from the gallery can replace it. */
+  async function pickCover() {
+    if (!stop.place) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, allowsEditing: true, aspect: [16, 9] });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setCoverBusy(true);
+    try {
+      const url = await uploadImage(asset.uri, asset.mimeType ?? "image/jpeg");
+      onChange({ place: { ...stop.place, coverImage: url } });
+    } catch {
+      // keep the default photo; the person can try again
+    } finally {
+      setCoverBusy(false);
+    }
+  }
   return (
     <View style={styles.stopRow}>
       <View style={styles.rail}>
@@ -161,6 +183,9 @@ function StopCard({
           <View style={styles.cover}>
             {stop.place.coverImage ? <Image source={stop.place.coverImage} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
             <LinearGradient colors={["transparent", "rgba(7,12,22,0.8)"]} style={StyleSheet.absoluteFill} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t("trip.eventForm.photoChange")} onPress={pickCover} disabled={coverBusy} hitSlop={8} style={styles.pencil}>
+              {coverBusy ? <ActivityIndicator size="small" color={colors.night950} /> : <Icon icon={Pencil} size={16} color={colors.night950} />}
+            </Pressable>
             <View style={styles.coverText}>
               <View style={{ flex: 1 }}>
                 <Text variant="title" color={colors.chart50} numberOfLines={1}>
@@ -188,30 +213,14 @@ function StopCard({
           </View>
         )}
         <View style={{ padding: 14, gap: 8 }}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text variant="caption" color={colors.ink500}>
-                {index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
-              </Text>
-              <DateField
-                label={index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
-                value={stop.startDate}
-                min={minDate}
-                onChange={(startDate) => onChange({ startDate, ...(stop.endDate && stop.endDate < startDate ? { endDate: startDate } : {}) })}
-              />
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text variant="caption" color={colors.ink500}>
-                {index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
-              </Text>
-              <DateField
-                label={index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
-                value={stop.endDate}
-                min={stop.startDate || minDate}
-                onChange={(endDate) => onChange({ endDate })}
-              />
-            </View>
-          </View>
+          <DateRangeField
+            start={stop.startDate}
+            end={stop.endDate}
+            min={minDate}
+            startLabel={index === 0 ? t("creator.where.depart") : t("creator.where.arrive")}
+            endLabel={index === count - 1 ? t("creator.where.return") : t("creator.where.moveOn")}
+            onChange={(startDate, endDate) => onChange({ startDate, endDate })}
+          />
           <View style={styles.stopFoot}>
             <Text variant="small" color={colors.ink500} style={{ flex: 1 }}>
               {stopNights !== null ? (stopNights === 0 ? t("creator.where.oneDay") : t("creator.where.nights", { count: stopNights })) : ""}
@@ -314,6 +323,7 @@ export function StepWhere({ state, update }: { state: CreatorState; update: (pat
 
   const tripNights = nights(start, end);
   const countries = new Set(stops.map((s) => s.place?.country).filter(Boolean));
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const showDeparture = departureOpen || Boolean(state.departureTime);
 
   return (
@@ -372,6 +382,19 @@ export function StepWhere({ state, update }: { state: CreatorState; update: (pat
               </Text>
             </Pressable>
           )}
+          <Pressable accessibilityRole="button" onPress={() => setCurrencyOpen(true)} style={styles.inline} hitSlop={6}>
+            <Icon icon={Coins} size={16} color={colors.route700} />
+            <Text variant="small" weight="medium" color={colors.route700}>
+              {`${t("settings.trip.currency")}: ${tripCurrencies({ legacy: false, stops: stops.flatMap((s) => (s.place ? [{ currency: s.place.currency }] : [])), currencies: state.currencies }).join(" · ")}`}
+            </Text>
+          </Pressable>
+          <CurrencyPicker
+            key={String(currencyOpen)}
+            open={currencyOpen}
+            initial={tripCurrencies({ legacy: false, stops: stops.flatMap((s) => (s.place ? [{ currency: s.place.currency }] : [])), currencies: state.currencies })}
+            onClose={() => setCurrencyOpen(false)}
+            onSave={async (codes) => update({ currencies: codes })}
+          />
         </View>
       </View>
 
@@ -472,6 +495,7 @@ const styles = StyleSheet.create({
   nodeOpen: { borderWidth: 2, borderColor: colors.route300, backgroundColor: colors.chart50 },
   cover: { height: 112, backgroundColor: colors.night900, justifyContent: "flex-end" },
   coverText: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 14 },
+  pencil: { position: "absolute", top: 12, end: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(241,243,239,0.94)", alignItems: "center", justifyContent: "center" },
   change: { backgroundColor: "rgba(241,243,239,0.92)", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   stopFoot: { flexDirection: "row", alignItems: "center", minHeight: 44 },
   iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12 },

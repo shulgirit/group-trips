@@ -1,5 +1,5 @@
 import { colors, space } from "@together/shared/tokens";
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { KeyboardAvoidingView, RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 /**
@@ -38,7 +38,7 @@ export function Screen({
   );
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {body}
       </KeyboardAvoidingView>
     </SafeAreaView>

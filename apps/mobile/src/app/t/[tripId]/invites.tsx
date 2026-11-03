@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { track } from "@/lib/analytics";
 import { useLocale, useT } from "@/lib/i18n";
 import { useFamilies, useTrip } from "@/lib/trip";
 
@@ -77,6 +78,7 @@ export default function Invites() {
     setError("");
     try {
       await create({ tripId: id, role: "member" });
+      track("invite_created", { role: "member" });
     } catch {
       setError(t("product.invite.loadFailed"));
     } finally {
@@ -89,6 +91,7 @@ export default function Invites() {
     setError("");
     try {
       setKidLink(inviteUrl(await create({ tripId: id, role: "kid" })));
+      track("invite_created", { role: "kid" });
     } catch {
       setError(t("product.admin.kidLinkFailed"));
     } finally {

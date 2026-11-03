@@ -23,7 +23,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       name: `${config.name} (dev)`,
       scheme: "together-dev",
       ios: { ...swap(config.ios), bundleIdentifier: `${config.ios?.bundleIdentifier}.dev` },
-      android: { ...swap(config.android), package: `${config.android?.package}.dev` },
+      // The Firebase file only knows the production package, so dev builds go without push on Android
+      android: { ...swap({ ...config.android, googleServicesFile: undefined }), package: `${config.android?.package}.dev` },
     } as ExpoConfig;
   }
 
@@ -31,6 +32,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   // right-to-left. Real builds must NOT set it: expo-localization would then force the PHONE's language
   // direction on every launch and override the language chosen inside the app.
   if (!env) result = { ...result, extra: { ...result.extra, supportsRTL: true } };
+
+  // Android maps need a Google Maps SDK key (public by design; restricted to the app in Google Cloud)
+  // Only for Android: EAS sets EAS_BUILD_PLATFORM during builds, and the Android update script sets it too. Without
+  // this gate the key would also change the iPhone app's update-compatibility id (its runtime version) and iPhone
+  // updates would silently stop reaching builds that are already installed.
+  const mapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY;
+  if (mapsKey && process.env.EAS_BUILD_PLATFORM === "android") {
+    result = { ...result, android: { ...result.android, config: { ...result.android?.config, googleMaps: { apiKey: mapsKey } } } };
+  }
 
   const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   if (iosClientId) {

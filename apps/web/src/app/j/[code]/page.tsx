@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JoinFlow } from "./JoinFlow";
+import { JoinApp } from "./JoinApp";
 
 export const metadata: Metadata = {
   title: "Trip invitation",
@@ -16,5 +16,5 @@ export default async function JoinPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  return <JoinFlow code={code.toLowerCase()} />;
+  return <JoinApp code={code} />;
 }

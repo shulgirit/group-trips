@@ -39,10 +39,15 @@ async function navUrlFor(ctx: MutationCtx, trip: Doc<"trips">, placeId: Id<"plac
 }
 
 /** (Re)schedules the reminder job for an event's current slot. */
-async function scheduleReminder(ctx: MutationCtx, trip: Doc<"trips">, eventId: Id<"events">) {
+export async function scheduleReminder(ctx: MutationCtx, trip: Doc<"trips">, eventId: Id<"events">) {
   const event = await ctx.db.get(eventId);
   if (!event) return;
   if (event.reminderJobId) await ctx.scheduler.cancel(event.reminderJobId);
+  // A tentative (AI-planned) trip stays quiet until its organizer publishes it
+  if (trip.tentative) {
+    await ctx.db.patch(eventId, { reminderJobId: undefined, reminderSentAt: undefined });
+    return;
+  }
   const start = zonedTimeToUtc(event.day, event.startTime, trip.timezone);
   const at = start === null ? null : start - REMINDER_LEAD_MIN * 60_000;
   // Too late to remind (or no valid time): no job

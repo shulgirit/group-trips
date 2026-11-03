@@ -4,6 +4,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { fontFor } from "@/lib/fonts";
+import { LiveShareBridge } from "@/lib/live-share";
 import { useLocale, useT } from "@/lib/i18n";
 import { TripProvider } from "@/lib/trip";
 
@@ -33,6 +34,7 @@ export default function TripLayout() {
   const title = { fontFamily: fontFor(locale, "semibold", false), color: colors.ink900 };
   return (
     <TripProvider value={data}>
+      <LiveShareBridge />
       <Stack
         screenOptions={{
           headerShown: true,

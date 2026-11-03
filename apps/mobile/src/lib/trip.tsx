@@ -110,6 +110,21 @@ export function useMembers() {
   return useQuery(api.memberships.list, { tripId });
 }
 
+/** Profile photos by seat (roster person) and by user, for avatars across the trip. */
+export function useFaces() {
+  const members = useMembers();
+  return useMemo(() => {
+    const bySeat = new Map<string, string>();
+    const byUser = new Map<string, string>();
+    for (const member of members ?? []) {
+      if (!member.image) continue;
+      byUser.set(member.userId, member.image);
+      if (member.memberKey) bySeat.set(member.memberKey, member.image);
+    }
+    return { bySeat, byUser };
+  }, [members]);
+}
+
 /** The home base: the trip's set one, else the stay for today among saved places. */
 export function useHomeBase() {
   const places = usePlaces();

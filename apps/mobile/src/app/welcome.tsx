@@ -1,32 +1,30 @@
 import { colors } from "@together/shared/tokens";
 import { useConvexAuth } from "convex/react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { CalendarDays, Link2, Sparkles, UsersRound, type LucideIcon } from "lucide-react-native";
+import { Link2 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SignIn } from "@/components/auth/SignIn";
 import { Logo } from "@/components/brand/Logo";
+import { OnboardingCopy, OnboardingPage, SignInBackdrop, type OnboardingKey } from "@/components/onboarding/OnboardingPage";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { inviteCode } from "@/lib/auth";
-import { type TKey, useLocale, useT } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 
-const CARDS: { key: "together" | "guide" | "organized"; icon: LucideIcon }[] = [
-  { key: "together", icon: UsersRound },
-  { key: "guide", icon: Sparkles },
-  { key: "organized", icon: CalendarDays },
-];
+const CARDS: { key: OnboardingKey }[] = [{ key: "together" }, { key: "guide" }, { key: "organized" }];
 
 const MUTED = "rgba(241,243,239,0.72)";
 
 /** First run: three swipeable cards on the night ground, then sign-in. */
 export default function Welcome() {
   const t = useT();
+  const insets = useSafeAreaInsets();
   const { rtl } = useLocale();
   const { preview } = useLocalSearchParams<{ preview?: string }>();
   const { isAuthenticated } = useConvexAuth();
@@ -66,7 +64,17 @@ export default function Welcome() {
   }
 
   return (
-    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {signingIn && (
+        <Animated.View entering={FadeIn.duration(450)} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <SignInBackdrop />
+        </Animated.View>
+      )}
+      {!signingIn && (
+        <Animated.View key={`art-${CARDS[page].key}`} entering={FadeIn.duration(350)} style={StyleSheet.absoluteFill} pointerEvents="none">
+          <OnboardingPage page={CARDS[page].key} />
+        </Animated.View>
+      )}
       <View style={styles.header}>
         <Logo color={colors.chart50} />
         {!signingIn && (
@@ -79,7 +87,9 @@ export default function Welcome() {
       </View>
 
       {signingIn ? (
-        <View style={styles.signIn}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.signIn} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
+        <Animated.View entering={FadeInDown.delay(150).duration(520)} style={styles.sheet}>
           <View style={{ gap: 10 }}>
             <Text variant="display" color={colors.chart50}>
               {t("landing.app.signInTitle")}
@@ -118,21 +128,16 @@ export default function Welcome() {
               </Text>
             </Pressable>
           )}
-        </View>
+        </Animated.View>
+        </ScrollView>
+        </KeyboardAvoidingView>
+
       ) : (
         <>
           <GestureDetector gesture={swipe}>
-            <Animated.View key={CARDS[page].key} entering={FadeIn.duration(220)} style={styles.card}>
-              <View style={styles.node}>
-                <Icon icon={CARDS[page].icon} size={40} color={colors.brass300} />
-              </View>
-              <Text variant="displayLg" color={colors.chart50}>
-                {t(`landing.app.cards.${CARDS[page].key}.title` as TKey)}
-              </Text>
-              <Text variant="headline" color={MUTED}>
-                {t(`landing.app.cards.${CARDS[page].key}.text` as TKey)}
-              </Text>
-            </Animated.View>
+            <View key={CARDS[page].key} style={styles.card}>
+              <OnboardingCopy page={CARDS[page].key} />
+            </View>
           </GestureDetector>
           <View style={styles.footer}>
             <View style={styles.dots} accessibilityLabel={t("landing.app.stepOf", { n: page + 1, total: CARDS.length })}>
@@ -149,28 +154,19 @@ export default function Welcome() {
           </View>
         </>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.night950 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 12 },
-  card: { flex: 1, paddingHorizontal: 24, justifyContent: "center", gap: 16 },
-  node: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 1,
-    borderColor: "rgba(176,138,85,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
+  card: { flex: 1, paddingHorizontal: 24, justifyContent: "flex-end", paddingBottom: 20 },
   footer: { paddingHorizontal: 24, paddingBottom: 12, gap: 16 },
   dots: { flexDirection: "row", gap: 8, justifyContent: "center" },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(241,243,239,0.3)" },
   dotActive: { width: 24, backgroundColor: colors.brass500 },
-  signIn: { flex: 1, justifyContent: "center", paddingHorizontal: 24, gap: 28 },
+  signIn: { flexGrow: 1, justifyContent: "flex-end", paddingHorizontal: 20, paddingBottom: 12 },
+  sheet: { gap: 24, padding: 22, borderRadius: 28, backgroundColor: "rgba(11,19,34,0.66)", borderColor: "rgba(255,255,255,0.14)", borderWidth: StyleSheet.hairlineWidth * 2 },
   inviteRow: { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "center", padding: 8 },
 });
